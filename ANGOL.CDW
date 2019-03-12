@@ -1,0 +1,457 @@
+
+{********************** Printeles uzenetek *********************}
+
+
+const   pr_mess1   = 'Pause printing';
+        pr_mess2   = 'ESC: abort, any other key: continue';
+        pr_mess3   = 'Loading';
+        pr_mess4   = 'Missing file :';
+        pr_mess5   = '  Loading...';
+        pr_mess7   = 'Please wait...';
+        pr_mess8   = 'Printing';
+        pr_mess9   = 'Press any key to stop...';
+        pr_mess10  = 'End of page';
+        pr_mess11  = '     When printer stops';
+        pr_mess12  = 'change paper, then press ENTER';
+        pr_mess13  = 'Printer not ready !';
+        pr_mess14  = '   <R>etry or <E>xit ?';
+        pr_mess15  = ' Page length value is too big !';
+        pr_mess16  = ' <A>ctual <M>aximal <E>xit';
+        pr_mess17  = 'Actual is :';
+        pr_mess18  = '  Maximal is :';
+        pr_mess19  = '-if you don''t use headers/footers-';
+        pr_mess20  = ' to load printer fonts';
+        pr_mess21  = 'Memory optimalization';
+
+        pr_mess22  = 'Illegal printing mode';
+        pr_mess23  = 'There is no compressed printing';
+        pr_mess24  = 'in actual printing mode!';
+        pr_mess25  = '<A>ctual <D>raft mode <E>xit';
+
+(******************************* Egyeb nevek ********************************)
+
+
+                         { SET.CDW - bol}
+
+  Enter_Max_Key = 'Max. keystroke : ';
+      SST0      = 'Number of macro keys';
+
+      EnterDist = 'Distance (inch): ';
+      EnterPage = 'Page : ';
+      EnterPld  = 'Copies: ';
+      SST1      = 'First page to print';
+      SST2      = 'Last page to print';
+      SST3      = 'Page number of first page';
+      SST4      = 'Printer delay';
+      SST5      = 'Delay factor: ';
+      SST6      = 'Set page length';
+      SST7      = 'Page length: ';
+      SST8      = 'Set line spacing value';
+      SST9      = 'Line spacing %  (1-100) : ';
+      SST10     = 'Set automatic backup time';
+      SST11     = 'Time (min) : ';
+      SST12     = 'Printing margin';
+      SST13     = 'Margin: ';
+      SST14     = 'Number of copies';
+      SST15     = 'Dist. between top of labels';
+
+                  { INITCDW.CDW-bol }
+
+      IniST1    = 'Loading';
+      IniST2    = 'Information';
+      IniST3    = 'New file mask';
+      IniST4    = 'File mask  : ';
+      IniST5    = ' directory';
+      IniST6    = 'Directory : ';
+
+
+                  { INPUTCDW.PAS-bol }
+
+      InpST1    = 'Sorting...';
+      InpST2    = 'Directory : ';
+      InpST3    = ' to load file';
+      InpST4    = 'Headers';
+      InpST5    = 'Loading ';
+      InpST6    = 'Saving ';
+      InpST7    = ' PgUp: prev. page ';
+      InpST8    = 'Warning';
+      InpST9    = ' PgDn: next page ';
+      InpST10   = ' Too many files... ';
+
+                  { INPUTELE.CDW-bol }
+
+      IneSt1    : String[16] = '<ESC> : EXIT';
+      IneSt2    = 'Warning';
+      IneSt3    = 'Are you sure, th';
+      IneSt4    = ' file';
+      IneSt5    = ' you want to delete ? (Y/N) ';
+      IneSt6    = 'Delete file';
+      IneSt7    = 'Directory: ';
+      IneSt8    = ' deleted';
+      IneSt9    = 'Rename file';
+      IneSt10   = 'Old ';
+      IneSt11   = 'New ';
+      IneSt12   = 'Program aborted';
+      IneSt13   = ' loaded';
+      IneSt14   = '. font :';
+      IneSt15   = 'Reading file : ';
+      IneSt16   = 'Saving macros';
+      IneSt17   = 'Loading macros';
+      IneSt18   = 'Saving parameters';
+      IneSt19   = 'Loading parameters';
+      IneSt20   = 'File copy';
+      IneSt21   = '     Source file ';
+      IneSt22   = 'Destination file ';
+      IneSt23   = 'Choose typewriter';
+      IneSt24   = 'Choose printer';
+      IneSt25   = 'Select a Database';
+      IneSt26   = 'Define condition';
+      IneSt27   = 'Saving configuration';
+
+      Feltetel  : String[11] = 'condition';
+
+                   { CDW.CDW-bol }
+
+      CDWST1    = 'Reading ';
+
+                   { ELEJE.CDW-bol }
+
+      EleSt1    = 'Fonts';
+      EleSt2    = 'Enter fontfile';
+      EleSt3    = 'Choose a file';
+      EleSt4    = 'Clearing memory';
+      EleSt5    = 'Please wait';
+      EleSt6    = 'Directory: ';
+      EleSt7    = ' to insert line';
+
+                   { BLOKK.CDW-bol   }
+
+      BlSt1     = ' to copy the block';
+
+                   { REPLACE.CDW-bol }
+
+      RepSt1    = ' Change ? (Y/N):';
+      RepSt2    = 'Replace with:';
+      RepSt3    = 'Options: ';
+
+                   { MENU.CDW-bol    }
+
+      MSt1     = 'Loading';
+      MSt2     = 'Main menu';
+
+                   { CDW.PAS-bol     }
+
+      CDWFst1  = ' to insert character';
+      CDWFst2  = 'Serial #: ';
+      CDWFst3  = 'Insert the KEY DISK into drive "A" ';
+
+                   { FORMAT.CDW-bol  }
+      FORMst1  = ' to format';
+
+                   { Innen-onnan }
+
+      YesChar   = 'Y';    { Igen-Nem valaszok             }
+      NoChar    = 'N';
+
+      UjraChar  = 'R';    { Karakterleutesek nyomtataskor }
+      AktChar   = 'A';
+      MaxiChar  = 'M';
+      KilepChar = 'E';
+      EkSzerChar= 'C';
+      AsciiChar = 'A';
+      GyorsChar = 'D';
+
+      DocuSt    : String[10] = 'Document';
+      ASCIISt   : String[10] = 'ASCII file';
+      VenturaSt : String[12] = 'Ventura file';
+      WordStarSt: String[13] = 'WordStar file';
+
+      Fstr      : Array [Find..Replace] Of String[15] =
+           ('Find','Find & Replace');
+
+
+   Texts : Array [-2..8] of STRING[5] =
+('HYP','DEF','INS','SYNC','JUST','FULL:','SPAC:','FONT:','ROW:','COL:','PAGE:');
+
+      RajzTorl_St: Array[False..True] Of String[6] = ('DRAW  ','ERASER');
+      KiBe_St    : Array[0..1] Of String[4] = (':OFF',': ON');
+
+      Positions : array[-2..8] of BYTE = (12,12,16,20,25,30,40,47,55,64,71);
+      YesNo     : Array[0..1] Of String[3] = ('  N','  Y');
+      Wss       : Array[0..1] Of String[8] = ('  ProTex','WordStar');
+      ColMo     : Array[DispType] Of String[6] = (' Color','   B/W');
+
+      {$IFNDEF VER3}
+      PbPr      : Array[0..1] of String[5] = (' Act.',' All ');
+      PgNm      : Array[0..1] of String[5] = ('Cont.','Docu.');
+      {$ENDIF}
+
+      Nincs     : String[5]  = ' None';
+
+      {$IFDEF GOROG}
+        {$IFNDEF VER3}
+          ExName    : String[35]  = 'ProTex - Greek version 4.00d';
+        {$ELSE}
+          ExName    : String[35]  = 'ProTex - Greek version 3.60';
+        {$ENDIF}
+      {$ELSE}
+        {$IFNDEF VER3}
+          ExName    : String[26]  = 'ProTex  version 4.00d';
+        {$ELSE}
+          ExName    : String[26]  = 'ProTex  version 6.41';
+        {$ENDIF}
+      {$ENDIF}
+
+      Szov      : Array [1..3] Of String[6] = ('Work','ProTex','Base');
+      MemSt : String[12] = 'Disk memory';  { Vigy†zat ! Ez a Szov[4]-kÇnt
+                                              is mÅkîdik ! }
+
+      SortStr : Array[False..True] Of String[5] = (' Name',' Date');
+
+      KovLap    : String[16] = ' PgDn: next page';
+
+      Temp_String : String[32] =
+      'TEMPORARY BACKUP - PLEASE WAIT !';
+      Save_String : String[11] =
+      'SAVING FILE';
+
+      {$IFDEF SZAMVEVO}
+      Wsstr : String[25] = 'Do you want to save your ';
+      {$ELSE}
+      Wsstr : String[42] = 'Are you sure, you don''t want to save your ';
+      {$ENDIF}
+      WssSz : String[ 5] = 'text ?';
+      WssFj : String[ 8] = 'footers ?';
+      IgNe  : String[ 9] = ' (Y/N) : ';
+
+
+      Enter_fn        = 'filename ';
+      ReplaySt        = 'Execute macro';
+      MacSt           = 'Choose a macro';
+      DefMac          = 'Define macro';
+      MacroNameString = 'MACRO : ';
+
+      PictureNev      = 'Pict. file name';
+      KepSzelAbl      = 'Pict. width';
+      KepSzel         = 'Width ';
+      KepMagAbl       = 'Pict. height';
+      KepMag          = 'Height ';
+      KepOpcAbl       = 'Display';
+      KepOpc          = 'Options :';
+      TulMagas        = 'Too high !';
+      TulSzeles       = 'Too large !';
+
+      TTT       : Array[1..2] Of String[5]
+                     = ('is','ese');
+      KiBe      : Array[False..True] Of String[3]
+                     = ('Off',' On');
+
+
+  Fst   : String[18] = 'FONT : ';
+
+  SzovegS: String[32]= 'PRESS @, ANY LETTER, OR [ESC]';
+
+      SzotarFile    : FnTyp      = 'KIVETEL.SZO';
+      SzoFile       : FnTyp      = 'KIVETEL.BIN';
+
+      Configfile    : FnTyp      = 'CONFIG.PAR';
+      Deffile       : FnTyp      = 'BASE.PAR';
+      MhelpFile     : FnTyp      = 'PROTEX.HLP';
+      SystemFontname: FnTyp      = 'PROTEX';
+      Backupfile    : String[12] = 'BACKUP.DOC';
+      UresName      : String[9]  = 'EMPTY.DOC';
+      FMask         : String[4]  = '.HDF';
+
+      {$IFDEF PROBA}
+      OvrName    : String[7] = 'CDW.OVR';
+      {$ELSE}
+      OvrName    : String[10] = 'PROTEX.OVR';
+      {$ENDIF}
+
+       HelpFile      : Array [0..1] Of STRING [16] =
+
+                     ('PROTHLP.DOC',  'WSHLP.DOC');
+
+
+                      { ERRORS.HUN }
+
+       ErrorStNum : Byte = 1;
+       ErrorSt    : Array [1..2] Of String[8] = ('ERROR','WARNING');
+
+Const
+      (********************************************************)
+      Sorszam = 9808; (* CSAK ITT KELL MODOSITANI A SORSZAMOT *)
+      (********************************************************)
+
+      SorszSt = Char((Sorszam DIV 1000)+48)+
+                Char(((Sorszam DIV 100) MOD 10)+48)+
+                Char(((Sorszam DIV 10) MOD 10)+48)+
+                Char((Sorszam MOD 10) +48);
+
+Copyright2 : String[70] = ' (C) DARVAS SOFTWARE Co (C) êkSoft Ltd 1994   < Serial# : '+SorszSt+'   >   ';
+
+ErrX : Array[1..8] Of String[16] =
+
+('Missing ")"',
+ 'Unknown id.',
+ 'Empty string',
+ 'Missing oper.',
+ 'Too many ")"',
+ 'Not enough ")"',
+ 'Range error',
+ 'Missing "("');
+
+                         { 8*17+19 }
+         Kivevo2 : Array[1..4,1..4] Of Byte =
+         (
+          (((Sorszam DIV 1000)+48) XOR $CB,234,52,20),
+          (19,(((Sorszam DIV 100) MOD 10)+48) XOR $ED,34,8),
+          (150,55,(((Sorszam DIV 10) MOD 10)+48) XOR $13,98),
+          (68,51,227,((Sorszam MOD 10) +48) XOR $25)
+         );
+
+PressMacKey = 'Macro key : ';
+ReDefine    = 'Redefine ';
+Betut       = ' key';
+{ ReservedKey = 'Reserved key : '; }
+
+MMSG1   =  ' Trying to make connection ';
+MMSG2   =  '. Record being sent';
+MMSG3   =  '. Record being received';
+MMSG4   =  ' Are you sure you want to exit ? (Y/N) ';
+MMSG5   =  ' Modem connection aborted ';
+MMSG6   =  ' To abort connection press <ESC> ';
+MMSG7   =  '. trial';
+MMSG8   = ' Error code: ';
+
+CimFileStr = 'Database : ';
+Keszult    = 'Created : ';
+Modositva  = 'Modified: ';
+Rekord     = ' record';
+
+Condi_Ok = ' is OK';
+
+ FejCim    = ' Chapter name : ';
+ Felulir_e = ' Existing chapter.'+#13+#10+' Update ? (Y/N) ';
+
+ Kiadv_kerd = ' Do you wish to print the whole publication ? (Y/N) ';
+ Kiadv_fej  = ' Publication printing ';
+ Lapsz_kerd = ' Do you wish to use continous page numbering ? (Y/N) ';
+
+ KvtFaSt1   = 'Read directory ...';
+ KvtHelpSor = ' F3 - Change drive ';
+ Lemlabel   = ' Label : ';
+
+KivetelSt = 'Except word';
+UjSzoSt   = 'New word: ';
+UjSzoBeSt = 'Inserting word';
+SzoIndexSt= 'Indexing dictionary';
+
+MarLetezik  = 'already exists, overwrite ';
+
+drv3: String[33] = 'Load a keyboard conversion table';
+drv1: String[33] = 'ASCII input table';
+drv2: String[33] = 'ASCII output table';
+
+drv4 : String[34] = 'Load ChiWriter conversion file';
+
+Var KonvertText : Array[1..3] Of String[33] Absolute Drv3;
+
+Const
+SzovegMentes   =  'Save document';
+Billentyumakro =  'Keystroke macro';
+
+NotAllowed = ' not allowed !';
+
+LineSt = ' lines';
+
+ExtFontNotLoaded = 'Extended font is not loaded !';
+
+LanguageSt = ' Select a language ';
+
+
+IsmeretlenFile = ' Unknown file format !';
+Betoltsem      = '     Loading ? (';
+
+ASCII_Vagy_Ekszer = ' ASCII or ProTex format ? ';
+OlvassamBe        = '       (';
+
+LoadError     =  'Error reading file';
+FileFormat    =  'File type';
+
+Find_Replace_Options: String[23] = 'u: upcase, g: global, ';
+FindOptions: String[20] =          'f1..f@: find font';
+ReplaceOptions: String[44] =       'a: all, n: no question, number: of replaces';
+
+FranciaFormat = 'French format';
+
+Type  Rec = Record
+              Poz : Byte;
+              Txt : String[9];
+            End;
+
+
+Const
+PrevSt1 = 'Generating font:';
+
+      PrTomb : Array[1..9] Of Rec =
+      (
+      (Poz: 00; Txt:'Page'),
+      (Poz: 09; Txt:'Pg.no.'),
+      (Poz: 20; Txt:'Pg.len.'),
+
+      (Poz: 33; Txt:'Driver'),
+      (Poz: 49; Txt:'Dest.'),
+      (Poz: 61; Txt:'Copies'),
+
+      (Poz: 71; Txt:'Marg.'),
+
+      (Poz: 01; Txt:'Header'),
+      (Poz: 19; Txt:'Footer')
+      );
+
+GoPageSt = 'Go to page';
+
+FormatumSt  : Array[False..True] Of String[5] = ('Lands',' Port');
+CondensedSt : Array[False..True] Of String[8] = ('Standard','Condens.');
+KellSt      : Array[False..True] Of String[7] = ('   Once','Always');
+
+PrevStSt = 'Mode,XResolution,YResolution,Colours';
+
+NINCSS = 'NONE';
+
+  OsszegSt = 'Sum ';
+
+  CalcOperators : Array[1..5] Of String[9] =
+               ('Addition',
+                'Subtraction',
+                'Multiply',
+                'Divide',
+                'Equals');
+
+  Tip    : Array[0..1] Of String[4] = ('REGI','UJ');
+
+  CharOver   = 'The GIB reserved';
+  Billentyut = ' key !';
+
+{$IFDEF HALO}
+  UzenetJott : String[22] = 'Network message ';
+  Kuldte     : String[07] = 'Send :';
+{$ENDIF}
+
+ResSt = 'Kalkul†tor eredmÇny ';
+SzammalSt = 'sz†mmal';
+BetuvelSt = 'betÅvel';
+
+SzovegSt = 'Szîveg : ';
+
+  MemSt1 = 'Total lines    : ';
+  MemSt6 = 'In DOS memory  : ';
+  MemSt4 = 'EMS            : ';
+  MemSt5 = 'XMS            : ';
+  MemSt7 = 'In Disk memory : ';
+
+  MemSt2 = 'Free lines     : ';
+  MemSt3 = 'Reserved lines : ';
+
+  ExitStr = 'Type "EXIT" to return ProTex...';

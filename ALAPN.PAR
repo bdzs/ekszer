@@ -1,0 +1,58 @@
+PL   166
+RM   64  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76
+PM     6
+IN     1
+JU     1
+SY     1
+ST     1
+SP    51
+MI  9999
+LE  1000
+EL     1
+KL     1
+PP     0
+LN     0
+CT 1.50
+FD C:\WORK\EKSZER
+WD C:\SOFT\EKSZER\DOC
+F1 STANDARD
+F2 S-DOLT
+F3 S-VASTAG
+F4 NORWEXT
+F5 SAMIEXT
+F6 GOROG
+F7 NEMET
+F8 SPEC1
+F9 SPEC2
+F0 SPEC3
+X1 EURO1
+X2 MAGYAR
+X3 M-DOLT
+X4 M-VASTAG
+X5 ORATOR
+TA    6  11  16  21  26  31  36  41  46  51  56  61  66  71
+LM    0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+FP     1
+LP     1
+SA     0
+PN     1
+CO  54 63 59 15 15 15 15 15 15 15 15 15 15 15 15 63 10 10 10 10 10 10 10 10 10 10 10 14 63
+BG  40  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1
+CC   15  30  31  78  79  63 127 113 158  23 126  30  31 126  63  31  78 127  47  63  30  63  28 124  26  47  79
+CM    7   7  15 127 127 120   7  15 143   7   7 120   7 120 127   7   7 120   7   7   7 112  15 127  15 143  15
+FO   1  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2 40 60  2  0  0
+WS     0
+MO     0
+DM DOC
+PD     0
+SD     0
+CD    10
+YZ     0
+FN ORVOS.DOC ESZAM89.DOC empty.DOC valami.doc
+TI     2
+KF     1
+PF     1
+CP     0
+GY     0
+FR     1
+\=

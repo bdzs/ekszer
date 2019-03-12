@@ -1,0 +1,50 @@
+PL  120
+RM   65
+PM    6
+IN    1
+JU    1
+SY    1
+ST    1
+SP   51
+MI 9999
+LE 1000
+EL    1
+KL    1
+PP    0
+LN    0
+CT 1.50
+FD C:\EKSZER
+WD C:\EKSZER\DOCUMENT
+F1 STANDARD
+F2 MAGYAR
+F3 M-DOLT
+F4 M-VASTAG
+F5 M-INDEX
+F6 OROSZ
+F7 GOROG
+F8 SPEC1
+F9 SPEC2
+F0 SPEC3
+X1 S-DOLT
+X2 S-VASTAG
+X3 S-INDEX
+TA   1  6 11 16 21 26 31 36 41 46 51 56 61 66 71
+LM    0
+FP    1
+LP 9999
+SA    0
+PN    1
+CO  14 11 10  9  9  9  9  9  9  9  9  9  9  9  9 12 12 12 12 12 12 12 12 12 12 12 12 13  7
+BG   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1
+CC   15  30  31  78  79  63  14 126 158  23 123  27  31 126  63  31  78 127  47  63  23  63
+CM    7   7  15 127 127 120   7  15 143   7   7 120   7 120 127   7   7 120   7   7   7 112
+FO   2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2
+WS    0
+MO    0
+DM DOC
+PD    0
+SD    0
+CD   10
+YZ    0
+FN URES.DOC URES.DOC URES.DOC URES.DOC
+\=

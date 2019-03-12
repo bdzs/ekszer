@@ -1,0 +1,1569 @@
+Function CompMainI(Yp : Integer):Integer;
+Begin
+  If MainLineI(Yp) Then
+    CompMainI := Yp
+  Else
+    If UpindexI(Yp) Then
+      CompMainI := Yp + UpIndI(Yp)
+    Else
+      CompMainI := Yp - UpIndI(Yp)
+End;
+
+Function ElegLesz(MainP,Kell : Integer;
+                  Errs  : St80): Boolean;
+Var Fp,Lp : Integer;
+Begin
+  If Kell = 0 Then
+    Begin
+      FirstAndLast(MainP,Fp,Lp);
+      Kell := Lp-Fp+1
+    End;
+  If FreeLines-Kell > 5 Then   { 5 = biztonsagi rahagyas }
+    ElegLesz := True
+  Else
+    Begin
+      ElegLesz := False;
+      If Errs <> '' Then
+        Error(4,Errs)
+    End
+End;
+
+Procedure Fresh_Stat(Mettol,Meddig:Integer;Op : Boolean);
+Var Cikl : Integer;
+Begin
+  For Cikl := Mettol To Meddig Do
+    Line_Stat(Byte(NOT(Op)),Cikl+2,0,FontOffs,SortabOffs,ImageOffs);
+End;
+
+
+Procedure NoEleje;
+Begin
+  Fresh_stat(FirstLine,FirstLine,False)
+End;
+
+Procedure NoVege;
+Begin
+  Fresh_stat(LastLine,LastLine,False)
+End;
+
+
+Procedure New_CompLine(Hp,Also,Felso : Integer);
+
+Var
+  Cikl     : Integer;
+  Ch       : Byte;
+  Hline    : Lpoint;
+
+Begin
+  NewHeapLine(Hp);
+  Heap_Pos(Hline,PointerTomb^[Hp]);
+
+  Set_Bits(Hp,0,128+16);  {  Fosor,   ures,    lapveg, hard  }
+
+  Hline^.attribs[c78] :=  Also;   { Also index beallitas  }
+  Hline^.attribs[c79] := Felso;   { Felso index beallitas }
+
+  FreeEms1(PointerTomb^[Hp]);
+  Inc(All_Lines[Editnum],Also+Felso+1);
+
+End;
+
+{$IFNDEF CDVIEW}
+Procedure SearchIndexPos(Mpos,Ind: Integer; UpTip : Boolean; Var N : Integer);
+
+{ A rutin kiszamolja, hova kell majd beszurni az indexsort a HEAP - en }
+
+Begin
+  N := Mpos;
+
+  If Uptip Then { Felso index }
+    Begin
+      Dec(N);
+      While (N <> StartLine[EditNum]-1) AND (Not MainLine(N)) AND
+            UpIndex(N) AND (UpInd(N) < Ind) Do
+        Dec(N);
+      Inc(N)
+    End
+  Else { Also index }
+    Begin
+      Inc(N);
+      While (N <> Endline[Editnum] + 1) AND (Not MainLine(N)) AND
+            (NOT UpIndex(N)) AND (UpInd(N) < Ind) Do
+        Inc(N);
+    End
+
+End;
+
+
+Procedure CheckIndexLine(P: Integer);
+Begin
+End;
+
+Procedure CreateIndexLine(P: Integer);
+Var N,cikl : Integer;
+    Kezd,Ize   : Integer;
+Begin
+  If UpIndexI(P) Then
+    Begin
+      Ize := 1;
+      Kezd := P-UpInd(MainOfIndex[P])+UpIndI(P);
+      If Kezd < FirstLine Then
+        Kezd := FirstLine
+    End
+  Else
+    Begin
+      Ize := 0;
+      Kezd := P+DownInd(MainOfIndex[P])-UpIndI(P)+1;
+      If Kezd < FirstLine Then
+        Kezd := FirstLine
+    End;
+
+  SearchIndexPos(MainOfIndex[P],UpIndI(P),UpIndexI(P),N);
+  NewHeapLine(N);
+
+  For Cikl := P+1 To LastLine Do
+    If ImageToHeap[Cikl] <> 0 Then  {  A mogotte levo mutatok nonek }
+      Inc(ImageToHeap[Cikl]);
+  ImageToHeap[P] := N;
+
+  For Cikl := Kezd To LastLine Do
+    If NOT MainLineI(P) Then
+      Inc(MainOfIndex[Cikl]);
+
+  Set_Bits(N,$0F,128*Ize+32);
+  Set_Ind(N,UpIndI(P));
+  Set_BitsI(P,$0F,128*Ize+32);
+End; {  Create Indexline  }
+
+Procedure CreateHeapIndex(MainP,Hanyadik,MainI : Integer;
+                                FelsoE         : Boolean;
+                           Var  N              : Integer);
+Var cikl       : Integer;
+    Kezd,Ize,P   : Integer;
+Begin
+  If FelsoE Then
+    Begin
+      Ize := 1;
+      P := MainI - Hanyadik;       { Innen fog noni az ImageTo }
+      Kezd := MainI-UpInd(MainP);  { Innen fog noni a  MainOf  }
+    End
+  Else
+    Begin
+      Ize := 0;
+      P := MainI + Hanyadik;            { ImageTo }
+      Kezd := MainI+DownInd(MainP)+1;   { MainOf  }
+    End;
+
+  SearchIndexPos(MainP,Hanyadik,FelsoE,N);
+  NewHeapLine(N);
+
+  For Cikl := P+1 To LastLine Do
+    If InInt(Cikl,FirstLine,LastLine) And
+         (ImageToHeap[Cikl] <> 0) Then  {  A mogotte levo mutatok nonek }
+      Inc(ImageToHeap[Cikl]);
+
+  If InInt(P,FirstLine,LastLine) Then
+    ImageToHeap[P] := N;
+
+  For Cikl := Kezd To LastLine Do
+    If InInt(Cikl,FirstLine,LastLine) Then
+      If NOT MainLineI(Cikl) Then
+        Inc(MainOfIndex[Cikl]);
+
+  Set_Bits(N,$0F,128*Ize+32);
+  Set_Ind(N,Hanyadik);
+
+  If InInt(P,FirstLine,LastLine) Then
+    Set_BitsI(P,$0F,128*Ize+32);
+End; {  Create Indexline  }
+
+
+Procedure MoveHlines(Source,Dest,SX,DX,SH : Integer;Kell : Boolean);
+
+Var
+    Sline,Dline  : Lpoint;
+    BitMentS,
+    BitMentD     : Byte;
+
+Begin
+
+  Heap_Pos(Sline,PointerTomb^[Source]);
+  Heap_Pos(Dline,PointerTomb^[Dest]);
+
+  BitMentS := Sline^.attribs[0] AND $F0;
+  BitMentD := Dline^.attribs[0] AND $F0;
+
+  If DX + SH > c78 Then SH := c78-DX;
+
+  move(Sline^.Chars[C80+SX],Dline^.Chars[C80+DX],SH);
+  move(Sline^.Attribs[SX],Dline^.Attribs[DX],SH);
+
+  If Kell Then
+  Begin
+    FillChar(Sline^.Chars[C80+Sx],SH,#0);
+    FillChar(Sline^.Attribs[Sx],SH,#0);
+  End;
+
+  Sline^.Attribs[0] := (Sline^.Attribs[0] AND $0F) OR BitMentS;
+  Dline^.Attribs[0] := (Dline^.Attribs[0] AND $0F) OR BitMentD;
+
+  FreeEms1(PointerTomb^[Source]);
+  FreeEms1(PointerTomb^[Dest]);
+
+End;
+
+
+Procedure InsertLines(Eredeti,Xp,Softe : Integer;
+                  Var Ennyi,NewMain,Beszurt : Integer; BalPoz : Byte);
+
+Var
+  ElsoHp,
+  UtolsoHp,
+  NewElso,
+  NewUtolso,
+  Hard,
+  Cikl        : Integer;
+  KellMasolas : Boolean;
+
+Begin
+  Hard := Byte(HardCr(Eredeti));
+  FirstAndLast(Eredeti,ElsoHp,UtolsoHp);
+
+  KellMasolas := VanBennuk(ElsoHp,UtolsoHp,Xp);
+  If KellMasolas Then
+    Begin
+
+      New_CompLine(UtolsoHp+1,DownInd(Eredeti),Upind(Eredeti));
+      NewMain   := UtolsoHp+1;
+      NewUtolso := NewMain;
+      NewElso   := NewMain;
+
+      For Cikl := ElsoHp To Eredeti - 1 Do
+        If VanBenne(Cikl,Xp) Then
+          Begin {  Felso index sor letrehozas es masolas }
+            NewHeapLine(NewMain);
+            Set_Bits(NewMain,$0F,128+32);
+            Set_Ind(NewMain,UpInd(Cikl));
+            MoveHlines(Cikl,NewMain,Xp,BalPoz,SorH(Cikl)-Xp,Yes);
+            Inc(NewMain);
+            Inc(NewUtolso)
+          End;
+
+      If VanBenne(Eredeti,Xp) Then { Fosor masolas }
+        MoveHlines(Eredeti,NewMain,Xp,BalPoz,SorH(Eredeti)-Xp,Yes);
+
+      Set_Bits(NewMain,$0F,16+32+Hard*128);     { az uj sor a regi lesz }
+      Set_Bits(Eredeti,$0F+16+32+64,Softe*128); { a regi hard lesz }
+
+      For Cikl := Eredeti+1 To UtolsoHp Do
+        If VanBenne(Cikl,Xp) Then
+          Begin {  Also index sor letrehozas es masolas }
+            NewUtolso := NewUtolso+1;
+            NewHeapLine(NewUtolso);
+            Set_Bits(NewUtolso,$0F,32);
+            Set_Ind(NewUtolso,UpInd(Cikl));
+            MoveHlines(Cikl,NewUtolso,Xp,BalPoz,SorH(Cikl)-Xp,Yes);
+          End;
+    End  { Ha kell masolas }
+  Else
+    Begin
+      New_CompLine(UtolsoHp+1,AlsoIndexek,FelsoIndexek);
+      NewMain   := UtolsoHp+1;
+      NewUtolso := NewMain;
+      NewElso   := NewMain;
+      Set_Bits(NewMain,$0F,16+32+128);     { az uj sor a regi lesz }
+      Set_Bits(Eredeti,$0F+16+32+64,Softe*128); { a regi hard lesz }
+    End;
+  Ennyi := UpInd(NewMain)+DownInd(NewMain)+1;
+  Beszurt := NewUtolso-NewElso+1
+End;
+
+{      ****** Invertalo rutinok **********    }
+Var
+    InvPoz          : Array[0..1] Of Integer;
+
+Procedure Block_End;
+Begin
+  Block[1]  := MainOfIndex[Ypos];
+  InvPoz[1] := Xpos;
+End;
+
+Function Lefele(Ypoz : Integer):Boolean;
+Var Main : Integer;
+Begin
+  Main := MainOfIndex[Ypoz];
+  Lefele  := ((Main >  Block[0]) And
+              (Main <= Block[1]));
+End;
+
+Function LefMode:Boolean;
+Var Main : Integer;
+Begin
+  LefMode  := Block[0] < Block[1];
+End;
+
+Function Folfele(Ypoz : Integer):Boolean;
+Var Main : Integer;
+Begin
+  Main := MainOfIndex[Ypoz];
+  Folfele := ((Main <  Block[0]) And
+              (Main >= Block[1]));
+End;
+
+Function Kisebb(S1,S2 : Integer):Integer;
+Begin
+  Kisebb := (S1+S2-Abs(S1-S2)) Div 2
+End;
+
+Function Nagyobb(S1,S2 : Integer):Integer;
+Begin
+  Nagyobb := (S1+S2+Abs(S1-S2)) Div 2
+End;
+
+Var
+  FiInv,LaInv : Integer;
+
+Procedure InvertLine2(Ypoz : Integer;KellTobbi:Boolean;XX1,XX2:Integer);
+Var Szabad : Boolean;
+    Main,First,Last,Yp,My   : Integer;
+    RajtaVan : Boolean;
+
+Procedure InvComp(Ypoz : Integer);
+Begin
+  If (Ypoz >= FirstLine) And (Image[Ypoz]^.Chars[C80+c79] = #0) Then
+    Begin
+      If RajtaVan Then
+        Begin
+          FiInv := First;
+          LaInv := Last;
+          If Ypoz <> FirstLine Then
+            Inv_LineI(Ypoz+2,First,Last,0,SortabOffs,1);
+        End;
+      Image[Ypoz]^.Chars[C80+c79] := #1;
+    End;
+End;
+
+Begin
+  Main := MainOfIndex[Ypoz];
+  If  Lefele(Ypoz) Or Folfele(Ypoz) Or (MAin = Block[0]) Then
+    Begin
+      If (Main <> Block[1]) And
+         (Main <> Block[0]) Then
+        Begin
+          First := 0;
+          Last := c77
+        End
+      Else
+        If (Main = Block[1]) Then
+          Begin
+            If (Main = Block[0]) Then
+              Begin
+                First := Kisebb(InvPoz[0],InvPoz[1]);
+                Last  := Nagyobb(InvPoz[0],InvPoz[1]);
+              End
+            Else
+              Begin  { Nem a blokk kezdet soraban van }
+                If LefMode Then
+                  Begin
+                    First := 0;
+                    Last := InvPoz[1]
+                  End { If lefele }
+                Else
+                  Begin
+                    First := InvPoz[1];
+                    Last := c77
+                  End { If felfele }
+              End
+          End  { Ha a blokkveg soraban van }
+        Else
+          If Main = Block[0] Then
+            Begin    { Ha a blokk kezdet soraban van }
+              If LefMode Then
+                Begin
+                  First := InvPoz[0];
+                  Last := c77;
+                End { If lefele }
+              Else
+                Begin
+                  First := 0;
+                  Last := InvPoz[0]
+                End { If felfele }
+            End;
+      If OszlopMode Then
+        Begin
+          First := Kisebb(InvPoz[0],InvPoz[1]);
+          Last  := Nagyobb(InvPoz[0],InvPoz[1]);
+        End;
+
+
+      RajtaVan := ((First-Xoffset)<= XX2) And ((Last-Xoffset)>=XX1);
+
+      If RajtaVan Then
+        Begin
+          If First-Xoffset < XX1 Then
+            First := XX1+Xoffset;
+
+          If Last-Xoffset  > XX2 Then
+            Last  := XX2+Xoffset;
+        End;
+
+      InvComp(Ypoz);               { Aktualis sor       }
+      If KellTobbi Then
+        Begin
+          If Ypoz > FirstLine Then
+            Begin
+              Yp := Ypoz - 1;
+              While (Yp >= FirstLine) And (MainOfIndex[Yp] = Main) Do
+                Begin
+                  InvComp(Yp);         { Folotte levo sorok }
+                  Dec(Yp)
+                End
+            End;
+          If Ypoz < TrueLast Then
+            Begin
+              Yp := Ypoz + 1;
+              While (Yp <= TrueLast) And (MainOfIndex[Yp] = Main) Do
+                Begin
+                  InvComp(Yp);
+                  Inc(Yp)              { Alatta levo sorok  }
+                End
+            End
+        End  { If KellTobbi }
+    End
+End;
+
+Procedure InvertLine(Ypoz : Integer;KellTobbi:Boolean);
+Begin
+  InvertLine2(Ypoz,KellTobbi,0,77);
+End;
+
+
+{$ENDIF CDVIEW}
+
+Const KellKozben : Boolean = True;
+      GlobMut    : Integer = 0;
+
+Procedure PageEndCount;
+Var Cikl,Lc,Pc : Integer;
+
+Begin
+  Lc := Lcount;
+  For Cikl := Byte(LegFelso) To TrueLast Do
+    Begin
+      If Image[Cikl]^.Chars[C80+c78] <> #2 Then
+        Image[Cikl]^.Chars[C80+c78] := Char(Lc = (PageLen-1));
+      If Image[Cikl]^.Chars[C80+c78] <> #0 Then
+        Lc := 0
+      Else
+        Inc(Lc)
+    End
+End;
+
+Procedure Disp_Li(Xp,Cikl:Integer);
+Begin
+  If Xp < Xoffset Then
+    Xp := Xoffset;
+
+  If Xp <= Xoffset+77 Then
+    Disp_Line(Xp,Cikl+2,0,FontOffs,SortabOffs,ImageOffs);
+
+  Image[Cikl]^.Chars[C80+c79] := #0;
+  PageEndCount;
+  If (Image[Cikl]^.Chars[C80+c78] <> #0) And KellKozben And (EditNum <> 29) Then
+    Page_End(0,Cikl+2,0,0,SorTabOffs,Byte(Image[Cikl]^.Chars[C80+c78])-1);
+
+  If Cikl + 1 <= LastLine Then
+  Begin
+    Image[Cikl+1]^.Chars[C80+c79] := #0;
+    If (Image[Cikl+1]^.Chars[C80+c78] <> #0) And KellKozben And (EditNum <> 29) Then
+      Page_End(0,Cikl+2+1,0,0,SorTabOffs,Byte(Image[Cikl+1]^.Chars[C80+c78])-1);
+  End;
+  {writest('invertalni fog',Ypos);}
+  {$IFNDEF CDVIEW}
+  If BlockMode Then InvertLine(Cikl,True);
+  {$ENDIF}
+End;
+
+Procedure PageEndFresh(Num:Integer);
+Var Cikl : Integer;
+Begin
+  For Cikl := Num To TrueLast Do
+    If (Image[Cikl]^.Chars[C80+c78] <> #0) And (EditNum <> 29) Then
+      Page_End(0,Cikl+2,0,0,SorTabOffs,Byte(Image[Cikl]^.Chars[C80+c78])-1);
+End;
+
+Procedure GlobLeszedes;
+Begin
+  If GlobMut = 0 Then
+    PageEndFresh(FirstLine);
+  KellKozben := False;
+  Inc(GlobMut);
+End;
+
+Procedure GlobFelrakas;
+Begin
+  Dec(GlobMut);
+  If GlobMut = 0 Then
+    Begin
+      PageEndCount;
+      PageEndFresh(FirstLine);
+      KellKozben := True;
+    End
+End;
+
+
+{$IFNDEF CDVIEW}
+Procedure Disp_LiN(Xp1,Xp2,Ypoz:Integer);
+Var Yp,Main : Integer;
+
+Procedure InvComp(Ypoz : Integer);
+Begin
+  If Image[Ypoz]^.Chars[C80+c79] = #1 Then
+  Begin
+    If Ypoz <> FirstLine Then
+      Inv_LineI(Ypoz+2,Xp1,Xp2,0,SortabOffs,1);
+    Image[Ypoz]^.Chars[C80+c79] := #0;
+  End;
+End;
+
+Begin
+
+  Main := MainOfIndex[Ypoz];
+  InvComp(Ypoz);               { Aktualis sor       }
+  If Ypoz > FirstLine Then
+    Begin
+      Yp := Ypoz - 1;
+      While (Yp >= FirstLine) And (MainOfIndex[Yp] = Main) Do
+        Begin
+          InvComp(Yp);         { Folotte levo sorok }
+          Dec(Yp)
+        End
+    End;
+  If Ypoz < TrueLast Then
+    Begin
+      Yp := Ypoz + 1;
+      While (Yp <= TrueLast) And (MainOfIndex[Yp] = Main) Do
+        Begin
+          InvComp(Yp);
+          Inc(Yp)              { Alatta levo sorok  }
+        End
+    End
+
+End;
+
+Procedure NewX(Oxpos : Integer);
+
+Var I,Y,Kezd,Veg,First,Last,InvPoz0 : Integer;
+    HomeEnd                         : Boolean;
+
+Procedure HomeOrEnd;
+Begin
+  HomeEnd := False;
+  InvPoz0 := InvPoz[0];
+  If ((Kisebb(Oxpos,Xpos) < InvPoz0) AND (Nagyobb(Xpos,Oxpos) > Invpoz0))
+  Then
+  Begin
+    HomeEnd := True;
+    If Xpos < Oxpos Then Inc(Last)
+                    Else Dec(First);
+  End;
+End;
+
+Procedure InvXX(X1,X2:Integer);
+Var Main : Word;
+    MainI,Ypoz : Integer;
+Begin
+  Main  := MainOfIndex[Ypos];
+  MainI := CompMainI(Ypos);
+  For Ypoz := MainI - UpInd(Main) To MainI + DownInd(Main) Do
+    If Ypoz In [FirstLine+1..LastLine] Then
+      Inv_LineI(Ypoz+2,X1,X2,0,SortabOffs,1);
+End;
+
+Procedure InvActLine;
+Begin
+  If HomeEnd Then InvXX(InvPoz0,InvPoz0);
+  InvXX(First,Last);
+End;
+
+Begin
+  If Lefele(Ypos) Then
+    Begin
+
+      First := -1;
+
+      If Xpos > InvPoz[1] Then
+      Begin
+        First := InvPoz[1]+1;
+        Last  := Xpos;
+      End
+      Else
+        If Xpos < InvPoz[1] Then
+      Begin
+        First := Xpos+1;
+        Last  := InvPoz[1];
+      End;
+
+      If First <> -1 Then
+      Begin
+        If OszlopMode Then
+        Begin
+          If (Xpos < InvPoz[0]) OR ((Xpos = InvPoz[0]) AND (Xpos > Oxpos)) Then
+          Begin
+            Dec(First);
+            Dec(Last);
+          End;
+
+          HomeOrEnd;
+
+          Kezd := 0;
+
+          I := FirstLine+1;
+
+          While (I < CompMainI(Ypos)) AND (Kezd = 0) Do
+          Begin
+            If MainOfIndex[I] = Block[0] Then Kezd := I;
+            Inc(I);
+          End;
+
+          { For I := FirstLine To CompMainI(Ypos) Do
+            If MainofIndex[I] = Block[0] Then Kezd := I; }
+
+          If Kezd = 0 Then Kezd := FirstLine+1;
+
+          I := CompMainI(Ypos)-Upind(MainOfIndex[Ypos]);
+
+          For Y := Kezd To I-1 Do
+          Begin
+            Inv_LineI(Y+2,First,Last,0,SortabOffs,1);
+            If HomeEnd Then Inv_LineI(Y+2,InvPoz0,InvPoz0,0,SortabOffs,1);
+          End;
+
+        End;
+        InvActLine;
+      End;
+
+    End
+  Else
+    If Folfele(Ypos) Then
+      Begin
+        First := -1;
+
+        If Xpos < InvPoz[1] Then
+        Begin
+          First := Xpos;
+          Last  := InvPoz[1]-1;
+        End
+        Else
+          If Xpos > InvPoz[1] Then
+        Begin
+          First := InvPoz[1];
+          Last  := Xpos-1;
+        End;
+
+        If First <> -1 Then
+        Begin
+          If OszlopMode Then
+          Begin
+            If (Xpos > InvPoz[0]) OR ((Xpos = InvPoz[0]) AND (Xpos < Oxpos))
+            Then
+            Begin
+              Inc(First);
+              Inc(Last);
+            End;
+
+            HomeOrEnd;
+
+            Veg := 0;
+            For I := CompMainI(Ypos)+1 To LastLine Do
+            If MainofIndex[I] = Block[0] Then Veg := I;
+
+            If Veg = 0 Then Veg := LastLine;
+
+            I := CompMainI(Ypos)+DownInd(MainofIndex[Ypos]);
+
+            For Y := I+1 To Veg Do
+            Begin
+              Inv_LineI(Y+2,First,Last,0,SortabOffs,1);
+              If HomeEnd Then Inv_LineI(Y+2,InvPoz[0],InvPoz[0],0,SortabOffs,1);
+            End;
+
+          End;
+          InvActLine;
+        End;
+
+      End
+    Else
+      Begin
+        If InvPoz[1] >= InvPoz[0] Then
+          Begin  { Blokk eleje------Blokk vege }
+            If Xpos < InvPoz[1] Then
+              Begin
+                InvXX(Xpos+1,InvPoz[1]);
+                If Xpos < InvPoz[0] Then   { Kisebb lesz a blokkkezdetnel }
+                  Begin
+                    InvXX(Xpos,Xpos);           { Blokkveg     }
+                    InvXX(InvPoz[0],InvPoz[0]); { Blokk kezdet }
+                  End
+              End
+            Else
+              If Xpos > InvPoz[1] Then
+                InvXX(InvPoz[1]+1,Xpos)
+          End
+        Else
+          Begin  { Blokk vege-------Blokk eleje }
+            If Xpos > InvPoz[1] Then
+              Begin
+                InvXX(InvPoz[1],Xpos-1);
+                If Xpos > InvPoz[0] Then   { Nagyobb lesz a blokkkezdetnel }
+                  Begin
+                    InvXX(Xpos,Xpos);           { Blokkveg     }
+                    InvXX(InvPoz[0],InvPoz[0]); { Blokk kezdet }
+                  End
+              End
+            Else
+              If Xpos < InvPoz[1] Then InvXX(Xpos,InvPoz[1]-1);
+          End
+      End;
+  Block_End
+End;
+{$ENDIF}
+
+{  ********* Invertalo rutinok vege ******    }
+
+
+
+Procedure SorCurKi;
+Begin
+  Line_Ptr(0,Ypos+2,0,FontOffs,SortabOffs,ImageOffs);  {  Ki  }
+End;
+
+Procedure SorCurBe;
+Begin
+  Line_Ptr(1,Ypos+2,0,FontOffs,SortabOffs,ImageOffs);  {  Be  }
+End;
+
+
+Procedure ScrollPlusU(Start:Integer);
+Var Cikl : Integer;
+Begin
+  For Cikl := Start+1 To LastLine Do
+    Begin
+      ImageToHeap[Cikl-1] := ImageToHeap[Cikl];
+      MainOfIndex[Cikl-1] := MainOfIndex[Cikl];
+    End
+End;
+
+Procedure ScrollPlusD(Mennyit : Integer);
+Var Cikl : Integer;
+Begin
+  For Cikl := LastLine-Mennyit DownTo FirstLine Do
+    Begin
+      ImageToHeap[Cikl+Mennyit] := ImageToHeap[Cikl];
+      MainOfIndex[Cikl+Mennyit] := MainOfIndex[Cikl];
+    End
+End;
+
+Procedure WriteImageLine(Iline : Integer;Op : Boolean);
+Var Vbit : Byte;
+Begin
+  vbit := Image[Iline]^.attribs[0] and LapVege;
+  Set_BitsI(Iline,Not LapVege,LapVege);
+  Disp_Li(Xoffset,Iline);
+  Set_BitsI(Iline,Not LapVege,vbit);
+
+  Fresh_Stat(Iline,Iline,OP);
+End;
+
+Procedure Kiszur(Kell: Boolean; HeapLine:Lpoint;Xp,N : Integer);
+Var MM : Byte;
+Begin {  Az Xp - edik karaktert torli es scrolloz }
+  {$IFDEF PROTECT}
+  If Kell Then
+  {$ENDIF}
+  Begin
+    {$IFDEF JELSZAVAS}
+      Inc(N,ElSzaro);
+    {$ENDIF}
+      Inc(N,ElSzarr^[EEN]);
+    If Xp = 0 Then
+      MM := HeapLine^.Attribs[0] And $F0;
+    Move(HeapLine^.Chars[C80+Xp+N],HeapLine^.Chars[C80+Xp],c78-Xp-N+1);
+    Move(HeapLine^.Attribs[Xp+N],HeapLine^.Attribs[Xp],c78-Xp-N+1);
+    FillChar(HeapLine^.Attribs[c78-N],N,FontNum[EditNum]);
+    FillChar(HeapLine^.Chars[C80+c78-N],N,#0);
+    If Xp = 0 Then
+      HeapLine^.Attribs[0] :=  HeapLine^.Attribs[0] Or MM;
+  End;
+End;
+
+Procedure Beszur(HeapLine:Lpoint;Xp,N : Integer);
+Begin
+  {$IFDEF JELSZAVAS}
+    Inc(N,ElSzaro);
+  {$ENDIF}
+    Inc(N,ElSzarr^[EEN]);
+  Move(HeapLine^.Chars[C80+Xp],HeapLine^.Chars[C80+Xp+N],c78-(Xp+N));
+  Move(HeapLine^.Attribs[Xp],HeapLine^.Attribs[Xp+N],c78-(Xp+N));
+  HeapLine^.Attribs[Xp] := (HeapLine^.Attribs[Xp] And $F0) Or FontNum[EditNum];
+  HeapLine^.Chars[C80+Xp] := #0;
+End;
+
+Procedure CompKiszur(MainP,Xp,N : Integer);
+Var Elso,Utolso,Cikl : Integer;
+    HeapLine : Lpoint;
+Begin
+  FirstAndLast(MainP,Elso,Utolso);
+  For Cikl := Elso To Utolso Do
+    Begin
+      Heap_Pos(Heapline,PointerTomb^[Cikl]);
+      Kiszur(True,HeapLine,Xp,N);
+      FreeEms1(PointerTomb^[Cikl]);
+    End;
+End;
+
+Procedure CompBeszur(MainP,Xp,N : Integer);
+Var Elso,Utolso,Cikl : Integer;
+    HeapLine : Lpoint;
+Begin
+  FirstAndLast(MainP,Elso,Utolso);
+  For Cikl := Elso To Utolso Do
+    Begin
+      Heap_Pos(Heapline,PointerTomb^[Cikl]);
+      Beszur(HeapLine,Xp,N);
+      FreeEms1(PointerTomb^[Cikl]);
+    End;
+End;
+
+Procedure CompoundLines(   MainP   : Integer;
+                     Var      JA   : JustArray;
+                     Var   Eleje,
+                           Vege    : Integer);
+
+Var Cikl : Integer;
+Begin
+  FirstAndLast(MainP,Eleje,Vege);
+
+  For Cikl := Eleje To MainP-1 Do
+    Begin
+      Heap_Pos(Ja[Cikl-MainP].X,PointerTomb^[Cikl]);
+      Ja[Cikl-MainP].Sor := PointerTomb^[Cikl]
+    End;
+
+  Heap_Pos(Ja[0].X,PointerTomb^[MainP]);
+  Ja[0].Sor := PointerTomb^[MainP];
+
+  For Cikl := Mainp + 1 To Vege Do
+    Begin
+      Heap_Pos(Ja[Cikl-MainP].X,PointerTomb^[Cikl]);
+      Ja[Cikl-MainP].Sor := PointerTomb^[Cikl]
+    End;
+  Dec(Eleje,MainP);
+  Dec(Vege ,MainP);
+End;
+
+Procedure CompoundFree( Dummy   : Word;
+                        JA      : JustArray;
+                        Eleje,
+                        Vege    : Integer);
+Var Cikl : Integer;
+Begin
+
+  For Cikl := Eleje To Vege Do
+    FreeEms1(Ja[Cikl].Sor);
+End;
+
+
+
+Function Egyben(Mainp,X1,X2 : Integer):Boolean;
+Var Cikl : Integer;
+Begin
+  Egyben := True;
+  For Cikl := X1 To X2 Do
+    If Lukas(MainP,Cikl,[' ']) Then
+      Egyben := False
+End;
+
+
+
+{************* Just2 rutinok **************}
+
+Const    Csak_nulla  = $FF;
+         Space_is    = $DF;
+
+Function Luk(Jxp : Integer; Andol : Byte; Var JustPoint: JustArray;
+             Jeleje,Jvege : Integer): Boolean;
+Var Cikl : Integer;
+    LW   : Byte;
+Begin
+  Lw := 0;
+  For Cikl := Jeleje To Jvege Do
+    Lw := Lw OR (Byte(JustPoint[Cikl].X^.Chars[C80+Jxp]));
+  Luk := Not(Boolean(Lw And Andol));
+End;
+
+Function EzVeg(Jxp: Integer; Andol : Byte; Var JustPoint: JustArray;
+               Jeleje,Jvege : Integer): Boolean;
+Var Cikl,Cikl2 : Integer;
+    LW   : Byte;
+Begin
+  Lw := 0;
+  For Cikl := Jeleje To Jvege Do
+    For Cikl2 := Jxp To c77 Do
+      Lw := Lw OR (Byte(JustPoint[Cikl].X^.Chars[C80+Cikl2]) );
+  EzVeg := NOT(Boolean(LW AND Andol));
+End;
+
+Function JSorH(Var JustPoint: JustArray;
+                   Jeleje,Jvege : Integer): Integer;
+
+Var Cikl : Integer;
+Begin
+  Cikl := c77;
+  While (Cikl > 0) And Luk(Cikl,Csak_nulla,JustPoint,Jeleje,Jvege) Do
+    Dec(Cikl);
+  If Not Luk(Cikl,Csak_nulla,JustPoint,Jeleje,Jvege) Then
+    Inc(Cikl);
+  JSorH := Cikl
+End;
+
+Function JSorH2(Var JustPoint: JustArray;
+                   Jeleje,Jvege : Integer): Integer;
+
+Var Cikl : Integer;
+Begin
+  Cikl := c77;
+  While (Cikl > 0) And Luk(Cikl,Space_is,JustPoint,Jeleje,Jvege) Do
+    Dec(Cikl);
+  If Not Luk(Cikl,Space_is,JustPoint,Jeleje,Jvege) Then
+    Inc(Cikl);
+  JSorH2:= Cikl
+End;
+
+
+Function JSorE(Var JustPoint: JustArray;
+                   Jeleje,Jvege : Integer): Integer;
+
+Var Cikl : Integer;
+Begin
+  Cikl := 0;
+  While (Cikl < c77) And Luk(Cikl,Csak_nulla,JustPoint,Jeleje,Jvege) Do
+    Inc(Cikl);
+  JSorE := Cikl
+End;
+
+Function Jegyben(Jxp,Jxp2: Integer; Var JustPoint: JustArray;
+                 Jeleje,Jvege : Integer): Boolean;
+Var Cikl,Cikl2 : Integer;
+    LW         : Byte;
+    VoltSzo    : Boolean;
+    VoltLuk    : Boolean;
+Begin
+  Jegyben  := True;
+  VoltSzo := False;
+  VoltLuk := False;
+  For Cikl2 := Jxp To Jxp2 Do
+    Begin
+      Lw := 0;
+      For Cikl := Jeleje To Jvege Do
+        Lw := Lw OR (Byte(JustPoint[Cikl].X^.Chars[C80+Cikl2]));
+      If NOT(Boolean(Lw And $DF)) Then
+        If VoltSzo Then
+          VoltLuk := True
+        Else Begin End
+      Else { a karakter nem ures }
+        Begin
+          VoltSzo := True;
+          If VoltLuk Then
+            Jegyben := False
+        End;
+    End
+End;
+
+{$IFNDEF CDVIEW}
+
+Procedure CompKi(Jxp,N : Integer; Var JustPoint: JustArray;
+                 Jeleje,Jvege : Integer);
+Var Cikl : Integer;
+    MM   : Byte;
+Begin
+  For Cikl := Jeleje To Jvege Do
+    Begin
+      If Jxp = 0 Then
+        MM := JustPoint[Cikl].X^.Attribs[0] And $F0;
+      Move(JustPoint[Cikl].X^.Chars[C80+Jxp+1],JustPoint[Cikl].X^.Chars[C80+Jxp],c78-Jxp-N+1);
+      Move(JustPoint[Cikl].X^.Attribs[Jxp+1],JustPoint[Cikl].X^.Attribs[Jxp],c78-Jxp-N+1);
+
+      FillChar(JustPoint[Cikl].X^.Attribs[c78-N],N,FontNum[EditNum]);
+      FillChar(JustPoint[Cikl].X^.Chars[C80+c78-N],N,#0);
+
+      If Jxp = 0 Then
+        JustPoint[Cikl].X^.Attribs[0] :=  JustPoint[Cikl].X^.Attribs[0] Or MM;
+    End
+End;
+
+Procedure CompBe(Jxp,N : Integer; Var JustPoint: JustArray;
+                  Jeleje,Jvege : Integer);
+Var Cikl    : Integer;
+    Font,MM : Byte;
+    Ch      : Char;
+Begin
+
+  Ch  := #00;
+  Font:= FontNum[EditNum];
+
+  For Cikl := Jeleje To Jvege Do
+    Begin
+      Move(JustPoint[Cikl].X^.Chars[C80+Jxp],  JustPoint[Cikl].X^.Chars[C80+Jxp+N],  c77-(Jxp+N));
+      Move(JustPoint[Cikl].X^.Attribs[Jxp],JustPoint[Cikl].X^.Attribs[Jxp+N],c77-(Jxp+N));
+
+      FillChar(JustPoint[Cikl].X^.Chars[C80+Jxp],N,Ch);
+
+      MM := JustPoint[Cikl].X^.Attribs[Jxp] And $F0;
+      FillChar(JustPoint[Cikl].X^.Attribs[Jxp],N,Font);
+      JustPoint[Cikl].X^.Attribs[Jxp] := MM Or Font;
+    End
+End;
+
+Function TrueL(XX,Ize : Byte; Var JustPoint: JustArray;
+                Jeleje,Jvege:Integer):Integer;
+Var Cikl,Work : Integer;
+Begin
+  Work := 0;
+  For Cikl := XX To c77 Do
+    If NOT(Luk(Cikl,Ize,JustPoint,Jeleje,Jvege)) Then
+      Inc(Work);
+  TrueL := Work
+End;
+
+
+Procedure Tomorit2(Var JustPoint    : JustArray;
+                       Jeleje,Jvege : Integer;
+                       Jxp          : Integer);
+Var
+    UP : Integer;
+
+Begin
+  UP  := JSorH(JustPoint,Jeleje,Jvege)-1;
+
+  While (Jxp < c78) Do
+    Begin
+      While (Jxp <> c78) And Luk(Jxp,Csak_nulla,JustPoint,Jeleje,Jvege) Do
+        If Jxp > UP Then
+          Jxp := c78
+        Else
+          Begin
+            CompKi(Jxp,1,JustPoint,Jeleje,Jvege);
+            Dec(Up);
+            If (BalraIgazitas OR JobbraIgazitas) AND
+               (Jxp < Xpos) AND (Xpos > 0) Then Dec(Xpos);
+          End;
+      Inc(Jxp);
+    End;
+
+  If JobbraIgazitas Then
+  Begin
+    Xpos := Up;
+    
+    If RightMar[EditNum] > Up Then
+      Begin
+        CompBe(0,RightMar[EditNum]-Up,JustPoint,Jeleje,Jvege);
+        Inc(Xpos,RightMar[EditNum]-Up)
+      End;
+
+    {If Xpos <= Up Then Inc(Xpos,RightMar[EditNum]-Up)
+                  Else Xpos := RightMar[EditNum]-Up;
+    Xpos := LeftMar[EditNum];}
+  End;
+End;
+
+(** Balrol kezdi a beszurast ****
+
+Procedure Igazit2(Var JustPoint    : JustArray;
+                      Jeleje,Jvege : Integer;
+                      LeftSzel     : Integer);
+
+Var SorHossz,Lxp,JXP : Integer;
+    RightM           : Integer;
+    Elv              : Boolean;
+Begin
+  RightM := RightMar[EditNum];
+  { Elv := ElvVolt;
+    If ElvVolt Then Dec(RightM);  }
+  ElvVolt := False;
+
+  JXP := LeftSzel;
+  Lxp := JsorH2(JustPoint,Jeleje,Jvege);
+  While Luk(RightM,Space_is,JustPoint,Jeleje,Jvege) Do
+         {  Amig SPACE vagy nulla a jobb margo }
+    If (Jxp <> LeftSzel)  And
+       (Luk(Jxp,Space_is,JustPoint,Jeleje,Jvege) And
+               (JustPoint[0].X^.Chars[C80+Jxp] = ' '))  And
+       NOT(Luk(Jxp-1,Space_is,JustPoint,Jeleje,Jvege) AND
+               (JustPoint[0].X^.Chars[C80+Jxp-1] = ' ')) Then
+      Begin
+        If Jxp >= Lxp Then
+          Jxp := LeftSzel
+        Else
+          Begin
+            CompBe(Jxp,1,JustPoint,Jeleje,Jvege);
+            Inc(Lxp);
+            Inc(Jxp,2);
+            If Jxp > RightM Then
+              Jxp := LeftSzel
+          End;
+      End
+    Else
+      Begin
+        Inc(Jxp);
+        If Jxp > RightM Then
+          Jxp := LeftSzel
+      End;
+  { ElvVolt := Elv;
+  If ElvVolt Then CompBe(RightM+1,1,JustPoint,Jeleje,Jvege);
+  ElvVolt := False; }
+End;           ***********)
+
+(****)
+Procedure Igazit2(Var JustPoint    : JustArray;
+                      Jeleje,Jvege : Integer;
+                      LeftSzel     : Integer);
+
+{ jobbrol kezdi a beszurast }
+
+Var SorHossz,Lxp,JXP : Integer;
+    RightM           : Integer;
+    Elv              : Boolean;
+Begin
+  RightM := RightMar[EditNum];
+  { Elv := ElvVolt;
+    If ElvVolt Then Dec(RightM);  }
+  ElvVolt := False;
+
+  Lxp := JsorH2(JustPoint,Jeleje,Jvege);
+  JXP := Lxp;
+
+  While Luk(RightM,Space_is,JustPoint,Jeleje,Jvege) Do
+         {  Amig SPACE vagy nulla a jobb margo }
+    If (Jxp <> Lxp)  And
+       (Luk(Jxp,Space_is,JustPoint,Jeleje,Jvege) And
+               (JustPoint[0].X^.Chars[C80+Jxp] = ' '))  And
+       NOT(Luk(Jxp-1,Space_is,JustPoint,Jeleje,Jvege) AND
+               (JustPoint[0].X^.Chars[C80+Jxp-1] = ' ')) Then
+      Begin
+        If Jxp <= LeftSzel Then
+          Jxp := Lxp
+        Else
+          Begin
+            CompBe(Jxp,1,JustPoint,Jeleje,Jvege);
+            Inc(Lxp);
+            Dec(Jxp);
+            If Jxp < LeftSzel Then
+              Jxp := Lxp
+          End;
+      End
+    Else
+      Begin
+        Dec(Jxp);
+        If Jxp < LeftSzel Then
+          Jxp := Lxp
+      End;
+End;
+(*****)
+
+Procedure Just2(MainP  : Integer);
+     Var JustPoint     : JustArray;
+         Jxp           : Integer;
+         Jeleje,Jvege  : Integer;
+
+Begin { Justify 2}
+  CompoundLines(MainP,JustPoint,Jeleje,Jvege);
+  If Not Ezveg(LeftMar[EditNum],$DF,JustPoint,Jeleje,Jvege) Then
+    Begin
+      Tomorit2(JustPoint,Jeleje,Jvege,LeftMar[EditNum]);
+      If (Not Jegyben(LeftMar[EditNum],RightMar[EditNum],JustPoint,Jeleje,Jvege)) And
+         LegyenJust Then { Ha Jegyben van, nincs JUST }
+        Igazit2(JustPoint,Jeleje,Jvege,LeftMar[EditNum]);
+    End;
+  CompoundFree(MainP,JustPoint,Jeleje,Jvege);
+End;  { Just2 }
+
+
+Procedure Igazit(MainP : Integer);
+     Var JustPoint     : JustArray;
+         Jeleje,Jvege  : Integer;
+
+Begin
+  CompoundLines(MainP,JustPoint,Jeleje,Jvege);
+  Igazit2(JustPoint,Jeleje,Jvege,LeftMar[EditNum]);
+  CompoundFree(MainP,JustPoint,Jeleje,Jvege);
+End;
+
+Procedure Tomorit(MainP : Integer);
+     Var JustPoint     : JustArray;
+         Jeleje,Jvege  : Integer;
+
+Begin
+  CompoundLines(MainP,JustPoint,Jeleje,Jvege);
+  Tomorit2(JustPoint,Jeleje,Jvege,LeftMar[EditNum]);
+  CompoundFree(MainP,JustPoint,Jeleje,Jvege);
+End;
+
+
+Procedure IndexTagitas(Honnan,Hova : Integer; Var FoIp : Integer;
+                         E1,E2: Integer);
+
+Var Ele,Moge,ElsoI,UtolsoI,Cikl,MaxInd : Integer;
+    Di,Ui,Fp,Lp,NemKell,Fop,LastSc,Slast : Integer;
+    Leszedte    : Boolean;
+Begin
+  EditNum := E1;
+  Di := DownInd(Honnan);
+  Ui := UpInd(Honnan);
+  EditNum  := E2;
+  Moge     := DI   - DownInd(Hova);
+  Ele      := UI   - UpInd(Hova);
+  ElsoI    := FoIp - UpInd(Hova);
+  UtolsoI  := FoIp + DownInd(Hova);
+  Leszedte := False;
+  If ((ElsoI   < FirstLine) And (Ele  <> 0))  Or
+     ((UtolsoI < FirstLine) And (Moge <> 0)) Then
+    Begin
+      BackCountScount(Hova);
+      Leszedte :=  True;
+    End;
+  If Ele > 0 Then
+    Begin
+      MaxInd := UI;
+      Set_Ind(Hova,MaxInd);
+      If InInt(FoIp,FirstLine,LastLine) Then
+        Set_IndI(FoIp,UpIndI(FoIp)+Ele);  { Felsoindexek szama no }
+      Inc(All_Lines[EditNum],Ele);
+      If InInt(ElsoI,FirstLine,LastLine-Ele) Then
+        Begin { tombok+screen+image scrollozasa }
+          Inc(FoIp,Ele);
+          Inc(UtolsoI,Ele);
+          Move(MainOfIndex[ElsoI],
+               MainOfIndex[ElsoI+Ele],
+               (LastLine-ElsoI-Ele+1)*2);
+          Move(ImageToHeap[ElsoI],
+               ImageToHeap[ElsoI+Ele],
+               (LastLine-ElsoI-Ele+1)*2);
+
+          TrueLast := GoodLast(TrueLast+Ele);
+          SLast    := GoodLast(TrueLast+1);
+          Sc_dn(SLast+2,ElsoI+2,Ele,0,SorTabOffs,ImageOffs);
+
+        End
+      Else
+        Begin
+          {Dec(ElsoI,Ele)}
+          {Inc(FoIp,Ele);
+          Inc(UtolsoI,Ele);}
+
+        End;
+      If InInt(ElsoI,FirstLine,LastLine) Then
+        For Cikl := ElsoI To GoodLast(ElsoI+Ele-1) Do
+          Begin
+            FillImageLine(Cikl);
+            Set_IndI(Cikl,MaxInd - (Cikl-ElsoI));
+            Set_BitsI(Cikl,0,TeleSor+FelsoSor);
+            ImageToHeap[Cikl] := 0;
+            MainOfIndex[Cikl] := Hova;
+            WriteImageLine(Cikl,True);
+          End;
+      If InInt(ElsoI-1,FirstLine,LastLine) Then
+        WriteImageLine(ElsoI-1,True);
+    End;
+
+  If Moge > 0 Then
+    Begin
+      MaxInd := DI;
+      Set_Und(Hova,MaxInd);
+      If InInt(FoIp,FirstLine,LastLine) Then
+        Set_UndI(FoIp,DownIndI(FoIp)+Moge);  { Alsoindexek szama no }
+      Inc(All_Lines[EditNum],Moge);
+      If  InInt(UtolsoI+Moge+1,FirstLine,LastLine-Moge) And
+          InInt(UtolsoI,FirstLine,LastLine-1) Then
+        Begin { tombok+screen+image scrollozasa }
+          Move(MainOfIndex[UtolsoI+1],
+               MainOfIndex[UtolsoI+Moge+1],(LastLine-(UtolsoI+Moge+1)+1)*2);
+          Move(ImageToHeap[UtolsoI+1],
+               ImageToHeap[UtolsoI+Moge+1],(LastLine-(UtolsoI+Moge+1)+1)*2);
+
+           TrueLast := GoodLast(TrueLast+Moge);
+           Slast    := GoodLast(TrueLast+1);
+           Sc_dn(Slast+2,UtolsoI+1+2,Moge,0,SorTabOffs,ImageOffs);
+        End
+      Else
+        If UtolsoI < FirstLine Then
+          Begin
+            Dec(FoIp,Moge);
+            Dec(ElsoI,Moge);
+          End;
+
+      If UtolsoI >= FirstLine Then
+        For Cikl := UtolsoI + 1 To UtolsoI +Moge Do
+          If InInt(Cikl,FirstLine,LastLine) Then
+            Begin
+              FillImageLine(Cikl);
+              Set_IndI(Cikl,MaxInd-(UtolsoI+moge-cikl));
+              Set_BitsI(Cikl,0,TeleSor);
+              ImageToHeap[Cikl] := 0;
+              MainOfIndex[Cikl] := Hova;
+              WriteImageLine(Cikl,True);
+            End;
+
+      Inc(UtolsoI,Moge);
+
+    End;
+  If Leszedte Then
+    Begin
+      Fop := MainOfIndex[FirstLine];
+      NemKell := CountNemKell(FirstLine);
+      CountScount(Fop,NemKell,Hova,0);
+    End;
+  NoVege;
+End;
+{$ENDIF}
+
+Procedure CompKiiro(Mainp,MainI: Integer);
+Var Cikl,ElsoI,UtolsoI : Integer;
+Begin
+   ElsoI   := MainI - UpInd(MainP);
+   UtolsoI := MainI + DownInd(MainP);
+   For Cikl := ElsoI To UtolsoI Do
+     If InInt(Cikl,FirstLine,LastLine) Then
+       WriteImageLine(Cikl,True);
+End;
+
+Var Atrakott,Tagitott : Byte;
+
+{$IFNDEF CDVIEW}
+Procedure Atrak(MainP,PM,Utso,Hova,X,MainI,E1,E2 : Integer;Kell:Boolean);
+Var Fp,Lp,Fp1,Lp1,Cikl,Cikl2,Hanyadik,Ipos : Integer;
+    Vanilyen                               : Boolean;
+    MainI2 : Integer;
+
+Begin
+
+  Tagitott  := 0;
+  Atrakott  := 0;
+
+  EditNum := E1;
+  FirstAndLast(MainP,Fp,Lp);      {  Ahonnan atrakunk }
+  EditNum := E2;
+  FirstAndLast(PM,Fp1,Lp1);       {  Ahova atrakunk   }
+  EditNum := E1;
+  MainI2 := MainI + DownInd(MainP) + UpInd(PM) + 1; {a kov. sor az imagen }
+
+  IndexTagitas(MainP,Pm,MainI2,E1,E2);
+  Cikl := Fp;
+
+  While Cikl <= MainP-1 Do  { Ciklus az aktualis sor felso indexein }
+    Begin
+      Hanyadik  := UpInd(Cikl);
+      VanIlyen := False;
+
+      For Cikl2 := Fp1 To Pm-1 Do { Ciklus az alatta levo soron }
+        If Upind(Cikl2) = Hanyadik Then
+          Begin  { Ha mar van ilyen szamu indexsora }
+            VanIlyen := True;
+            Ipos     := Cikl2
+          End;
+
+      If Not VanIlyen Then
+        Begin
+          EditNum := E2;
+          Inc(Tagitott);
+          CreateHeapIndex(Pm,Hanyadik,MainI2,True,Ipos);
+          If ((E1 = E2) And (Mainp > PM)) Or (E1 > E2) Then
+            Begin
+              Inc(Mainp);
+              Inc(Fp);
+              Inc(Lp);
+            End;
+          Inc(Pm);       { Elozo sor valtozoi }
+          Inc(Lp1);
+
+        End;
+
+      {Inc(Atrakott);}
+
+      MoveHlines(Cikl,Ipos,Utso,Hova,X,Kell);
+      Set_Bits(Cikl,$FF,TeleSor);
+      Inc(Cikl);
+
+    End;
+
+  MoveHlines(MainP,Pm,Utso,Hova,X,Kell);   { Fo sor masolasa }
+  Set_Bits(Pm,$FF,TeleSor);
+  Inc(Atrakott);
+
+  {Set_Bits(Pm,$0F,TeleSor+FoSor);}
+
+  Cikl := MainP+1;
+
+  While Cikl <= Lp Do  {Ciklus az aktualis sor also indexein}
+    Begin
+      Hanyadik  := UpInd(Cikl);
+      VanIlyen := False;
+
+      For Cikl2 := Pm+1 To Lp1 Do { Ciklus a felette levo soron }
+        If Upind(Cikl2) = Hanyadik Then
+          Begin  { Ha mar van ilyen szamu indexsora }
+            VanIlyen := True;
+            Ipos     := Cikl2
+          End;
+
+      If Not VanIlyen Then
+        Begin
+          EditNum := E2;
+          {Inc(Tagitott);}
+          CreateHeapIndex(Pm,Hanyadik,MainI2,False,Ipos);
+          If ((E1 = E2) And (Mainp > PM)) Or (E1 > E2) Then
+            Begin
+              Inc(Mainp);
+              Inc(Fp);
+              Inc(Lp);
+            End;
+
+          Inc(Lp1);            { Elozo sor valtozoi }
+
+        End;
+
+      MoveHlines(Cikl,Ipos,Utso,Hova,X,Kell);
+      Set_Bits(Cikl,$FF,TeleSor);
+      Inc(Atrakott);
+
+      Inc(Cikl);
+
+    End;
+End;
+
+
+Procedure ComplexToScreen(Xp,Yp : Integer);
+Var  OldFelso,
+     OldAlso,
+     OldNemkell,
+     OldMain,
+     Cikl,
+     Myp       : Integer;
+     KellJust  : Boolean;
+
+Begin
+
+  Myp := CompMainI(Yp);
+
+  OldMain  := MainOfIndex[Yp];
+  KellJust := (Just AND NOT(HardCr(OldMain)) And LegyenJust);
+  If KellJust Then
+    Just2(OldMain);
+  OldNemKell := 0;
+  OldFelso := MYp - Upind(OldMain);
+  If OldFelso < FirstLine Then
+    Begin
+      OldNemKell := FirstLine - OldFelso; { Amennyi kilog }
+      OldFelso := FirstLine;
+    End;
+  OldAlso  := GoodLast(MYp + DownInd(OldMain));
+  HalfToImage(OldMain,OldFelso,OldNemKell,1); { comp. sor: Heap -> Image }
+  If KellJust Then Xp := 0;
+  For Cikl := OldFelso To OldAlso Do
+    Begin   { comp. sor: Image -> Screen }
+      Disp_Li(Xp,Cikl);
+      Line_Stat(0,Cikl+2,0,FontOffs,SortabOffs,ImageOffs);
+    End
+End;
+
+
+
+Procedure InsertImageLines(Yp,Xp,Softe : Integer; Var NewMain : Integer);
+Var
+    Ennyi,
+    Beszurt,
+    Hely,
+    Ide,
+    Idaig,
+
+    Myp,
+
+    Cikl  : Integer;
+
+{
+    Yp    : A sor pozicioja az image-en ( lehet index sor is !)
+    Ennyi : Ennyi sorbol all az uj complex sorunk
+    Hely  : Az eredeti complex sor utani sorok szama az image -en
+}
+
+
+Begin
+
+  If ElegLesz(MainOfIndex[Yp],0,EleSt7) Then
+  Begin
+    GlobLeszedes;
+    InsertLines(MainOfIndex[Yp],Xp,Softe,Ennyi,NewMain,Beszurt,LeftMar[EditNum]);
+
+    If MainLineI(Yp) Then
+      MYp := Yp
+    Else
+      If UpIndexI(Yp) Then
+        MYp := Yp + UpIndI(Yp)
+      Else
+        Myp := Yp - UpIndI(Yp);
+
+    Ide := MYp + DownInd(MainOfIndex[Yp]) + 1;
+
+    Hely := LastLine - Ide + 1;
+    If Hely > 0 Then
+      Begin  { Az uj sorbol jut az image-re is }
+        If Hely > Ennyi Then
+          Begin {  Scrollozni kell }
+
+            For Cikl := LastLine -Ennyi DownTo Ide Do
+              Begin { Tombok scrollozasa }
+
+                MainOfIndex[Cikl+Ennyi] := MainOfIndex[Cikl] + Beszurt;
+                If ImageToHeap[Cikl] <> 0 Then
+                  ImageToHeap[Cikl+Ennyi] := ImageToHeap[Cikl] + Beszurt
+                Else
+                  ImageToHeap[Cikl+Ennyi] := 0
+              End;
+
+          {For Cikl := 1 To Ennyi Do
+            Sc_dn(GoodLast(TrueLast+Cikl+2)+2,Ide+2,0,0,SorTabOffs,ImageOffs);}
+
+          Sc_dn(GoodLast(TrueLast+Ennyi+2)+2,Ide+2,Ennyi,0,SorTabOffs,ImageOffs);
+
+          End; {  Scrollozas  }
+
+        LegAlso := False;
+
+        TrueLast := GoodLast(TrueLast+Ennyi);
+
+        OneComplexToImage(NewMain,Ide); { Uj comp. sor: Heap -> Image }
+        Idaig := Ennyi + Ide -1;
+        If Idaig > LastLine Then
+          Idaig := LastLine;
+        For Cikl := Ide To Idaig Do
+          Begin                         { Uj comp. sor: Image -> Screen }
+            Disp_Li(Xoffset,Cikl);
+            Line_Stat(0,Cikl+2,0,FontOffs,SortabOffs,ImageOffs);
+          End
+      End;  {  Uj sor az image-re }
+
+      {  Regi complex sor frissitese  }
+    ComplexToScreen(Xp,YP);
+    GlobFelrakas;
+  End
+Else
+  NewMain := 0;
+NoVege;
+End;  {  InsertImageLines  }
+
+Procedure InvertMiddleOfLine;
+Begin
+  Disp_LiN(Kisebb(InvPoz[0],InvPoz[1]),
+           Nagyobb(InvPoz[0],InvPoz[1]),Ypos);
+End;
+{$ENDIF CDVIEW}

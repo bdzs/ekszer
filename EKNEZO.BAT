@@ -1,0 +1,1 @@
+..\exe\eknezo %1

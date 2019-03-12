@@ -1,0 +1,1495 @@
+{$IFNDEF CDVIEW}
+
+Procedure NyelvEsz;
+Var Axr,Bxr,Cxr,Dxr : Word;
+Begin
+
+  Axr := Register.Ax;
+  Bxr := Register.Bx;
+  Cxr := Register.Cx;
+  Dxr := Register.Dx;
+
+  Move(Mutato_1^,Mutato^,30);
+
+  Asm
+    MOV AX,AXR
+    MOV BX,BXR
+    MOV CX,CXR
+    MOV DX,DXR
+
+    INT NYELVESZINT1
+
+    MOV AXR,AX
+
+  END;
+
+  Move(Image[-2]^,Mutato^,30);
+
+  Register.Ax := Axr;
+
+End;
+
+Function UresLineI(Yp: Integer): Boolean;
+Var Hossz2: Integer;
+Begin
+  Hossz2 := 0;
+
+  While (Hossz2 < c77) AND (Image[Yp]^.Chars[C80+Hossz2] In [' ',#00]) Do
+    Inc(Hossz2);
+
+  UresLineI := (Hossz2 = c77);
+End;
+
+Var VoltRestoreXY,
+    GlobalKesz      : Boolean;
+
+Procedure Replace_Word(Var Szo,UjSzo : Str160; Len1,Len2 : Byte; Upc: Boolean; Var MainI: Integer);
+
+Type Tipusok = (Doltek,Vastagok,Indexek,Normalok,Oratorok,Alahuzottak);
+
+Var  TempSync,TempIns  : Boolean;
+     TempFont,
+     ReplaceFont,
+     MaxUpper,MaxLower,
+     Cik,OYpos,OXpos   : Byte;
+
+     TipusTomb : Array[Tipusok] Of Byte;
+
+     GreatestTip,TipCik : Tipusok;
+
+     B,Greatest : Byte;
+
+Const ConvSt : Array[1..2] Of String[9] =
+
+      (';''[]=\`0-',  { 1 = Magyar UpCase }
+       ':"{}+|~)_');
+
+Begin
+
+  For TipCik := Doltek To Alahuzottak Do TipusTomb[TipCik] := 0;
+
+  If Len1 = 0 Then Len1 := Length(Szo);
+  TempSync := Sync;
+  TempIns  := Inser;
+  Sync  := False;      { Syncron OFF }
+  Inser := True;
+
+  If Len2 > 0 Then
+  Begin
+    OXpos := Xpos;
+    OYpos := Ypos;
+    Inc(Ypos);
+    While ((Ypos <= TrueLast) AND (NOT MainLineI(Ypos))) OR
+          ((Ypos <= TrueLast) AND (UresLineI(Ypos))) Do
+            Inc(Ypos);
+
+    If Ypos <= TrueLast Then
+    Begin
+      Xpos := 0;
+      While Image[Ypos]^.Chars[C80+Xpos] In [' ',#00] Do Inc(Xpos);
+      Kezdo := Xpos;
+      CheckXpos(True);
+      For Cik := 1 To Len2 Do
+        Del_Char(Forw);
+    End;
+    Xpos := OXpos;
+    Ypos := OYpos;
+    CheckXpos(True);
+  End;
+
+  TempFont := FontNum[EditNum];
+
+  ReplaceFont := Image[Ypos]^.Attribs[Xpos];
+
+  If Upc Then
+  Begin
+
+    MaxUpper := 0;
+    MaxLower := 0;
+
+    { For Cik := 0 To Length(Szo)-1 Do
+    Begin }
+
+    Cik := 0;
+
+    Repeat
+
+      If Image[Ypos]^.Chars[C80+Xpos+Cik] In
+        ['A'..'Z',':','"','{','}','+','|','~',')','_']
+      Then
+        MaxUpper := Cik+1
+      Else
+        MaxLower := Cik+1;
+
+      B := Image[Ypos]^.Attribs[Xpos+Cik] AND 15;
+
+      If B <> 0 Then
+      Begin
+        If OratorE(B) Then Inc(TipusTomb[Oratorok])
+        Else
+          If DoltE(B) Then Inc(TipusTomb[Doltek])
+          Else
+            If VastagE(B) Then Inc(TipusTomb[Vastagok])
+            Else
+              If IndexE(B) Then Inc(TipusTomb[Indexek])
+              Else
+                If AlahuzottE(B) Then Inc(TipusTomb[Alahuzottak])
+                Else
+                  Inc(TipusTomb[Normalok]);
+      End;
+
+      Inc(Cik);
+
+    Until (Cik = Length(Szo)-1) OR (B = 0);
+
+    {End;}
+
+    Greatest := 0;
+    GreatestTip := Normalok;
+
+    For TipCik := Doltek To Alahuzottak Do
+      If TipusTomb[TipCik] > Greatest
+      Then
+      Begin
+        Greatest    := TipusTomb[TipCik];
+        GreatestTip := TipCik;
+      End;
+
+    {$IFDEF HELYESKE}
+      {$IFDEF SPELL}
+        Case GreatestTip Of
+          Doltek     : ReplaceFont := StandardDolt;
+          Vastagok   : ReplaceFont := StandardVastag;
+          Indexek    : ReplaceFont := StandardIndex;
+          Normalok   : ReplaceFont := Standard;
+          Oratorok   : ReplaceFont := StandardOrator;
+          Alahuzottak: ReplaceFont := StandardAlahuzott;
+          Else         ReplaceFont := Standard;
+        End;
+      {$ELSE}
+        Case GreatestTip Of
+          Doltek     : ReplaceFont := MagyarDolt;
+          Vastagok   : ReplaceFont := MagyarVastag;
+          Indexek    : ReplaceFont := MagyarIndex;
+          Normalok   : ReplaceFont := Magyar;
+          Oratorok   : ReplaceFont := MagyarOrator;
+          Alahuzottak: ReplaceFont := MagyarAlahuzott;
+          Else         ReplaceFont := Magyar;
+        End;
+      {$ENDIF}
+    {$ELSE}
+      Case GreatestTip Of
+        Doltek     : ReplaceFont := MagyarDolt;
+        Vastagok   : ReplaceFont := MagyarVastag;
+        Indexek    : ReplaceFont := MagyarIndex;
+        Normalok   : ReplaceFont := Magyar;
+        Oratorok   : ReplaceFont := MagyarOrator;
+        Alahuzottak: ReplaceFont := MagyarAlahuzott;
+        Else         ReplaceFont := Magyar;
+      End;
+    {$ENDIF}
+
+    If MaxUpper = Length(Szo) Then MaxUpper := Length(UjSzo);
+
+    For Cik := MaxLower + 1 To MaxUpper Do
+    Begin
+      UjSzo[Cik] := UpCase(UjSzo[Cik]);
+      If Pos(UjSzo[Cik],ConvSt[1]) > 0 Then
+        UjSzo[Cik] := ConvSt[2][Pos(UjSzo[Cik],ConvSt[1])];
+    End;
+
+  End;
+
+  FontNum[EditNum] := ReplaceFont;
+
+  For Cik := 1 To Len1 Do
+    Del_Char(Forw);
+
+  If Xpos + Length(UjSzo) >= C77 Then
+  Begin
+    If Not (LastMain(MainOfIndex[Ypos])) Or UplineI(Ypos) Then
+      GoOneLineDownS;
+    Xpos  := 0;
+    MainI := NextMain(MainI);
+  End;
+
+  Oxpos := Xpos;
+
+  For Cik := 1 To Length(Ujszo) Do
+    New_Char(Byte(UjSzo[Cik]));
+
+  Xpos := Oxpos;
+
+  FontNum[EditNum] := TempFont;
+
+  Valtozas[EditNum] := True;
+  Sync := TempSync;
+  Inser  := TempIns;
+End;
+
+Procedure Correction;
+
+Const  MaxCount = 100;
+
+Var    Scbuf : Array[0..4480+500] Of Byte;
+       Scbuf2: Array[0..8000+500] Of Byte;
+       Scbuf3: Array[0..1840+500] Of Byte;
+       Scbuf4: Array[0..1008+500] Of Byte;
+       Scbuf5: Array[0..3308+500] Of Byte;
+
+       Fname : String[80];
+       P     : Byte;
+       Tex,
+       Tex2  : Text;
+       Code1,
+       Code2 : Integer;
+       OldSor,
+       Sor   : Word;
+       Osz   : Byte;
+       Eltolas: ShortInt;
+       OldSzo: Str160;
+       SzoVal: Str160;
+       S     : String;
+       IORES : Word;
+       Hossz1,
+       Hossz2,
+       Vp,Sp : Byte;
+       MainS,
+       MainI : Integer;
+       Ws    : String[64];
+       Len   : Byte;
+       Xpos2,
+       Ypos2 : Byte;
+       TempFont,
+       TempRightMar : Byte;
+       NewWord,
+       Legutolso,
+       VanERD  : Boolean;
+       MaxLen  : Byte;
+
+       Torolt        : Byte;
+       NemMagyarBetu : Boolean;
+
+Procedure Ask_And_Edit(Var Szo: Str160; X,Y,Len: Integer; X2,Y2,Len2 : Integer; Var MainI: Integer);
+Var YOffs,
+    Ch,Sc,Xp,Yp : Byte;
+    Key         : Char;
+    AxReg       : Word;
+    P,Cik,
+    Kezd,Veg,Add,
+    MenuPont,
+    MaxHelp,
+    Poz,Font    : Byte;
+    LehetPageUp,
+    LehetPageDn,
+    Kesz        : Boolean;
+    UresSt,
+    MentettSzo,
+    RegiSzo     : Str160;
+    Bc  : Byte;
+    GlobalFontSave : Byte;
+
+Const HelpTomb : Array[1..3] Of String[19] =
+
+('F1       > JAV~T"S ',
+ 'NYILAK   > MOZGAT"S',
+ 'PGDN     > LAPOZ"S ');
+
+ EscSt : String[10] = 'ESC> KIL:P';
+
+ MenuCh : String[5] = 'JSVT'#27;
+ MenuPoz: Array[1..6] Of Byte = (04 ,12 ,23 ,33 ,42, 53);
+
+Procedure Inv_Line1;
+Begin
+  Inv_LineI(Y+2,X,X+Len-1,0,sortaboffs,0);  { A cserelendo szo }
+End;
+
+Procedure Inv_Line2;
+Begin
+  If Y2 > 0 Then
+    Inv_LineI(Y2+2,X2,X2+Len2-1,0,sortaboffs,0); { A cserelendo szo masik fele }
+End;
+
+Procedure InvKezdPozLine;
+Begin
+  Inv_Line(2*Poz-2*(Kezd-1)+2+YOffs,Xp+1,Xp+MaxLen+2,0,sortaboffs,0);
+End;
+
+Procedure JobbraBalraNyil;
+Begin
+  Inv_Line(Yp+2+YOffs,Xp+1+Length(Szo)+MenuPoz[MenuPont],
+           Xp-1+Length(Szo)+MenuPoz[MenuPont+1],0,sortaboffs,0);
+End;
+
+Procedure CreateGrWindow(X1,Y1,X2,Y2: Word; Var ScBuf);
+Begin
+  Felsor_IdeOdaW(X1,X2-X1+1,(Y2-Y1),Y1,Ofs(ScBuf),Seg(ScBuf),SortabOffs,0);
+  Ablak(X1,Y1,(Y2-Y1-4) DIV 2,Fontoffs,SortabOffs,X2-X1-2);
+End;
+
+Procedure RemoveGrWindow(X1,Y1,X2,Y2: Word; Var ScBuf);
+Begin
+  Felsor_IdeOdaW(X1,X2-X1+1,(Y2-Y1),Y1,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+End;
+
+Procedure UpDownArrows;
+Var Ws : String[40];
+    Ch : Char;
+    Tf : Byte;
+Begin
+  Tf := GlobalFont;
+  GlobalFont    := 0;
+  SystemWriting := True;
+
+  Ws[0] := Char(MaxLen DIV 2);
+
+  If Kezd > 1 Then Ch := #99
+              Else Ch := #114;
+  FillChar(Ws[1],MaxLen,Ch);
+
+  GotoX(Xp+3+MaxLen DIV 4,Yp-2+(YOffs));
+  Writ(Ws);
+
+  If Veg < GlobalCount Then Ch := #100
+                 Else Ch := #114;
+  FillChar(Ws[1],MaxLen,Ch);
+
+  GotoX(Xp+3+MaxLen DIV 4,Yp+2*18);
+  Writ(Ws);
+
+  SystemWriting := False;
+  GlobalFont := Tf;
+End;
+
+Begin  {Ask_And_Edit}
+
+  If Enabled[6] Then
+  Begin
+
+    Lektorban := True;
+
+    SaveXY;
+
+    YOffs := 0;
+
+    If Y < 4 Then YOffs := 8;
+
+    Font := 0;
+    Repeat
+      Inc(Font);
+    Until (Font > MaxFontNum) OR (MagyarE(Font));
+
+    If Font > MaxFontNum Then Font := 0;
+
+    MentettSzo := Szo;
+    ASCII_To_EkSzer(Szo);
+
+    Inv_Line1;  { A cserelendo szo }
+    Inv_Line2;  { A cserelendo szo masik fele }
+
+    VoltRestoreXY := False;
+
+    If Enabled[6] Then
+    Repeat
+
+      Xp := 0;
+      Yp := 0;
+
+      GlobalFont := Font;
+
+      Kesz := False;
+
+
+      CreateGrWindow(0,Yp+Yoffs,79,Yp+Yoffs+6,ScBuf);
+
+      Gotox(Xp+2,Yp+YOffs);
+
+      {$IFDEF HELYESKE}
+        {$IFDEF SPELL}
+          GlobalFontSave := GlobalFont;
+          GlobalFont := StandardFont;
+          Writ(Szo);
+          GlobalFont := GlobalFontSave;
+          Writ(' > *J(AVIT *S(Z+T"RBA *V("LASZT *T(OV"BB '+EscSt);
+        {$ELSE}
+        Writ(Szo+' > *J(AVIT *S(Z+T"RBA *V("LASZT *T(OV"BB '+EscSt);
+        {$ENDIF}
+      {$ELSE}
+        Writ(Szo+' > *J(AVIT *S(Z+T"RBA *V("LASZT *T(OV"BB '+EscSt);
+      {$ENDIF}
+
+      Inv_Line(Yp+2+YOffs,Xp+2,Xp+1+Length(Szo),0,sortaboffs,0);  { Az ablak szovege }
+
+      MenuPont := 1;
+
+      JobbraBalraNyil;
+
+      Repeat
+
+        NemKellCursor := True;
+        PuffiRekurzio := True;
+        Puffi(Ch,Sc);  {Wait for a key  +  cursor flashing }
+        PuffiRekurzio := False;
+        NemKellCursor := False;
+
+        Key := UpCase(Char(Ch));
+        If Ch = 0 Then
+        Begin
+
+          If (Sc = JobbraNyil) OR (Sc = BalraNyil) Then JobbraBalraNyil;
+
+          Case Sc Of
+            JobbraNyil : Begin
+                           Inc(MenuPont);
+                           If MenuPont > 5 Then MenuPont := 1;
+                         End;
+            BalraNyil  : Begin
+                           Dec(MenuPont);
+                           If MenuPont < 1 Then MenuPont := 5;
+                         End;
+          End;
+
+          If (Sc = JobbraNyil) OR (Sc = BalraNyil) Then JobbraBalraNyil;
+
+        End;
+
+        If Pos(Key,MenuCh) > 0 Then
+        Begin
+          JobbraBalraNyil;
+          MenuPont := Pos(Key,MenuCh);
+          JobbraBalraNyil;
+        End;
+
+        If Ch = Enter Then Key := MenuCh[MenuPont];
+
+      Until Pos(Key,MenuCh) > 0;
+
+
+      If Key <> Char(Escape) Then
+      Begin
+
+        If Key = 'V' Then
+        Begin
+
+          FillChar(UresSt,80,' ');
+
+          Gxp := Xp+Length(Szo)+4;
+          Gyp := Yp+YOffs;
+
+          Gotox(Gxp,Gyp);
+          UresSt[0] := Char(78-Gxp);
+          Writ(UresSt);
+
+          If (SpellerNum = 0) OR (NOT OsszetettVolt) Then
+          Begin
+            GotoX(67,Gyp);
+            Writ(EscSt);
+            Gotox(Gxp,Gyp);
+            Writ('K:REM V"RJON ');
+
+            Register.AX := NyComp OR NyEdit OR NySkip;
+            Register.BX := Seg(Szo);
+            Register.CX := Ofs(Szo);
+
+            GlobalCount := 0;
+
+            {EkSzer_To_ASCII(Szo);}
+            Szo := MentettSzo;
+
+            {$IFDEF HELYESKE}
+
+            Ext_Enter;
+
+            SajatSzo := Szo;
+
+            HelyesLen := 60;
+            If HelyesE(SajatSzo[1],HelyesLen) Then;
+
+            Cik := 0;
+
+            Repeat
+
+              Javasol(SajatSzo[1]);
+              Byte(SajatSzo[0]) := 00;
+
+              Bc := 1;
+              While SajatSzo[Bc] <> #00 Do
+              Begin
+                Inc(Bc);
+                Inc(Byte(SajatSzo[0]));
+              End;
+
+              SzoTomb[Cik] := SajatSzo;
+              Inc(Cik);
+            Until Length(SajatSzo) = 0;
+
+            Ext_Leave;
+
+            Dec(Cik);
+
+            SzoDbPoint^ := Cik;
+
+            {$ELSE}
+            NyelvEsz;
+            {$ENDIF}
+
+            ASCII_To_EkSzer(Szo);
+          End;
+
+          GlobalCount := SzoDbPoint^;
+
+          If GlobalCount > 0 Then
+          Begin
+
+            For Cik := 1 To GlobalCount Do
+            Begin
+              SzavakP.Offset := SzoPoint^[Cik-1];
+              If Length(Szavak^) > MaxLen Then
+                MaxLen := Length(Szavak^);
+            End;
+
+            OldSzo := Szo;
+
+            Xp := Length(Szo)+4;
+
+            MaxHelp := 3;
+
+            Veg := GlobalCount;
+            If Veg > 18-(YOffs DIV 2) Then Veg := 18-(YOffs DIV 2);
+
+            Dec(MaxHelp,Byte(Veg = GlobalCount));
+            Dec(MaxHelp,Byte(GlobalCount = 1));
+
+            Poz := Yp;
+
+            CreateGrWindow(Xp,Yp+Yoffs,Xp+MaxLen+4,Yp+Yoffs+(Veg*2)+4,ScBuf2);
+            CreateGrWindow(Xp+MaxLen+4,Yp+Yoffs,Xp+MaxLen+4+23,Yp+Yoffs+(MaxHelp*2)+4,ScBuf3);
+
+            For Cik := 1 To MaxHelp Do
+            Begin
+              GotoX(Xp+MaxLen+6,Yp+2*(Cik-1)+YOffs);
+              Writ(HelpTomb[Cik]);
+            End;
+
+            CreateGrWindow(Xp+MaxLen+4,Yp+Yoffs+2*MaxHelp+4,Xp+MaxLen+4+21,Yp+Yoffs+2*MaxHelp+4+6,ScBuf4);
+
+            GotoX(Xp+MaxLen+6,Yp+YOffs+2*MaxHelp+4);
+
+            Str(GlobalCount,Ws);
+            If Ws[2] = '0' Then Ws[2] := '!';
+            Writ(Ws+' SZ+T TAL"LTAM');
+
+            Kezd := 1;
+
+            For Cik := 1 To GlobalCount Do
+            Begin
+              SzavakP.Offset := SzoPoint^[Cik-1];
+              {$IFDEF HELYESKE}
+                {$IFNDEF SPELL}
+                ASCII_To_EkSzer(Szavak^);
+                {$ENDIF}
+              {$ELSE}
+              ASCII_To_EkSzer(Szavak^);
+              {$ENDIF}
+            End;
+
+            (*
+            For Cik := Kezd To Veg Do
+              Begin
+                Gotox(Xp+2,Yp+2*(Cik-1)+YOffs);
+                SzavakP.Offset := SzoPoint^[Cik-1];
+                Writ(Szavak^);
+              End;
+            *)
+
+            InvKezdPozLine;
+
+            Repeat
+
+              If GlobalCount > 18-(YOffs DIV 2) Then UpDownArrows;
+
+              For Cik := Kezd To Veg Do
+              Begin
+                Gotox(Xp+1,Yp+2*(Cik-Kezd)+YOffs);
+                SzavakP.Offset := SzoPoint^[Cik-1];
+                UresSt[0] := #15;
+
+                If Szavak^[1] = '/' Then Delete(Szavak^,1,1);
+
+                While Pos('³',Szavak^) > 0 Do
+                  Delete(Szavak^,Pos('³',Szavak^),1);
+
+                {$IFDEF HELYESKE}
+                {$IFDEF SPELL}
+                GlobalFontSave := GlobalFont;
+                GlobalFont := StandardFont;
+                {$ENDIF}
+                {$ENDIF}
+
+                Writ(Copy(' '+Szavak^+UresSt,1,MaxLen+2));
+
+                {$IFDEF HELYESKE}
+                {$IFDEF SPELL}
+                GlobalFont := GlobalFontSave;
+                {$ENDIF}
+                {$ENDIF}
+
+              End;
+
+              InvKezdPozLine;
+
+              LehetPageUp := (Kezd > 1);
+              LehetPageDn := (Kezd < GlobalCount-(Veg-Kezd));
+
+              If MaxHelp = 3 Then
+              Begin
+                GotoX(Xp+MaxLen+6+4,Yp+2*(3-1)+YOffs);
+                If LehetPageUp Then Writ('^PGUP')
+                               Else Writ('     ');
+                GotoX(Xp+MaxLen+6,Yp+2*(3-1)+YOffs);
+                If LehetPageDn Then Writ('PGDN')
+                               Else Writ('     ');
+              End;
+
+              While KeyPressed Do If Readkey = ' ' Then;
+
+              NemKellCursor := True;
+              PuffiRekurzio := True;
+              Puffi(Ch,Sc);  {Wait for a key  +  cursor flashing }
+              PuffiRekurzio := False;
+              NemKellCursor := False;
+
+              Case Sc Of
+
+                 PageUp:   If LehetPageUp Then
+                           Begin
+                             InvKezdPozLine;
+                             Add := (Veg-Kezd+1);
+                             If Kezd-Add > Yp Then
+                             Begin
+                               Dec(Poz,Add);
+                               Dec(Kezd,Add);
+                               Dec(Veg,Add);
+                             End
+                             Else
+                             Begin
+                               Kezd:= Yp+1;
+                               Veg := Add;
+                               Poz := Yp;
+                             End;
+                             InvKezdPozLine;
+                           End;
+
+                 PageDown: If LehetPageDn Then
+                           Begin
+                             InvKezdPozLine;
+                             Add := (Veg-Kezd+1);
+                             If Veg+Add <= GlobalCount-1 Then
+                             Begin
+                               Inc(Poz,Add);
+                               Inc(Kezd,Add);
+                               Inc(Veg,Add);
+                             End
+                             Else
+                             Begin
+                               Kezd:= GlobalCount-Add+1;
+                               Veg := GlobalCount;
+                               Poz := GlobalCount-1;
+                             End;
+                             InvKezdPozLine;
+                           End;
+
+                 FelNyil: If Poz > Yp Then
+                          Begin
+                            InvKezdPozLine;
+
+                            If Poz+1 > Kezd {Kezd = 1} Then
+                            Begin
+                              Dec(Poz);
+                              InvKezdPozLine;
+                            End
+                            Else
+                            Begin
+                              Dec(Kezd);
+                              Dec(Veg);
+                              Dec(Poz);
+                              InvKezdPozLine;
+                            End;
+                          End;
+                 LeNyil : If Poz < GlobalCount-1 Then
+                          Begin
+                            InvKezdPozLine;
+
+                            If Poz < Veg-1 Then
+                            Begin
+                              Inc(Poz);
+                              InvKezdPozLine;
+                            End
+                            Else
+                            Begin
+                              Inc(Kezd);
+                              Inc(Veg);
+                              Inc(Poz);
+                              InvKezdPozLine;
+                            End;
+                          End;
+
+              End; { Case }
+
+            Until (Ch In [Enter,Escape]) OR ((Ch = 00) AND (Sc = F1));
+
+            If Ch <> Escape Then
+              SzavakP.Offset := SzoPoint^[Poz];
+
+            If Sc = F1 Then
+            Begin
+              SzavakP.Offset := SzoPoint^[Poz];
+              Szo := Szavak^;
+              Key := 'J';
+            End
+            Else
+            If Ch = Enter Then
+            Begin
+              Kesz := True;
+              SzavakP.Offset := SzoPoint^[Poz];
+              Szo := Szavak^;
+              If Szo <> OldSzo Then
+              Begin
+                VoltRestoreXY := True;
+                RestoreXY;
+                Replace_Word(OldSzo,Szo,Len,Len2,True,MainI);
+                If Len2 = 0 Then Inc(Eltolas,Length(Szo)-Length(OldSzo));
+              End;
+            End;
+
+            ESC := False;
+
+            {
+            Felsor_IdeOdaW(Xp+MaxLen+2,21,2*1+2,Yp+YOffs+7+2*MaxHelp+4,Ofs(ScBuf4),Seg(ScBuf4),SortabOffs,1);
+            Felsor_IdeOdaW(Xp+MaxLen+2,25,2*MaxHelp+2,Yp+YOffs+7,Ofs(ScBuf3),Seg(ScBuf3),SortabOffs,1);
+            Felsor_IdeOdaW(Xp,MaxLen+4,2*Veg+2,Yp+YOffs+7,Ofs(ScBuf2),Seg(ScBuf2),SortabOffs,1);
+            }
+
+            RemoveGrWindow(Xp+MaxLen+4,Yp+Yoffs+2*MaxHelp+4,Xp+MaxLen+4+21,Yp+Yoffs+2*MaxHelp+4+6,ScBuf4);
+
+            RemoveGrWindow(Xp+MaxLen+4,Yp+Yoffs,Xp+MaxLen+4+23,Yp+Yoffs+(MaxHelp*2)+4,ScBuf3);
+            RemoveGrWindow(Xp,Yp+Yoffs,Xp+MaxLen+4,Yp+Yoffs+(Veg*2)+4,ScBuf2);
+
+          End; { If GlobalCount > 0 }
+
+        End;
+
+        Case Key Of
+
+        'T' : Begin
+                Kesz := True;
+                GlobalKesz := True;
+              End;
+
+        'S' : Begin
+                SzoVal := Szo;
+                For Cik := Szotagok DownTo 1 Do
+                  If KotoJel[Cik] >= 2 Then Insert('/',SzoVal,KotoJel[Cik]+1);
+                If Length(SzoVal) >= 2 Then
+                Begin
+                  Szotarba(SzoVal);
+                  If NOT ESC Then Kesz := True;
+                End;
+                ESC := False;
+              End;
+
+        'J' : Begin
+                Xp := 0;
+
+                CreateGrWindow(Xp,Yp+Yoffs+6,Xp+Length(Szo)+10,Yp+Yoffs+6+6,ScBuf5);
+
+                Gotox(Xp+1,Yp+6+YOffs);
+                MaxStringLen := Length(Szo)+4;
+                MezoFont := Font;
+                OldSzo   := Szo;
+                RegiSzo  := Szo;
+
+                Input_String('',Szo,Length(Szo)+4);
+
+                RemoveGrWindow(Xp,Yp+Yoffs+6,Xp+Length(Szo)+10,Yp+Yoffs+6+6,ScBuf5);
+
+                If ESC Then Szo := RegiSzo
+                Else
+                Begin
+                  Kesz := True;
+                  VoltRestoreXY := True;
+                  RestoreXY;
+                  Replace_Word(OldSzo,Szo,Len,Len2,True,MainI);
+                  If Len2 = 0 Then Inc(Eltolas,Length(Szo)-Length(OldSzo));
+                End;
+                ESC := False;
+              End;
+
+        End; { Case }
+
+      End
+      Else
+      Begin
+        ESC := True;
+        Kesz:= True;
+        GlobalKesz := True;
+      End;
+
+      { Felsor_IdeOdaW(0,80,6,Yp+YOffs,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1); }
+
+      RemoveGrWindow(0,Yp+Yoffs,79,Yp+Yoffs+6,ScBuf);
+
+    Until Kesz;
+
+    If NOT VoltRestoreXY Then RestoreXY;
+
+    Inv_Line1;  { A cserelendo szo }
+    Inv_Line2;  { A cserelendo szo masik fele }
+
+    Xp := 0;
+    Yp := 0;
+
+    Lektorban := False;
+
+  End; { If Enabled[6] }
+
+End;
+
+Var Hp,XX,PPoz : Integer;
+
+{ Const HH  : Array[0..15] Of Char =
+('!','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'); }
+
+Begin {Correction}
+
+  GraphicMenu := True;
+
+  TempFont         := FontNum[EditNum];
+  TempRightMar     := RightMar[EditNum];
+  RightMar[EditNum]:= c76;
+  Inverz           := False;
+
+  CreateCharSets;
+
+  If NOT MainLineI(Ypos) Then
+    MainI := MainOfIndex[Ypos]
+  Else
+    MainI := ImageToHeap[Ypos];
+
+  Heap_Pos(Heapline,PointerTomb^[MainI]);
+
+  While (Byte(Heapline^.Chars[C80+Xpos]) AND 32 <> Byte(Heapline^.Chars[C80+Xpos])) AND
+        (Xpos > 0) Do Dec(Xpos);
+
+  FreeEms1(PointerTomb^[MainI]);
+  CheckXpos(True);
+
+  VanERD  := False;
+  Kezdo   := 0;
+  Sor     := 0;
+
+  ESC := False;
+
+  XX := Xpos;
+
+  Repeat
+
+    Legutolso := LastMain(MainI);
+
+    Eltolas := 0;
+
+    If LenLine(MainI) > 0 Then
+    Repeat
+
+      Len := LenLine(MainI);
+
+      Heap_Pos(Heapline,PointerTomb^[MainI]);
+
+      Hp := MainI;
+
+      {While (Byte(Heapline^.Chars[C80+XX]) AND 32 = Byte(Heapline^.Chars[C80+XX])) AND
+            (XX < Len) Do Inc(XX);}
+
+      While NemBetuHeap(XX) AND (XX < Len) Do Inc(XX);
+
+      Xpos := XX;
+      CheckXpos(True);
+
+      Kezdo := 0;
+
+      If XX < Len Then
+      Begin
+
+        Szo    := '';
+        SzoAtt := '';
+
+       {While (Byte(Heapline^.Chars[C80+XX]) AND 32) <> Byte(Heapline^.Chars[C80+XX]) Do}
+
+        Create_Szo(XX,Len);
+
+        PPoz := Pos(#0,SzoAtt);
+
+        While PPoz > 0 Do
+        Begin
+          If PPoz = Length(SzoAtt) Then PPoz := 0
+          Else
+          Begin
+            Delete(Szo,PPoz,1);
+            Delete(SzoAtt,PPoz,1);
+            PPoz := Pos(#0,SzoAtt);
+          End;
+        End;
+
+        (*
+        {Torolt := 0;}
+
+        If Byte(SzoAtt[Byte(SzoAtt[0])]) > 0 Then
+        While NemBetu(Length(Szo)) Do
+        Begin
+          Dec(Byte(Szo[0]));
+          Dec(Byte(SzoAtt[0]));
+          {Inc(Torolt);}
+        End;
+
+        While NemBetu(1) Do
+        Begin
+          Delete(Szo,1,1);
+          Delete(SzoAtt,1,1);
+          Inc(Xpos);
+        End;
+
+        CheckXpos(True);
+        NemMagyarBetu := False;
+        Bc := 1;
+
+        While (NOT NemMagyarBetu) AND (Bc <= Length(SzoAtt)) Do
+        Begin
+          If NemBetu(Bc) Then
+          Begin
+            Dec(XX,(Length(SzoAtt)-Bc)+Torolt);
+            SzoAtt[0] := Char(Bc-1);
+            Szo[0]    := Char(Bc-1);
+            NemMagyarBetu := True;
+          End;
+          Inc(Bc);
+        End;
+
+        *)
+
+        Hossz1 := Length(Szo);
+
+        If Hossz1 > 1 {0} Then
+        Begin
+
+          Xpos2 := 0;
+          Ypos2 := 0;
+          Hossz2:= 0;
+
+          If (Szo[Length(Szo)] = '-') AND (HeapLine^.Attribs[XX-1] = 0) Then
+          Begin
+            Dec(Byte(Szo[0]));
+            If NOT Legutolso Then
+            Begin
+              MainS := MainI;
+
+              Repeat
+                Hossz2 := 0;
+
+                FreeEms1(PointerTomb^[Hp]);
+                
+                Hp := NextMain(MainI);
+                Heap_Pos(HeapLine,PointerTomb^[Hp]);
+
+                While (Hossz2 < c76) AND
+                      (HeapLine^.Chars[C80+Hossz2] In [' ',#00]) Do Inc(Hossz2);
+
+                MainI := Hp;
+              Until (LastMain(MainI)) OR (Hossz2 < c76);
+
+              MainI := MainS;
+
+              If Hossz2 < c76 Then
+              Begin
+                Xpos2 := Hossz2;
+
+                {While NOT (HeapLine^.Chars[C80+Hossz2] In [' ',#00]) Do}
+
+                While NOT(NemBetuHeap(Hossz2)) Do
+                Begin
+                  Szo := Szo + HeapLine^.Chars[C80+Hossz2];
+                  Inc(Hossz2);
+                End;
+                Dec(Hossz2,Xpos2);
+              End;
+
+            End;
+          End;
+
+          Kezdo := Xpos2+Hossz2;
+
+          MaxLen:= 0;
+
+          GlobalKesz := False;
+
+          Repeat
+
+            {$IFDEF HELYESKE}
+            New_EkSzer_To_ASCII;
+            {$ELSE}
+            EkSzer_To_ASCII(Szo);
+            {$ENDIF}
+
+            If NOT((Szo[1] >= '0') AND (Szo[1] <= '9')) Then
+            Begin
+
+              Register.AX := NyComp OR NySkip;
+              Register.BX := Seg(Szo);
+              Register.CX := Ofs(Szo);
+
+              {$IFDEF HELYESKE}
+              Ext_Enter;
+              HelyesLen := 60;
+              Szo := Szo + #00;
+              Register.Ax := Word(NOT(HelyesE(Szo[1],HelyesLen)));
+              Dec(Byte(Szo[0]));
+              Ext_Leave;
+              {$ELSE}
+              NyelvEsz;
+              {$ENDIF}
+
+              { Szo := Szo + ' AX & '+ HH[Register.Ah SHR 04]+ HH[Register.Ah AND 15]+
+                 HH[Register.Al SHR 04]+ HH[Register.Al AND 15]; }
+
+              If Register.Ax <> 0 Then
+              Begin
+
+                {$IFDEF HELYESKE}
+                OsszetettVolt := False;
+                {$ELSE}
+                OsszetettVolt := (Register.Ax = $FFFE);
+                {$ENDIF}
+
+                {$IFDEF NORVEG}
+                GlobalSzoAtt := SzoAtt;
+                {$ENDIF}
+
+                Szotagok := Szotagol(Szo);
+
+                If NOT(KivetelVolt) Then
+                Begin
+                    PosToPos(MainI,Xpos,True);
+                    If Hossz2 > 0 Then
+                    Begin
+                      Ypos2  := Ypos+1;
+                      While ((Ypos2 <= TrueLast) AND (NOT MainLineI(Ypos2))) OR
+                            ((Ypos2 <= TrueLast) AND (UresLineI(Ypos2))) Do
+                              Inc(Ypos2);
+
+                      If Ypos2 > TrueLast Then
+                      Begin
+                        Hossz2 := 0;
+                        Xpos2  := 0;
+                        Ypos2  := 0;
+                      End;
+                    End;
+
+                    Ask_And_Edit(Szo,Xpos,Ypos,Hossz1,Xpos2,Ypos2,Hossz2,MainI);
+
+                End  { Ha a kivetelszotarban nem talalta meg a szot }
+                Else GlobalKesz := True;
+
+              End  { Ha a NyelvEsz nem talalta meg a szot }
+              Else GlobalKesz := True;
+
+            End  { Ha nem szam }
+            Else GlobalKesz := True;
+
+            Hossz1 := Length(Szo);
+
+          Until GlobalKesz;
+
+        End; { Ha Length(Szo) > 0 }
+
+      End; { If XX < Len }
+
+      Inc(XX,Eltolas);
+      Eltolas := 0;
+
+      FreeEms1(PointerTomb^[Hp]);
+
+    Until ESC OR (XX >= Len);
+
+    If Legutolso Then PosToPos(MainI,Xpos,True);
+
+    MainI := NextMain(MainI);
+
+    XX := Kezdo;
+
+  Until ESC OR Legutolso;
+
+  RightMar[EditNum] := TempRightMar;
+  FontNum[EditNum] := TempFont;
+
+  GraphicMenu := False;
+
+End;
+
+{$ENDIF}
+
+Procedure Find_And_Replace(LastMode,NotFirst : Boolean);
+
+Const   OptSt   : String[8]  = 'U';
+
+Var Fpoz,Font,Err       : Byte;
+    BPoz,
+    Upoz,Npoz,Gpoz,Apoz : Integer;
+    Scbuf             : Array[0..28] Of GraphSor;
+    Result            : Integer;
+    Elso,Utolso,Hp    : Integer;
+    KezdoSor,KezdoPoz : Integer;
+    VegzoSor          : Integer;
+    TempSeg,TempOfs   : Integer;
+    Indulo            : Integer;
+    Sorszam           : LongInt;
+    Talalt            : Boolean;
+    Ws,Wss            : String[2];
+    Plusz             : Byte;
+    Kar               : Char;
+    Num               : LongInt;
+    Pp,P              : Byte;
+    FindOpt           : String[80];
+    OOXX              : Integer;
+
+
+Procedure Ask_For_Replace(X,Y,Len : Integer);
+Var Ch,Sc,Xp,Yp : Byte;
+    Key         : Char;
+
+Procedure Inv_Line1;
+Begin
+  Inv_LineI(Y+2,X,X+Len-1,0,sortaboffs,0);  { A cserelendo szo }
+End;
+
+Procedure Felsorok(N:Byte);
+Begin
+  Felsor_IdeOdaW(Xp,24,6,Yp,Ofs(ScBuf),Seg(ScBuf),SortabOffs,N);
+End;
+
+Begin
+  SaveXY;
+
+  Xp := 30;
+  Yp := 0;
+
+  If Y < 5 Then Yp := 30;
+
+  Felsorok(0);
+  Ablak(Xp,Yp,1,Fontoffs,SortabOffs,20);
+  Gotox(Xp+2,Yp);
+  Writ(RepSt1);
+  Gotox(Xp+19,Yp);
+  Inv_Line(Yp+2,Xp+2,Xp+2+16,0,sortaboffs,0);  { Az ablak szovege }
+
+  Inv_Line1;  { A cserelendo szo }
+
+  Repeat
+    {NemKellCursor := True;}
+    PuffiRekurzio := True;
+    GotoX(Xpos+Xoffset,Ypos);
+    Puffi(Ch,SC);  {Wait for a key  +  cursor flashing }
+    {NemKellCursor := False;}
+    PuffiRekurzio := False;
+    Key := UpCase(Char(Ch));
+  Until Key In [YesChar,NoChar,#27];
+
+  If Key = #27 Then ExitFind := True;
+
+  Inv_Line1;  { A cserelendo szo }
+
+  Npoz := Byte((Key = YesChar));
+  Felsorok(1);
+  RestoreXY;
+End;
+
+Begin
+
+  GraphicMenu := True;
+
+  Set_Nem_Lehet;
+  If (Not LastMode) Or (Lastmode And (SearchSt <> '')) Then
+
+  Begin
+    ExitFind := True;
+    Esc := False;
+    FelSor_IdeOdaW(2,76,28,18,Ofs(ScBuf),Seg(ScBuf),SortabOffs,0);
+    Talalt := True;
+    SaveXY;
+    Plusz := 0;
+
+    If Not LastMode Then
+      Begin
+        GrWindow(02,20,78,23,Fstr[FindMode]);
+        Gotox(4,20);
+        MaxStringLen := 60;
+        MezoFont := FontNum[EditNum];
+        Input_String(Fstr[find]+': ',SearchSt,60);
+      End;
+
+    If Not ESC Then
+      If (Not LastMode) AND (FindMode = Replace) Then
+        Begin
+          Ablak(2,26,1,Fontoffs,SortabOffs,74);
+          Gotox(4,26);
+          MaxStringLen := 60;
+          MezoFont := FontNum[EditNum];
+          Input_String(RepSt2,ReplaceSt,60);
+          Plusz := 6;
+        End;
+
+    If SearchSt = '' Then ESC := True;
+    If (NOT ESC) AND NOT(LastMode) Then
+    Begin
+      MezoFont := 0;
+
+      If FindMode = Replace Then
+        FindOpt := ReplaceOptions
+      Else
+      Begin
+        FindOpt := FindOptions;
+        Pp := Pos('@',FindOpt);
+        Delete(FindOpt,Pp,1);
+        Str(MaxFontNum:(MaxFontNum DIV 10 +1),Wss);
+        Insert(Wss,FindOpt,Pp);
+      End;
+
+      FindOpt := Find_Replace_Options + FindOpt;
+      Uppercase(FindOpt);
+
+      Pp := 40-(Length(FindOpt) DIV 2);
+      Ablak(Pp-2,28+Plusz,1,Fontoffs,SortabOffs,Length(FindOpt)+2);
+      Gotox(Pp,28+Plusz);
+      Writ(FindOpt);
+      Inv_Line(30+Plusz,Pp-1,Pp+Length(FindOpt),FontOffs,SortabOffs,0);
+
+      Ablak(29,24+Plusz,1,Fontoffs,SortabOffs,22);
+      Gotox(31,24+Plusz);
+      MaxStringLen := 60;
+      Input_String(RepSt3,OptSt,6);
+    End;
+    RestoreXY;
+
+    If Not Esc Then
+    Begin
+      UpperCase(OptSt);
+
+      Fpoz := Pos('F',OptSt);
+      Upoz := Pos('U',OptSt);
+      Npoz := Pos('N',OptSt);
+
+      If Not(NotFirst) Then
+      Begin
+
+        Num := 0;
+        Numeric := False;
+
+        For Cik := 1 To Length(OptSt) Do
+          If OptSt[Cik] In ['0'..'9'] Then
+          Begin
+            Num := Num * 10;
+            Inc(Num,Byte(OptSt[Cik])-48);
+          End;
+
+        If Num > 0 Then Numeric := True;
+
+      End;
+
+      If FPoz > 0 Then
+      Begin
+        Fs[0] := #1;
+        Err   := 9;
+        Ws := Copy(OptSt,Fpoz+1,2);
+        If Not (Ws[2] in ['0'..'9']) Then Ws[0] := #1;
+        Val(Ws,Font,Result);
+        If Result > 0 Then Talalt := False
+                      Else Fs[1]  := Char(Font);
+      End
+      Else
+      Begin
+        Err := 8;
+        Fs  := SearchSt;
+        For Cik := 1 To Length(Fs) Do If Fs[Cik] = #1 Then Fs[Cik] := #0;
+      End;
+
+      If Upoz > 0 Then
+        For Cik := 1 To Length(Fs) Do
+          FS[Cik] := UpperP(Fs[Cik]);
+
+      Gpoz := Pos('G',OptSt);
+      Apoz := Pos('A',OptSt);
+      Bpoz := Pos('B',OptSt);
+
+      If FindMode = Replace Then
+        If (Apoz > 0 ) Or (Numeric) Then ExitFind := False;
+
+      VegzoSor := EndLine[EditNum];
+
+
+      If (Gpoz > 0) And (Not(NotFirst)) Then
+      Begin
+        KezdoSor := StartLine[EditNum];
+        KezdoPoz := 0;
+      End
+      Else
+      Begin
+        If ImageToHeap[Ypos] <> 0 Then
+        Begin
+          KezdoSor := ImageToHeap[Ypos];
+          Kezdopoz := Xpos;
+        End
+        Else
+        Begin
+          KezdoPoz := 0;
+          If UpIndexI(Ypos) Then
+          Begin
+            Indulo   := UpindI(Ypos);
+            KezdoSor := MainofIndex[Ypos];
+            FirstAndLast(Kezdosor,Elso,Utolso);
+            For Cik := KezdoSor-1 DownTo Elso Do
+              If Upind(Cik) < Indulo Then KezdoSor := Cik;
+          End
+          Else
+          Begin
+            Indulo   := UpindI(Ypos);
+            Hp       := MainofIndex[Ypos];
+            KezdoSor := Hp;
+            FirstAndLast(Kezdosor,Elso,Utolso);
+            For Cik := KezdoSor+1 To Utolso Do
+              If Upind(Cik) > Indulo Then KezdoSor := Cik;
+            If Kezdosor = Hp Then
+              If LastMain(Hp) Then Talalt := False
+                              Else KezdoSor := Utolso + 1;
+            KezdoPoz := 0;
+          End;  {Ha alsoindexsor}
+        End;  {Ha nem kitoltott sor}
+      End;  {Ha nem globalis kereses}
+
+      If BlokkSearch Then
+      Begin
+        KezdoSor := Kicsi;
+        VegzoSor := Nagy;
+        KezdoPoz := Kezd;
+        If OszlopMode Then
+        Begin
+          C78Save  := C78;
+          C78      := Veg+1;
+        End;
+      End;
+
+      Sorszam := 0;
+      If Talalt Then
+      Begin
+{        If BPoz = 0 Then  }
+        Sorszam := Search(Seg(PointerTomb^),
+                           KezdoPoz,
+                            Ofs(Fs),
+                             Ofs(PointerTomb^),
+                              Kezdosor,
+                               VegzoSor,
+                                HeapRec.Segment,
+                                 Upoz,
+                                  Fpoz);
+        {
+        Else
+        Sorszam := BSearch(Seg(PointerTomb^),
+                           KezdoPoz,
+                            Ofs(Fs),
+                             Ofs(PointerTomb^),
+                              Kezdosor,
+                               StartLine[EditNum],
+                                HeapRec.Segment,
+                                 Upoz,
+                                  Fpoz);
+        }
+      End;
+
+      If BlokkSearch AND OszlopMode Then
+      Begin
+        C78  := C78Save;
+      End;
+
+      Talalt := (Sorszam <> 0);
+      FelSor_IdeOdaW(2,76,28,18,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+
+      If Numeric Then
+      Begin
+        Dec(Num);
+        If Num = 0 Then ExitFind := True;
+      End;
+
+      If KeyPressed Then
+      Begin
+        Kar := ReadKey;
+        If Kar In [^U,#27] Then ExitFind := True;
+      End;
+
+      If Not Talalt Then
+      Begin
+        ExitFind := True;
+        If (Findmode = Find) Or (Apoz = 0) Then
+        Begin
+          ErrorStNum := 2;
+          Error(Err,'');
+          ErrorStNum := 1;
+        End;
+      End
+      Else
+      Begin
+        TempSeg := Pointer_Rec(Sorszam).Segment;
+        TempOfs := Pointer_Rec(Sorszam).Offset;
+
+        PosToPos(TempSeg,TempOfs,False);
+
+        OOXX := Xpos;
+
+        If TempOfs+length(Fs) <= c77 Then
+          Inc(TempOfs,Length(Fs))
+        Else
+          TempOfs := c77;
+
+        Xpos := TempOfs;
+        CheckXpos(True);
+
+        If FindMode = Replace Then
+          Begin
+            Xpos := OOXX;
+            CheckXpos(True);
+          End;
+
+        {$IFNDEF CDVIEW}
+        If FindMode = Replace Then
+          Begin
+            If Npoz = 0 Then
+              Ask_For_Replace(Xpos,Ypos,Length(Fs));
+            If Npoz > 0 Then
+              Begin
+                Replace_Word(Fs,ReplaceSt,0,0,False,TempSeg);
+              End   { Ha kell cserelni }
+            Else
+              If Xpos+length(Fs) <= c77 Then
+                Inc(Xpos,Length(Fs))
+              Else
+                Xpos := c77;
+            CheckXpos(True);
+          End;  { Ha Find & Replace }
+       {$ENDIF}
+      End;  { Ha talalt }
+    End { If NOT ESC }
+    Else FelSor_IdeOdaW(2,76,28,18,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+  End;
+  If EditNum <> MaxEditor Then
+    Set_Lehet;
+
+  GraphicMenu := False;
+
+End;

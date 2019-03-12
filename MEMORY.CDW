@@ -1,0 +1,5 @@
+{$IFDEF JOZSI}
+{$M $D800,0,655360 }   { Jozsi version }
+{$ELSE}
+{$M $D000,0,655360 }   { Full version }
+{$ENDIF}

@@ -1,0 +1,1852 @@
+{$S-,I+,F-,V-,B-,N- }
+
+{$I MEMORY.CDW}
+
+Unit WindowM;
+
+Interface
+
+Uses
+     {$IFDEF Debug}
+     Printer,
+     {$ENDIF}
+     Crt,
+     Dos;
+
+
+{$I CDWHUN.DEF   }    { Nyelvfuggetlen definicios resz    }
+
+{$IFDEF OROSZ}
+  {$I OROSZ.CDW}  { Orosz !  }
+{$ELSE}
+  {$IFDEF ANGOL}
+    {$I ANGOL.CDW}        { Nyelvfuggo angol definicios resz  }
+  {$ELSE}
+    {$IFDEF NORVEG}
+      {$I NORVEG.CDW}       { Nyelvfuggo norveg definicios resz }
+    {$ELSE}
+      {$IFDEF ROMAN}
+        {$I ROMAN.CDW}       { Nyelvfuggo roman definicios resz }
+      {$ELSE}
+        {$IFDEF SZLOVAK}
+          {$I SZLOVAK.CDW}       { Nyelvfuggo szlovak definicios resz }
+        {$ELSE}
+          {$I MAGYAR.CDW}       { Nyelvfuggo magyar definicios resz }
+        {$ENDIF}
+      {$ENDIF}
+    {$ENDIF}
+  {$ENDIF}
+{$ENDIF}
+
+VAR CurEnd    : word;
+    OldCurEnd,
+    OldCurBeg : Word;
+
+function Ready2(dr:char):boolean;
+Function GetSorszam: Word;
+Function GetVersion: St16;
+
+Procedure WordStarMode(Mode : Boolean);
+
+Procedure CurOn;
+Procedure BigCur;
+Procedure CurOff;
+Procedure OldCur;
+Procedure ConvertString(Var St : St80);
+Procedure Stop;
+
+Procedure SaveXY;
+Procedure RestoreXY;
+Procedure Beepel(X:Integer);
+Procedure FastBeep(X:Integer);
+Procedure UpperCase(Var S:String);
+Function  UpperCas(S:String):String;
+Function  PathSt : St40;
+Function  SpCheck: Word;
+
+Procedure keret(x1,y1,x2,y2:INTEGER; COLOR : BYTE);
+
+(********  RANDOM HEAP CONTROL ROUTINES  *********)
+
+PROCEDURE NEXTNBYTE(VAR POINTER1; N:INTEGER);
+PROCEDURE PREVNBYTE(VAR POINTER1; N:INTEGER);
+
+(**********************  WINDOW MANAGER ROUTINES ********************)
+
+PROCEDURE INIT_WINDOW;
+
+FUNCTION SAVE_WINDOW_TO_FILE : BOOLEAN;
+FUNCTION LOAD_WINDOW_FROM_FILE : BOOLEAN;
+
+FUNCTION SAVE_WINDOW(X1,Y1,X2,Y2,NUM : INTEGER):BOOLEAN;
+PROCEDURE RESTORE_WINDOW(NUM : INTEGER);
+
+FUNCTION CREATE_WINDOW (X1,Y1,X2,Y2:INTEGER; HEAD:ST80;FCOL,COL:INTEGER):BOOLEAN;
+FUNCTION REMOVE_WINDOW:BOOLEAN;
+
+Procedure GrWindow(X1,Y1,X2,Y2 : Integer; St : St80);
+
+Function  StandardE(Num:Byte): Boolean;
+Function  MagyarE(Num:Byte): Boolean;
+Function  NemetE(Num:Byte) : Boolean;
+Function  AngolE(Num:Byte) : Boolean;
+Function  OroszE(Num:Byte) : Boolean;
+Function  GrafE(Num:Byte)  : Boolean;
+Function  Spec1E(Num:Byte) : Boolean;
+
+Function  EuroE(Num:Byte)  : Boolean;
+
+{$IFDEF NORVEG}
+Function  NorvegE(Num:Byte)  : Boolean;
+Function  SamiE(Num:Byte)    : Boolean;
+{$ENDIF}
+
+Function  GorogE(Num:Byte) : Boolean;
+Function  HeberE(Num:Byte) : Boolean;
+
+Function  NormalE(Num:Byte)   : Boolean;
+Function  AlahuzottE(Num:Byte): Boolean;
+Function  DalahuzottE(Num:Byte): Boolean;     {dupla alahuzas DeskJet}
+Function  VastagE(Num:Byte)   : Boolean;
+Function  DoltE(Num:Byte)     : Boolean;
+Function  IndexE(Num:Byte)    : Boolean;
+Function  OratorE(Num:Byte)   : Boolean;
+Function  ExtendedE(Num:Byte)    : Boolean;
+
+Function  NewExtCharType(Num: Byte; Ch: Char; OldTip,Tip: CharType): Char;
+
+Procedure CheckRead(Fn:St40);
+Procedure CheckWrite(Fn:St40);
+
+Function GetVarName(N: Byte):String;
+Function GetVar(N: Byte):String;
+
+Procedure ASCII_To_EkSzer(Var Szo: String);
+
+Procedure EkSzer_To_ASCII(Var Szo: String);
+Procedure New_EkSzer_To_ASCII;
+Procedure EkSzer_To_ASCIIC(Var Ch: Char);
+
+Procedure WinSKi(Num:Byte);
+Procedure WinSBe(Num:Byte);
+Procedure ChangeToNyelv;
+Procedure ChangeToWin;
+Procedure NyomtatHely;
+Procedure NyomtatVissza;
+Procedure DelSwapFiles;
+
+Procedure WriteLinesPercent(Bool: Boolean);
+Procedure InitLines(EditNum: Integer);
+Function  EndOfName:String;
+
+Procedure CreateCharSets;
+Procedure GIBHotKeys(Bool: Boolean);
+
+Function NemBetu(C: Byte):Boolean;
+Function NemBetuHeap(C: Byte):Boolean;
+
+Procedure Create_MagyarFont;
+Procedure Create_StandardFont;
+
+Procedure Create_SzoAtt(Var Szo: String);
+
+Procedure ASC_EkSz(Var C: Char);
+Procedure EkSz_ASC(Var C: Char);
+
+Procedure Ctrl_Break(Flags,AX,CX,SI,DI,DS,ES,BP : Word);  Interrupt;
+
+{$IFDEF HALO}
+{$IFNDEF NEMFIGYEL}
+Procedure Broadcast(Mode: ModeType);
+Procedure SetBroadcastMode(Mode: Byte);
+Procedure GetMessage;
+{$ENDIF}
+{$ENDIF}
+
+Function VanWindows: Boolean;
+Procedure CheckFn(Fn:St80);
+
+Procedure MouseHandler; { Assembler }
+Procedure SetMouse(Par: Boolean);
+Procedure MouseCursor(Par: Boolean);
+
+{$IFDEF HALO}
+Function GetConnectionNumber:Byte;
+Function GetUserName(ConnNum: Byte): String;
+{$ENDIF}
+
+TYPE
+       WIN  = RECORD
+                SIZE  : BYTE;
+                LEN   : BYTE;
+                XCOOR : BYTE;
+                YCOOR : BYTE;
+                COLOR : BYTE;
+                OX    : BYTE;
+                OY    : BYTE;
+                EscX  : ShortInt;
+                EscY  : ShortInt;
+              END;
+
+CONST  WIN_STACK_SIZE = 7500;
+       MAX_WINDOW_NUM = 30;
+
+Type   WsTp = ARRAY [1..WIN_STACK_SIZE] OF BYTE;
+
+Var    WIN_DATA  : ARRAY [0..MAX_WINDOW_NUM] OF WIN;
+
+       WIN_STACK : ^WsTp;
+
+Const
+       WSP             : INTEGER = 0;
+       LAST_WSP        : INTEGER = 0;
+       WIN_STACK_COUNT : INTEGER = 0;
+       WINDOW_NUMBER   : INTEGER = 1;
+
+Implementation (*************************************************************)
+
+Uses Video,MenuErr;
+
+
+VAR    WINDOWFILE                  : FILE;
+       WINDOWFILENAME              : STRING[16];
+
+Type
+      Point  = ^St160;
+
+Var   Pointer   : Point;
+      Last_Point: Point;
+
+      WstW    : St160;
+
+Procedure Ctrl_Break(Flags,AX,CX,SI,DI,DS,ES,BP : Word);  {Interrupt;}
+Begin
+  StopRun := True;
+End;
+
+Function PathSt;
+Begin
+  If (FontPath <> '') And (FontPath[Length(FontPath)] <> '\') Then
+    PathSt := FontPath + '\'
+  Else
+    PathSt := FontPath
+End;
+
+Function EndOfName:String;
+Var W1,W2,W3 : String[2];
+    WW       : String[6];
+    Ora,Perc,Masodperc,szazad : Word;
+Begin
+  GetTime(Ora,Perc,Masodperc,szazad);
+  Str(Perc:2,W1);
+  Str(MasodPerc:2,W2);
+  Str(Szazad:2,W3);
+  WW := W1+W2+W3;
+  While Pos(' ',WW) <> 0 Do
+    WW[Pos(' ',WW)] := '0';
+  EndOfName := WW;
+End;
+
+Procedure WinSKi(Num:Byte);
+Var F    : File;
+    TMPP : String[80];
+Begin
+  If WinHely[Num] <> '' Then
+    Begin
+      Assign(F,WinHely[Num]);
+      Erase(F)
+    End;
+
+  TMPP := GetEnv('TMP');
+  If TMPP = '' Then
+    TMPP := GetEnv('TEMP');
+
+  If TMPP = '' Then
+    GetDir(0,WinHely[Num])
+  Else
+    WinHely[Num] := TMPP;
+
+  If WinHely[Num][Length(WinHely[Num])] <> '\' Then
+    WinHely[Num] := WinHely[Num] + '\';
+  WinHely[Num] := WinHely[Num]+
+                  'EK'+EndOfName+'.$$'+Char(Num+Byte('0'));
+
+  Assign(F,WinHely[Num]);
+
+  {$I-}
+  ReWrite(F,1);
+  SwapError := (IoResult <> 0) OR SwapError;
+  BlockWrite(F,Win_Stack^,Win_Stack_Size);
+  SwapError := (IoResult <> 0) OR SwapError;
+
+  BlockWrite(F,CLV^,SizeOf(CLV^));
+  SwapError := (IoResult <> 0) OR SwapError;
+
+  Close(F);
+  SwapError := (IoResult <> 0) OR SwapError;
+  {$I+}
+  If Num = 0 Then
+    Begin
+      NyelvWinM   := NyelvWinAz^;
+      NyelvWinAz^ := $ABCD
+    End;
+  If SwapError Then
+    SErrorSt := WinHely[Num] + ' /W';
+End;
+
+Procedure WinSBe(Num:Byte);
+Var F : File;
+Begin
+  Assign(F,WinHely[Num]);
+  {$I-}
+
+  ReSet(F,1);
+  SwapError := (IoResult <> 0) OR SwapError;
+
+  BlockRead(F,Win_Stack^,Win_Stack_Size);
+  SwapError := (IoResult <> 0) OR SwapError;
+
+  BlockRead(F,CLV^,SizeOf(CLV^));
+  SwapError := (IoResult <> 0) OR SwapError;
+
+  Close(F);
+  SwapError := (IoResult <> 0) OR SwapError;
+  {$I+}
+  If (Num = 0) And Not SwapError Then
+    NyelvWinAz^ := NyelvWinM;
+  If SwapError Then
+    SErrorSt := WinHely[Num]+' /R';
+End;
+
+Procedure DelSwapFiles;
+Var F  : File;
+Begin
+  Assign(F,WinHely[0]);
+  {$I-}
+  Erase(F);
+  If IoResult = 0 Then;
+  Assign(F,WinHely[1]);
+  Erase(F);
+  {$I+}
+  If IoResult = 0 Then;
+End;
+
+Procedure InitLines(EditNum: Integer);
+Begin
+  Lines := 0;
+  FilePoz := 0;
+  TotalLines := EndLine[EditNum] - StartLine[EditNum];
+End;
+
+Procedure WriteLinesPercent(Bool: Boolean);
+Var Oxp,X2 : Byte;
+    Ws     : String[5];
+Begin
+  If Byte(GlobalMode) < Byte(NoWriteMode) Then
+  Begin
+    Oxp := WhereX;
+    If Bool Then
+    Begin
+      If TotalLines > 0 Then Percent := 100*(Lines/TotalLines);
+    End
+    Else
+    If FSize > 0 Then Percent := 100*(FilePoz/FSize);
+
+    If Percent > 100.0 Then Percent := 100.0;
+    Write(Lines:5);
+
+    Str(Percent:3:0,Ws);
+    Ws := Ws + '%';
+
+    X2 := (Trunc(75*Percent) DIV 100) + 4;
+    ATTRIBUTE(9,3,9,X2,CA[DispMode,22]);
+
+    DISPLAY(WS,9,38);
+
+    GotoXY(Oxp,WhereY);
+  End;
+End;
+
+Procedure NyomtatHely;
+Var F : File;
+Begin
+  WinHely[2] := GetEnv('TMP');
+  If WinHely[2] = '' Then
+    WinHely[2] := GetEnv('TEMP');
+
+  If (WinHely[2] <> '') And (WinHely[2][Length(WinHely[2])] <> '\') Then
+    WinHely[2] := WinHely[2] + '\';
+
+  WinHely[2] := WinHely[2]+'EK'+EndOfName+'.$$2';
+  Assign(F,WinHely[2]);
+  {$I-}
+  ReWrite(F,1);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  BlockWrite(F,FontHely^,$F000);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  BlockWrite(F,FontHely2^,$F000);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+
+  PointSize  := $F00*2;
+  StartPoint := FontHely;
+  Close(F);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  {$I+}
+End;
+
+Procedure NyomtatVissza;
+Var F : File;
+Begin
+  Assign(F,WinHely[2]);
+  {$I-}
+  ReSet(F,1);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  BlockRead(F,FontHely^,$F000);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  BlockRead(F,FontHely2^,$F000);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  Close(F);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  Erase(F);
+  SwapError2 := (IoResult <> 0) OR SwapError2;
+  {$I+}
+End;
+
+Procedure ChangeToNyelv;
+Begin
+  WinSKi(1);
+  If Not SwapError Then
+    WinSBe(0);
+  NyelveszBent := True;
+End;
+
+Procedure ChangeToWin;
+Begin
+  WinSBe(1);
+  NyelveszBent := False;
+End;
+
+Procedure ASCII_To_EkSzer(Var Szo: String);
+Var P,Cik : Byte;
+Begin
+  For Cik := 1 To Length(Szo) Do
+  Begin
+    P := Pos(Szo[Cik],CWIConvSt[1]);
+    If P > 0 Then Szo[Cik] := CWIConvSt[0][P];
+  End;
+End;
+
+Procedure EkSzer_To_ASCII(Var Szo: String);
+Var P,Cik : Byte;
+Begin
+  For Cik := 1 To Length(Szo) Do
+  Begin
+    P := Pos(Szo[Cik],CWIConvSt[0]);
+    If P > 0 Then Szo[Cik] := CWIConvSt[1][P];
+  End;
+End;
+
+Procedure New_EkSzer_To_ASCII;
+Var P,Cik : Byte;
+Begin
+  For Cik := 1 To Length(Szo) Do
+  Begin
+    If MagyarE(Byte(SzoAtt[Cik])) Then
+    Begin
+      P := Pos(Szo[Cik],CWIConvSt[0]);
+      If P > 0 Then Szo[Cik] := CWIConvSt[1][P];
+    End;
+  End;
+End;
+
+Procedure EkSzer_To_ASCIIC(Var Ch: Char);
+Var P: Byte;
+Begin
+  P := Pos(Ch,CWIConvSt[0]);
+  If P > 0 Then Ch := CWIConvSt[1][P];
+End;
+
+Function GetSorszam: Word;
+Var S    : String[4];
+    Sorsz: Word;
+    X,
+    Code : Integer;
+    Bc   : Byte;
+Const
+    XORT  : Array[1..4] Of Byte = ($CB,$ED,$13,$25);
+Begin
+(*
+  {$IFDEF OROSZ}
+  S := Copy(CopyRight2,Pos('<',CopyRight2)+21,4);
+  {$ELSE}
+  S := Copy(CopyRight2,Pos('<',CopyRight2)+12,4);
+  {$ENDIF}
+  Val(S,Sorsz,Code);
+
+  If Code > 0 Then Sorsz := 1000*(Byte(S[1])-32)+
+                            100* (Byte(S[2])-32)+
+                            10*  (Byte(S[3])-32)+
+                                 (Byte(S[4])-32);
+*)
+  X := 1000;
+  Sorsz := 0;
+
+  For Bc := 1 To 4 Do
+  Begin
+    Inc(Sorsz, X * ((Kivevo2[Bc,Bc] XOR XORT[Bc]) - $30) );
+    X := X DIV 10;
+  End;
+
+  GetSorszam := Sorsz;
+End;
+
+Function GetVersion: St16;
+Begin
+  {$IFDEF NORVEG}
+    GetVersion := Copy(ExName,Pos('versjo',ExName)+8,4);
+  {$ELSE}
+    {$IFDEF OROSZ}
+    GetVersion := Copy(ExName,Pos('Ç•‡·®Ô',ExName)+8,4);
+    {$ELSE}
+      {$IFDEF ANGOL}
+      GetVersion := Copy(ExName,Pos('Versio',ExName)+8,4);
+      {$ELSE}
+      GetVersion := Copy(ExName,Pos('verzi¢',ExName)-5,4);
+      {$ENDIF}
+    {$ENDIF}
+  {$ENDIF NOT NORVEG}
+End;
+
+Procedure WordStarMode(Mode : Boolean);
+{ Const Instr : Array[False..True] Of Word = ($1DEB,$9090); }
+Begin
+  { MemW[MemW[$0000:$0282]:MemW[$0000:$0280]+2] := Instr[Mode]; }
+
+  WsFileMode := Mode;
+
+  { Mode = True :
+    Az INT A0-ban kÇt NOP lesz, igy a maszkol†s megtîrtÇnik ,
+    Mode = False :
+    Az INT A0-ban †tugorja a beolvasott byte 7F-fel maszkol†s†t }
+End;
+
+Function GetVarName; { (N: Byte):String; }
+Var Ws         : String[60];
+Begin
+  With CLV^ Do
+    Begin
+      Ws[0] := #59;
+      FillChar(Ws[1],59,00);
+      Move(CimRecBuff^[VarPos[N]],Ws[1],VarLen[N]);
+      While (Ws[Length(Ws)] = #00) AND (Length(Ws) > 0) Do Dec(Byte(Ws[0]));
+
+      {If Pos(#00,Ws) > 0 Then Ws[0] := Char(Pos(#00,Ws)-1);}
+
+      If Length(Ws) > VarLen[N] Then Ws[0] := Char(VarLen[N]);
+      GetVarName := Ws;
+    End
+End;
+
+Function GetVar; { (N: Byte):String; }
+
+Var Ws         : String[60];
+    CimDate    : DateTip;
+    EvSt       : String[4];
+    HoSt,NapSt : String[2];
+Begin
+  With CLV^ Do
+    Begin
+      If N <= (VarNum-2) Then
+      Begin
+        Numeric := False;
+        Ws := GetVarName(N);
+      End
+      Else
+      Begin
+        If N = VarNum Then {RDATE}
+        Begin
+          With RecDate^ Do
+          Begin
+            Str(Honap:2,HoSt);
+            HoSt[1] := Char(Byte(HoSt[1]) OR $30);
+            Str(Nap:2, NapSt);
+            NapSt[1] := Char(Byte(NapSt[1]) OR $30);
+            Str(Ev:4,EvSt);
+          End;
+          Ws := EvSt + HoSt + NapSt;
+        End
+        Else  {RNUM}
+        Begin
+          Numeric := True;
+          Str(CountRec,Ws);
+          Ws[1] := Char(Byte(Ws[1]) OR $30);
+        End;
+      End;
+      GetVar := Ws;
+    End;
+End;
+
+{$IFDEF NORVEG}
+
+Function  NorvegE(Num:Byte): Boolean;
+BEGIN
+  If (Num = 0) Or (Num > MaxFontNum) Then NorvegE := False
+    Else
+  NorvegE := (FontAttr[Num] AND $F0) = $80;
+End;
+
+Function  SamiE(Num:Byte): Boolean;
+BEGIN
+  If (Num = 0) Or (Num > MaxFontNum) Then SamiE := False
+    Else
+  SamiE := (FontAttr[Num] AND $F0) = $90;
+End;
+
+{$ENDIF}
+
+Function  StandardE(Num:Byte): Boolean;
+BEGIN
+  If (Num = 0) Or (Num > MaxFontNum) Then StandardE := False
+    Else
+  StandardE := (FontAttr[Num] AND $F0) = $00;
+End;
+
+Function  MagyarE(Num:Byte): Boolean;
+BEGIN
+  If Num = 0 Then MagyarE := False
+    Else
+  MagyarE := (FontAttr[Num] AND $F0) = $10;
+End;
+
+Function  NemetE(Num:Byte) : Boolean;
+BEGIN
+  If Num = 0 Then NemetE := False
+    Else
+  NemetE := (FontAttr[Num] AND $F0) = $30;
+End;
+
+Function  AngolE(Num:Byte) : Boolean;
+BEGIN
+If Num = 0 Then AngolE := False
+    Else
+  AngolE := (FontAttr[Num] AND $F0) = 00;
+End;
+
+Function  OroszE(Num:Byte) : Boolean;
+BEGIN
+If Num = 0 Then OroszE := False
+    Else
+  OroszE := (FontAttr[Num] AND $F0) = $20;
+End;
+
+Function  GorogE(Num:Byte) : Boolean;
+BEGIN
+If Num = 0 Then GorogE := False
+    Else
+  GorogE := (FontAttr[Num] AND $F0) = $40;
+End;
+
+Function  HeberE(Num:Byte) : Boolean;
+BEGIN
+If Num = 0 Then HeberE := False
+    Else
+  HeberE := (FontAttr[Num] AND $F0) = $50;
+End;
+
+Function  GrafE(Num:Byte) : Boolean;
+BEGIN
+If Num = 0 Then GrafE := False
+    Else
+  GrafE := (FontAttr[Num] AND $F0) = $F0;
+End;
+
+Function  Spec1E(Num:Byte) : Boolean;
+BEGIN
+If Num = 0 Then Spec1E := False
+    Else
+  Spec1E := ((FontAttr[Num] AND $F0) = $F0) AND (FontNames[Num][5] = '1');
+End;
+
+Function  EuroE(Num:Byte) : Boolean;
+BEGIN
+If Num = 0 Then EuroE := False
+    Else
+  EuroE := (FontAttr[Num] AND $F0) = $E0;
+End;
+
+Function  NormalE(Num:Byte): Boolean;
+BEGIN
+  NormalE := (FontAttr[Num] AND $0F) = $00;
+End;
+
+Function  AlahuzottE(Num:Byte): Boolean;
+BEGIN
+  AlahuzottE := (FontAttr[Num] AND $1) = $1;
+End;
+
+Function  DalahuzottE(Num:Byte): Boolean;
+BEGIN
+  DalahuzottE := (FontAttr[Num] AND $03) = $03;  {= alahuzott index !!!}
+End;
+
+Function  VastagE(Num:Byte)   : Boolean;
+BEGIN
+  VastagE := (FontAttr[Num] AND $8) = $8;
+End;
+
+Function  DoltE(Num:Byte)     : Boolean;
+BEGIN
+  DoltE := (FontAttr[Num] AND $4) = $4;
+End;
+
+Function  IndexE(Num:Byte)     : Boolean;
+BEGIN
+  IndexE := (FontAttr[Num] AND $2) = $2;
+End;
+
+Function  OratorE(Num:Byte): Boolean;
+BEGIN
+  OratorE := (FontAttr[Num] AND $0E) = $0E;
+End;
+
+Function  ExtendedE(Num:Byte): Boolean;
+BEGIN
+  If (Num = 0) Or (Num > MaxFontNum) Then ExtendedE := False
+    Else
+  ExtendedE := (FontAttr[Num] AND $F) = $F;
+End;
+
+Function  NewExtCharType(Num: Byte; Ch: Char; OldTip,Tip: CharType): Char;
+Var Offs : ShortInt;
+    Poz  : ShortInt;
+    ChTip: CharType;
+    St   : String[92];
+Begin
+
+  Offs := 0;
+
+  {$IFDEF NORVEG}
+  If NorvegE(Num) Then
+  Begin
+    Offs:= MaxNorveg;
+    St  := Nconv2;
+  End
+  Else
+  If SamiE(Num) Then
+  Begin
+    Offs:= MaxSami;
+    St  := Sconv2;
+  End;
+  {$ENDIF}
+  {$IFDEF GOROG}
+  If GorogE(Num) Then
+  Begin
+    Offs:= MaxGorog;
+    St  := Gconv2;
+  End;
+  {$ENDIF}
+
+  If Offs > 0 Then
+  Begin
+    Poz   := Pos(Ch,St);
+    If Poz > 0 Then
+    Begin
+      ChTip := CharType((Poz-1) DIV Offs);
+
+      If ((OldTip = Every) OR (ChTip = OldTip)) AND (ChTip <> Tip) Then
+      Begin
+        Inc(Poz,Offs*(Byte(Tip)-Byte(ChTip)));
+        Ch  := St[Poz];
+      End;
+    End;
+  End;
+
+  NewExtCharType := Ch;
+
+End;
+
+Procedure CurOn;
+Begin
+  Gcur := 1;
+  Register.ch := CurEnd-1;
+  Register.cl := CurEnd;
+  Register.ah := 1;
+  Intr($10,Register);
+End;
+
+Procedure BigCur;
+Begin
+  Gcur := 2;
+  Register.ch := 0;
+  Register.cl := lo(CurEnd);
+  Register.ah := 1;
+  Intr($10,Register);
+End;
+
+Procedure CurOff;
+Begin
+  Gcur := 0;
+  Register.ch := CurEnd+8;
+  Register.cl := CurEnd+7;
+  Register.ah:=1;
+  Intr($10,Register);
+End;
+
+Procedure OldCur;
+Begin
+  Gcur := 0;
+  Register.ch := OldCurBeg;
+  Register.cl := OldCurEnd;
+  Register.ah:=1;
+  Intr($10,Register);
+End;
+
+Procedure SaveXY;
+Begin
+    Inc(SaveCount);
+    SaX[SaveCount]    := Xpos;
+    SaY[SaveCount]    := Ypos;
+    SaFont[SaveCount] := FontNum[EditNum];
+End;
+
+Procedure RestoreXY;
+Begin
+    Xpos    := SaX[SaveCount];
+    Ypos    := SaY[SaveCount];
+    FontNum[EditNum] := SaFont[SaveCount];
+    Dec(SaveCount);
+End;
+
+Procedure Beepel;
+Begin
+  sound(x);
+  Delay(80);
+  Nosound;
+End;
+
+Procedure FastBeep;
+Begin
+  sound(x);
+  Delay(8);
+  Nosound;
+End;
+
+Procedure ConvertString{Var St : St80};
+
+Const
+
+  Tom  : Array[1..2] Of String[70] =
+
+  {$IFNDEF OROSZ}
+  ('Üèëíõ †Ç°¢£îÅìñèêôö ≈Œÿ◊ ≥∫ ƒÕ ⁄…’÷ øª∑∏ ¿»‘” ŸºæΩ √Ã∆« ¥πµ∂ ¬À—“ ¡ œ–',
+   'uuvvw uvfwUxzyjuvxz ++++ oo pp kkkk llll nnnn mmmm oooo oooo pppp pppp');
+  {$ELSE}
+  ('≈Œÿ◊ ≥∫ ƒÕ ⁄…’÷ øª∑∏ ¿»‘” ŸºæΩ √Ã∆« ¥πµ∂ ¬À—“ ¡ œ–',
+   '++++ oo pp kkkk llll nnnn mmmm oooo oooo pppp pppp');
+  {$ENDIF}
+
+Var
+  X,Cikl : Byte;
+  Kezd   : Byte;
+
+Begin
+  For Cikl := 1 to Length(St) Do
+  Begin
+    X := Pos(St[Cikl],Tom[1]);
+    If X <> 0 Then
+      St[Cikl] := Tom[2][X]
+  End;
+End;
+
+Procedure UpperCase;
+Var X : Byte;
+Begin
+  For X:= 1 To Length(S) Do S[X] := Upcase(S[X]);
+End;
+
+Function UpperCas;
+Var X : Byte;
+    SS : String;
+Begin
+  SS := S;
+  For X:= 1 To Length(SS) Do SS[X] := Upcase(SS[X]);
+  UpperCas := SS;
+End;
+
+procedure keret;
+
+const  st  :array[1..6] of char = ('⁄','ƒ','ø','≥','Ÿ','¿');
+
+var cikl:INTEGER;
+    WST : ST80;
+
+begin
+
+  ATTRIBUTE(Y1,X1,Y1,X2,COLOR);    {FOLSO SOR ATTR.}
+  DISPCH(ST[1],Y1,X1);             {BAL FOLSO SAROK}
+  FILLCHAR(WST,80,ST[2]);
+  WST[00]:=CHAR(X2-X1-1);
+  DISPLAY(WST,Y2,X1+1);            {FOLSO SOR CHAR}
+  DISPLAY(WST,Y1,X1+1);            {ALSO SOR CHAR}
+  DISPCH(ST[3],Y1,X2);             {JOBB FOLSO SAROK}
+
+  ATTRIBUTE(Y1+1,X1,Y2-1,X1,COLOR);{BAL OLDALI ATTR.}
+  ATTRIBUTE(Y1+1,X2,Y2-1,X2,COLOR);{JOBB OLDALI ATTR.}
+
+  for cikl:=y1+1 to y2-1 do
+    begin
+      DISPCH(ST[4],CIKL,X1);       {BAL OLDALI CHAR}
+      DISPCH(ST[4],CIKL,X2);       {JOBB OLDALI CHAR}
+    end;
+
+  ATTRIBUTE(Y2,X1,Y2,X2,COLOR);    {ALSO SOR ATTR.}
+  DISPCH(ST[6],Y2,X1);             {BAL ALSO SAROK}
+  DISPCH(ST[5],Y2,X2);             {JOBB ALSO SAROK}
+
+end;      { PROCEDURE KERET }
+
+(********  RANDOM HEAP CONTROL ROUTINES  *********)
+
+PROCEDURE NEXTNBYTE;
+VAR  TEMP : POINTER_REC ABSOLUTE POINTER1;
+     Difi : Word;
+BEGIN
+  Difi := TEMP.OFFSET + Word(N);
+  Inc(Temp.Segment,(Difi SHR 4));
+  Temp.OFFSET  := DIFI AND 15
+END;
+
+PROCEDURE PREVNBYTE;
+VAR  TEMP : POINTER_REC ABSOLUTE POINTER1;
+     Difi : WORD;
+BEGIN
+  Difi := Word(N);
+  Dec(Temp.Segment,(Difi shr 4));
+  Difi := Difi And 15;
+  If Difi <= Temp.Offset Then Dec(Temp.Offset,Difi)
+  Else
+    Begin
+      Dec(Temp.Segment);
+      Temp.Offset := 16 + (Temp.Offset - Difi)
+    End
+END;
+
+(**********************  WINDOW MANAGER ROUTINES ********************)
+
+PROCEDURE INIT_WINDOW;
+BEGIN
+
+  POINTER         := PTR(SEG(WIN_STACK^),OFS(WIN_STACK^));
+  LAST_POINT      := POINTER;
+
+  WINDOW_NUMBER   := 1;
+  WIN_STACK_COUNT := 0;
+  WSP             := 0;
+  LAST_WSP        := 0;
+  WITH WIN_DATA[0] DO
+  BEGIN
+    SIZE:=25;
+    LEN:=161;
+    XCOOR:=1;
+    YCOOR:=1;
+    COLOR:=1;
+    OX:=1;
+    OY:=1;
+    EscPoint.X := -1;
+    EscPoint.Y := -1;
+    ActWindMin := $FFFF;
+    ActWindMax := $FFFF;
+  END;
+  {FILLCHAR(WIN_STACK^,WIN_STACK_SIZE,31+128);}
+END;
+
+
+FUNCTION SAVE_WINDOW_TO_FILE;
+VAR WS : STRING[3];
+    IO : INTEGER;
+    Lpath : St80;
+BEGIN
+      Lpath := Path;
+
+      If Path <> '' Then
+        If Lpath[Length(Lpath)] <> '\' Then Lpath := Lpath + '\';
+
+      STR(WIN_STACK_COUNT:3,WS);
+      WS[1] := CHAR(BYTE(WS[1]) OR $10);
+      WS[2] := CHAR(BYTE(WS[2]) OR $10);
+      WINDOWFILENAME := 'WIN_DATA.'+WS;
+      ASSIGN(WINDOWFILE,Lpath+WINDOWFILENAME);
+      {$I-}
+        REWRITE(WINDOWFILE,WIN_STACK_SIZE);
+        IO := IORESULT;
+        BLOCKWRITE(WINDOWFILE,WIN_STACK^,1);
+        Inc(IO,IORESULT);
+        CLOSE(WINDOWFILE);
+        Inc(IO,IORESULT);
+      {$I+}
+
+      IF IO = 0 THEN BEGIN
+                       Inc(WIN_STACK_COUNT);
+                       LAST_WSP  := WSP;
+                       WSP       := 00;
+                       LAST_POINT:= POINTER;
+                       POINTER   := PTR(SEG(WIN_STACK^),OFS(WIN_STACK^));
+                       SAVE_WINDOW_TO_FILE := TRUE;
+                     END
+                ELSE BEGIN
+                       ERASE(WINDOWFILE);
+                       SAVE_WINDOW_TO_FILE := FALSE;
+                     END;
+
+END; {SAVE_WINDOW_TO_FILE}
+
+FUNCTION LOAD_WINDOW_FROM_FILE;
+VAR WS : STRING[3];
+    IO : INTEGER;
+    Lpath : St80;
+BEGIN
+      IF WIN_STACK_COUNT > 0 THEN
+      BEGIN
+        Lpath := Path;
+
+        If Path <> '' Then
+          If Lpath[Length(Lpath)] <> '\' Then Lpath := Lpath + '\';
+
+        Dec(WIN_STACK_COUNT);
+        STR(WIN_STACK_COUNT:3,WS);
+        WS[1] := CHAR(BYTE(WS[1]) OR $10);
+        WS[2] := CHAR(BYTE(WS[2]) OR $10);
+        WINDOWFILENAME := 'WIN_DATA.'+WS;
+        ASSIGN(WINDOWFILE,Lpath+WINDOWFILENAME);
+
+        {$I-}
+        RESET(WINDOWFILE,WIN_STACK_SIZE);
+        IO := IORESULT;
+        BLOCKREAD(WINDOWFILE,WIN_STACK^,1);
+        Inc(IO,IORESULT);
+        CLOSE(WINDOWFILE);
+        Inc(IO,IORESULT);
+        ERASE(WINDOWFILE);
+        {$I+}
+
+      IF IO = 0 THEN BEGIN
+                       WSP    := LAST_WSP;
+                       POINTER:= LAST_POINT;
+                       LOAD_WINDOW_FROM_FILE := TRUE;
+                     END
+                ELSE BEGIN
+                       Inc(WIN_STACK_COUNT);
+                       LOAD_WINDOW_FROM_FILE := FALSE;
+                     END;
+      END
+      ELSE LOAD_WINDOW_FROM_FILE := FALSE;
+
+END; {LOAD_WINDOW_FROM_FILE}
+
+
+FUNCTION SAVE_WINDOW;
+VAR X,Y,CIK : INTEGER;
+    JO      : BOOLEAN;
+
+BEGIN
+
+    SAVE_WINDOW := FALSE;
+    JO          := TRUE;
+
+    X :=  2*(X2-X1+1)+1;
+
+    IF WSP + (Y2-Y1+1)*X > WIN_STACK_SIZE
+      THEN IF NOT SAVE_WINDOW_TO_FILE THEN JO := FALSE;
+
+    IF JO THEN
+    BEGIN
+      SAVE_WINDOW := TRUE;
+
+      WITH WIN_DATA[NUM] DO
+      BEGIN
+        SIZE  := Y2-Y1;
+        XCOOR := X1;
+        YCOOR := Y1;
+        LEN   := X-1;        {EGY STRING HOSSZA}
+      END;
+
+      WITH WIN_DATA[NUM-1] DO
+      BEGIN
+        OX    := WHEREX;
+        OY    := WHEREY;
+      END;
+
+      FOR Y := Y1 TO Y2 DO
+      BEGIN
+        WSTW[0] := CHAR(X-1);
+        GET_STRING(WSTW,Y,X1);
+        POINTER^ := WSTW;
+        NEXTNBYTE(POINTER,X);
+        Inc(WSP,X);
+      END;
+
+    END;  {HA MEG LEFOGLALHATO A WINDOW STACK-EN}
+
+END;  {SAVE_WINDOW}
+
+
+PROCEDURE RESTORE_WINDOW(NUM : INTEGER);
+VAR C,I,Y,X,W_SIZE : INTEGER;
+    JO             : BOOLEAN;
+
+BEGIN
+  IF NUM IN [1..MAX_WINDOW_NUM] THEN
+  BEGIN
+    JO := TRUE;
+    WITH WIN_DATA[NUM] DO
+    BEGIN
+      W_SIZE := SIZE;
+      I      := LEN+1;
+      X      := XCOOR;
+      Y      := YCOOR;
+    END;
+
+
+    IF WSP < 1 THEN IF NOT LOAD_WINDOW_FROM_FILE THEN JO := FALSE;
+
+    IF JO THEN
+    BEGIN
+      FOR C := Y+W_SIZE DOWNTO Y DO
+      BEGIN
+        PREVNBYTE(POINTER,I);
+        SET_STRING(POINTER^,C,X);
+        Dec(WSP,I);
+      END;
+    END;
+  END;
+END;  {RESTORE_WINDOW}
+
+
+FUNCTION CREATE_WINDOW;
+
+VAR CX : BYTE;
+    Wsx: String[80];
+
+BEGIN
+
+  FillChar(Wsx,81,32);
+  Wsx[0] := #80;
+
+  Inc(X1);
+  Dec(X2);
+  Inc(Y1);
+  Dec(Y2);
+
+  IF (WINDOW_NUMBER < MAX_WINDOW_NUM) AND (X1 <= X2) AND (Y1 <= Y2) THEN
+  BEGIN
+
+    MouseCursor(False);
+
+    IF SAVE_WINDOW(X1-1,Y1-1,X2+1,Y2+1,WINDOW_NUMBER) THEN
+    BEGIN
+      CREATE_WINDOW := TRUE;
+      WIN_DATA[WINDOW_NUMBER].COLOR := COL;
+      KERET(X1-1,Y1-1,X2+1,Y2+1,FCOL);
+
+      If KellCloseBox Then
+      Begin
+        Display('[˛]',Y1-1,X1+1);
+        Attribute(Y1-1,X1+2,Y1-1,X1+2,FCol-1);
+        EscPoint.X := X1+1;
+        EscPoint.Y := Y1-2;
+      End
+      Else
+      Begin
+        EscPoint.X := -1;
+        EscPoint.Y := -1;
+      End;
+
+      WIN_DATA[WINDOW_NUMBER].EscX := EscPoint.X;
+      WIN_DATA[WINDOW_NUMBER].EscY := EscPoint.Y;
+
+      Inc(WINDOW_NUMBER);
+
+      IF BYTE(Head[0]) > X2-X1 THEN Head[0] := CHAR(X2-X1);
+      While Head[Byte(Head[0])] = ' ' Do Dec(Byte(Head[0]));
+      If Head <> '' Then Head := ' '+HEAD+' ';
+      DISPLAY(Head,Y1-1,(X1+(X2-X1) DIV 2)-(BYTE(Head[0]) DIV 2));
+
+
+
+      CX := COL DIV 16;
+      TEXTBACKGROUND(CX);
+      CX := CX AND 8;
+      TEXTCOLOR((COL AND 15)+2*CX);
+
+      WINDOW(X1,Y1,X2,Y2);
+      ActWindMin := WindMin;
+      ActWindMax := WindMax;
+
+      CurOff;
+
+      If Y1 = Y2 Then Begin
+                        Wsx[0] := Char(X2-X1+1);
+                        Display(Wsx,Y1,X1);
+                        Attribute(Y1,X1,Y2,X2,Col);
+                      End
+                 Else
+                   Begin
+                     CLRSCR;
+                     CurOff;
+                   End;
+      GOTOXY(1,1);
+    END            { IF SAVE_WINDOW = TRUE }
+    ELSE CREATE_WINDOW:= FALSE;
+
+    MouseCursor(True);
+
+  END              { IF PARAMS IS OK }
+  ELSE BEGIN
+         CREATE_WINDOW:= FALSE;
+         Beepel(600);
+       END;
+END;   {FUNCTION CREATE_WINDOW}
+
+{ VAR SZAM : ST80;
+    AA,BB,CC,DD,TMP : INTEGER; }
+
+FUNCTION REMOVE_WINDOW;
+
+BEGIN
+  IF WINDOW_NUMBER >= 2 THEN
+  BEGIN
+
+    MouseCursor(False);
+
+    REMOVE_WINDOW := TRUE;
+    Dec(WINDOW_NUMBER);
+    RESTORE_WINDOW(WINDOW_NUMBER);
+
+    WINDOW(1,1,80,25);
+
+    WITH WIN_DATA[WINDOW_NUMBER-1] DO
+    BEGIN
+      WINDOW(XCOOR+1,YCOOR+1,XCOOR-2+LEN DIV 2,YCOOR+SIZE-1);
+
+      EscPoint.X := EscX;
+      EscPoint.Y := EscY;
+      ActWindMin := WindMin;
+      ActWindMax := WindMax;
+
+      TextAttr := Color;
+    { TEXTBACKGROUND(COLOR DIV 16); TEXTCOLOR(COLOR MOD 16); }
+      GOTOXY(OX,OY);
+    END;
+
+    MouseCursor(True);
+
+  END
+  ELSE REMOVE_WINDOW := FALSE;
+
+END;   {REMOVE_WINDOW}
+
+Procedure GrWindow; {(X1,Y1,X2,Y2 : Integer; St : St80)}
+Var Cik,Kpoz : Integer;
+Begin
+  St := ' '+St+' ';
+  Kpoz := (X1+(X2-X1+1) DIV 2)-(Length(St) DIV 2);
+  Ablak(X1,Y1,(Y2-Y1-1) DIV 2,Fontoffs,SortabOffs,X2-X1-2);
+
+  UpperCase(St);
+  ConvertString(St);
+
+  For Cik := 1 To Length(St) Do
+    Sys_Write(Kpoz+Cik-1,Y1,Word(St[Cik]),FontOffs,SortabOffs,0);
+
+End;
+
+
+
+Function DriveNum(Dr:Char):Word;
+Var D : Word;   { Visszaadja a drive szamat a karakterbol }
+Begin
+  D := Word(upcase(Dr))-65;
+  If D >= 2 Then Inc(D,$7E);
+  DriveNum := D;
+End;
+
+
+function Ready2(dr:char):boolean;
+Var Drive : Byte;
+begin
+  Drive := DriveNum(Dr);
+
+  Inline  ($06/              { PUSH  ES       }
+           $B8/$00/$B8/      { MOV   AX,B800  }
+           $8E/$C0/          { MOV   ES,AX    }
+           $B8/$01/$04/      { MOV   AX,0401  }
+           $BB/$80/$02/      { MOV   BX,0280  }
+           $B9/$08/$15/      { MOV   CX,1508  }
+           $B6/$00/          { MOV   DH,00    }
+           $8A/$56/<Drive/   { MOV   DL,Drive }
+           $CD/$13/          { INT   13       }
+           $73/$0B/          { JNC   OK       }
+           $80/$E4/$80/      { AND   AH,80    }
+           $08/$E4/          { OR    AH,AH    }
+           $74/$04/          { JZ    OK       }
+           $B0/$00/          { MOV   AL,00    }
+           $EB/$02/          { JMP   ERROR    }
+{ OK: }    $B0/$01/          { MOV   AL,01    }
+{ ERROR: } $88/$46/$FF/      { MOV   Ready,AL }
+           $07);             { POP   ES       }
+
+end;
+
+Function Ready(dr:char):boolean;
+Var B : Boolean;
+Begin
+  (*
+  Dr := UpCase(Dr);
+  B := True{Ready2(Dr);
+  If (not B) And (Dr in ['D'..'Z']) Then
+    B := True;
+  Ready := B
+  *)
+
+  Ready := True
+End;
+
+
+function protect(dr:char):boolean;
+Var Byte_Tomb : Array[0..1024] Of byte;
+begin
+  (*
+  Dr := UpCase(Dr);
+    with register do
+      begin
+
+        ax := $0201;
+        dx := DriveNum(Dr);
+        ch := 39;
+        cl := 8;
+        es := seg(byte_tomb);
+        bx := ofs(byte_tomb);
+        intr($13,register);
+
+        ax := $0301;
+        dx := DriveNum(Dr);
+        ch := 39;
+        cl := 8;
+        es := seg(byte_tomb);
+        bx := ofs(byte_tomb);
+        intr($13,register);
+
+        If ((Flags And FCarry) = FCarry) and (AH>0) then
+          If Dr In['A'..'C'] Then
+            Case AH of
+              $FF,$E0,$BB,
+              $0B,$0A,$07 : BEGIN
+                              Error(31,'');
+                              protect:=True;
+                            End;
+              $80         : BEGIN
+                              Error(15,'');
+                              protect:=True;
+                            End;
+              $02,$04     : BEGIN
+                              Error(32,'');
+                              protect:=True;
+                            End;
+              $03         : BEGIN
+                              Error(16,'');
+                              protect:=True;
+                            End;
+              else
+                BEGIN
+                  Error(33,'');
+                  protect:=True;
+                End
+              End
+            Else
+              Protect := False
+        else protect:=False;
+      end;
+  *)
+  Protect := False
+end;
+
+Var Dri : Char;
+
+Procedure CheckRead{(Fn:St40)};
+Var AktPath : St80;
+    Poz     : Byte;
+Begin
+  Esc := False;
+  Poz := Pos(':',Fn);
+  If Poz > 0 Then Dri := Fn[Poz-1]
+             Else
+             Begin
+               GetDir(0,AktPath);
+               Dri := AktPath[1];
+             End;
+  Dri := Upcase(Dri);
+  If Not Ready(Dri) Then ESC:=True;
+End;
+
+Procedure CheckWrite{(Fn:St40)};
+Begin
+  Esc := False;
+  CheckRead(Fn);
+  If Not Esc Then
+    If Protect(Dri) Then ESC:=True;
+End;
+
+Procedure Stop;
+Var C : Char;
+Begin
+  C := ReadKey;
+  If keypressed Then
+    C := ReadKey;
+End;
+
+Procedure CreateCharSets;
+Begin
+  MagyarSet   := [];
+  StandardSet := [];
+  EgyebSet    := [];
+
+  For Cik := MaxFontNum Downto 1 Do
+  Begin
+    If MagyarE(Cik) Then
+    Begin
+
+      MagyarSet := MagyarSet + [Lo(Cik)];
+
+      If DoltE(Cik) Then MagyarDolt := Cik Else
+        If VastagE(Cik) Then MagyarVastag := Cik Else
+          If IndexE(Cik) Then MagyarIndex := Cik Else
+            If AlahuzottE(Cik) Then MagyarAlahuzott := Cik Else
+              If OratorE(Cik) Then MagyarOrator := Cik Else
+                Magyar := Cik;
+    End
+    Else
+    If StandardE(Cik) Then
+    Begin
+
+      StandardSet := StandardSet + [Lo(Cik)];
+
+      If DoltE(Cik) Then StandardDolt := Cik Else
+        If VastagE(Cik) Then StandardVastag := Cik Else
+          If IndexE(Cik) Then StandardIndex := Cik Else
+            If AlahuzottE(Cik) Then StandardAlahuzott := Cik Else
+              If OratorE(Cik) Then StandardOrator := Cik Else
+                Standard := Cik;
+    End
+    Else
+
+      If NemetE(Cik) Then
+        StandardSet := StandardSet + [Lo(Cik)]
+
+      Else
+
+        EgyebSet := EgyebSet + [Lo(Cik)];
+
+  End;
+
+  If Magyar = 0 Then Magyar := 2;
+  If MagyarDolt     = 0 Then MagyarDolt     := Magyar;
+  If MagyarVastag   = 0 Then MagyarVastag   := Magyar;
+  If MagyarIndex    = 0 Then MagyarIndex    := Magyar;
+  If MagyarOrator   = 0 Then MagyarOrator   := Magyar;
+  If MagyarAlahuzott= 0 Then MagyarAlahuzott:= Magyar;
+
+End;
+
+Procedure GIBHotKeys(Bool: Boolean);
+Begin
+  Asm
+    XOR BX,BX
+    MOV BL,Bool
+    MOV AX,$F820 { Enable/disable GIB's hotkey }
+    PUSH BP
+    INT $16
+    POP BP
+  End;
+End;
+
+Function NemBetu(C: Byte):Boolean;
+Begin
+  NemBetu :=
+     ( Byte(Szo[0]) > 0 )
+  AND
+     ((
+       (Byte(SzoAtt[C]) In MagyarSet) AND (Szo[C] In SzoTermSet)
+      )
+  OR
+      (
+       (Byte(SzoAtt[C]) In StandardSet) AND NOT(Szo[C] In ['A'..'Z','a'..'z'])
+      )
+  OR
+      (
+       (Byte(SzoAtt[C]) In EgyebSet)
+      ));
+End;
+
+Function NemBetuHeap(C: Byte):Boolean;
+Begin
+  NemBetuHeap :=
+      ( Heapline^.Chars[C80+C] In [' ',#00]
+      )
+  OR
+      (
+       ((Byte(Heapline^.Attribs[C]) AND 15) In MagyarSet) AND (Heapline^.Chars[C80+C] In SzoTermSet)
+      )
+  OR
+      (
+       ((Byte(Heapline^.Attribs[C]) AND 15)  In StandardSet) AND (Heapline^.Chars[C80+C] In AngolSzoTermSet)
+      )
+  OR
+      (
+       ((Byte(Heapline^.Attribs[C]) AND 15)  In EgyebSet)
+      );
+End;
+
+Procedure Create_MagyarFont;
+Var Cik : Byte;
+Begin
+  MagyarFont := 2;
+  If MagyarE(FontNum[EditNum]) Then
+    MagyarFont := FontNum[EditNum]
+  Else
+  Begin
+    Cik := 1;
+    While (Cik <= MaxFontNum) AND NOT(MagyarE(Cik)) Do Inc(Cik);
+    If Cik <= MaxFontNum Then MagyarFont := Cik;
+  End;
+End;
+
+Procedure Create_StandardFont;
+Var Cik : Byte;
+Begin
+  StandardFont := 1;
+  If StandardE(FontNum[EditNum]) Then
+    StandardFont := FontNum[EditNum]
+  Else
+  Begin
+    Cik := 1;
+    While (Cik <= MaxFontNum) AND NOT(StandardE(Cik)) Do Inc(Cik);
+    If Cik <= MaxFontNum Then StandardFont := Cik;
+  End;
+End;
+
+Procedure Create_SzoAtt(Var Szo: String);
+Var Cik,PP : Byte;
+Begin
+  SzoAtt[0] := Szo[0];
+  For Cik := 1 To Length(Szo) Do
+  Begin
+    If Szo[Cik] In SzoTermSet Then
+      SzoAtt[Cik] := Char(StandardFont)
+    Else
+    Begin
+      SzoAtt[Cik] := Char(MagyarFont);
+      PP := Pos(Szo[Cik],CWIConvSt[1]);
+      If PP In [1..29] Then
+        Szo[Cik] := CWIConvSt[0][PP];
+    End;
+  End;
+End;
+
+Procedure ASC_EkSz(Var C: Char);
+Var PP : Byte;
+Begin
+  PP := Pos(C,CWIConvSt[1]);
+  If PP > 0 Then C := CWIConvSt[0][PP];
+End;
+
+Procedure EkSz_ASC(Var C: Char);
+Var PP : Byte;
+Begin
+  PP := Pos(C,CWIConvSt[0]);
+  If PP > 0 Then C := CWIConvSt[1][PP];
+End;
+
+Function  SpCheck: Word;
+Begin
+  Asm
+    Mov Ax,Sp
+    Mov @Result,Ax
+  End;
+End;
+
+{$IFNDEF NEMFIGYEL}
+{$IFDEF HALO}
+
+Procedure SetBroadcastMode(Mode: Byte); Assembler;
+Asm
+   MOV   AH,$DE
+   MOV   DL,Mode
+   INT   $21
+End;
+
+Procedure Broadcast(Mode: ModeType);
+Begin
+
+  If (KbFlag AND 15) = 15 Then
+  Begin
+    KellMessage := NOT KellMessage;
+    Beepel(400+(Byte(KellMessage)*300));
+    Delay(220);
+  End;
+
+  If KellMessage Then
+  Begin
+    ModeB := Byte(Mode);
+    ReqBuf[2] := ModeB;
+
+    Reqbuf0 := 3;
+    Repbuf0 := MsgBufferSize+2;
+
+    Asm
+      PUSH  ES
+      PUSH  SI
+      PUSH  DI
+
+      MOV   SI,Offset ReqBuf
+      MOV   DI,Offset RepBuf
+      PUSH  DS
+      POP   ES
+      MOV   AH,$E1
+      MOV   AL,ModeB
+
+      INT   $21
+
+      MOV   GlobalError,AL
+
+      POP   DI
+      POP   SI
+      POP   ES
+    End;
+
+    If (Mode = GetBMsg) AND (GlobalError = 0) Then
+      Move(RepBuf[2],Message[0],RepBuf[2]+1);
+
+  End; { If KellMessage }
+
+End; {Procedure Broadcast}
+
+Procedure GetMessage;
+Begin
+
+  If (Message = '') Then
+    If LongInt(IdoAlap-LastMsgIdo) >= HanyMasodpercenkentFigyel*18 Then
+    Begin
+      If Message = '' Then BroadCast(GetBMsg);
+      If Message <> '' Then GetTime(MsgOra,MsgPerc,MsgMp,MsgMpPer100);
+      LastMsgIdo := IdoAlap;
+    End;
+
+End;
+
+{$ENDIF HALO}
+{$ENDIF}
+
+Function VanWindows: Boolean;
+Var VanWin : Word;
+Begin
+  Asm
+    MOV    AX,$1600
+    MOV    BX,AX
+    INT    $2F
+    SUB    AX,BX
+    MOV    VANWIN,AX
+  End;
+  VanWindows := (VanWin <> 0);
+End;
+
+Procedure CheckFn(Fn:St80);
+Var
+WorkS,PathS: St80;
+
+Begin
+    WorkS  := UpperCas(Fn);
+    PathS  := UpperCas(Eredeti_Path);
+
+    Esc    := False;
+
+    If (Pos(';',WorkS) > 0) or (Pos(':',WorkS) = 1)
+    {$IFDEF WORKDIR}
+    OR (
+        (Length(WorkS) >= 2) AND
+        (WorkS[2] = ':') AND
+        (WorkS[1] > 'D') AND
+        (Copy(WorkS,1,Length(PathS)) <> PathS)
+       )
+    {$ENDIF}
+    Then
+    BEGIN
+      Error(34,WorkS);
+      Esc := True;
+    End;
+End;
+
+Procedure SetMouse(Par: Boolean);
+Begin
+  If Mouse Then
+  Begin
+    Register.AX := Byte(Not(Par)) + 1; { 1 = Display, 2 = Hide mouse cursor }
+    Intr($33,Register);
+    Register.AX := $0C;  { Set mouse event handler }
+    Register.CX := Byte(Par) * $2B; {2B = Movement + left,right,center button
+                                     press, 0 = disable}
+    Register.ES := Seg(MouseHandler);
+    Register.DX := Ofs(MouseHandler);
+    Intr($33,Register);
+  End;
+End;
+
+Procedure MouseCursor(Par: Boolean);
+Begin
+  If Mouse Then
+  Begin
+    Register.AX := Byte(Not(Par)) + 1; { 1 = Display, 2 = Hide mouse cursor }
+    Intr($33,Register);
+  End;
+End;
+
+Procedure MouseHandler; Assembler;
+Label NemText;
+Asm
+
+  PUSH  AX
+  MOV   AX,Seg @Data
+  MOV   DS,AX
+  POP   AX
+
+  PUSH  CX
+
+  MOV   BX,AX
+  PUSH  BX
+  PUSH  BX
+
+  AND   BL,2         {Left button}
+  SHR   BL,1
+  MOV   DS:[LeftButtonPressed],BL
+  MOV   DS:[Mouse_Bill],BL
+
+  POP   BX
+  AND   BL,8         {Right button}
+  MOV   CL,3
+  SHR   BL,CL
+  MOV   DS:[RightButtonPressed],BL
+  OR    DS:[Mouse_Bill],BL
+
+  POP   BX
+  AND   BL,$20        {Center button}
+  MOV   CL,5
+  SHR   BL,CL
+  MOV   DS:[CenterButtonPressed],BL
+  OR    DS:[Mouse_Bill],BL
+
+  POP   CX
+
+  MOV   AL,DS:[CrtMode]
+  CMP   AL,03
+  JNZ   NemText
+
+  SHR   CX,1
+  SHR   CX,1
+  SHR   CX,1
+
+  SHR   DX,1
+  SHR   DX,1
+  SHR   DX,1
+
+  NemText:
+
+  MOV   DS:[MouseXPos],CX
+  MOV   DS:[MouseYPos],DX
+
+End;
+
+{$IFDEF HALO}
+
+Function GetConnectionNumber:Byte;
+Var ConnNum : Byte;
+Begin
+  Asm
+    MOV    AH,$DC
+    INT    $21
+    MOV    ConnNum,AL
+  End;
+  GetConnectionNumber := ConnNum;
+End;
+
+Function GetUserName(ConnNum: Byte): String;
+Var ObjName : String;
+Begin
+
+  ModeB := $16;
+  ReqBuf[2] := ModeB;
+  ReqBuf[3] := ConnNum;
+
+  Reqbuf0 := 2;
+  Repbuf0 := MsgBufferSize+2;
+
+  Asm
+    PUSH  ES
+    PUSH  SI
+    PUSH  DI
+
+    MOV   SI,Offset ReqBuf
+    MOV   DI,Offset RepBuf
+    PUSH  DS
+    POP   ES
+    MOV   AH,$E3
+    MOV   AL,ModeB
+
+    INT   $21
+
+    MOV   GlobalError,AL
+
+    POP   DI
+    POP   SI
+    POP   ES
+  End;
+
+  ObjName[0] := #0;
+
+  If GlobalError = 0 Then
+  Begin
+    Move(RepBuf[8],ObjName[1],48);
+    Inc(ObjName[0]);
+    While ObjName[Byte(ObjName[0])] <> #00 Do Inc (ObjName[0]);
+    Dec(ObjName[0]);
+  End;
+
+  GetUserName := ObjName;
+
+End; {Function GetUserName}
+
+{$ENDIF}
+
+BEGIN
+
+  Register.ah := 3;
+  Register.Bh := 0;
+  Intr($10,Register);
+
+  OldCurEnd:=Register.CL;
+  OldCurBeg:=Register.CH;
+
+  Register.Ax := 3;
+  Intr($10,Register);
+
+  Register.ah := 3;
+  Register.Bh := 0;
+  Intr($10,Register);
+  CurEnd:=Register.CL;
+
+  {$IFNDEF NEMFIGYEL}
+  {$IFDEF HALO}
+  Broadcast(EnableBMsg);
+  SetBroadcastMode(3);
+  {$ENDIF}
+  {$ENDIF}
+
+End.        

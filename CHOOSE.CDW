@@ -1,0 +1,782 @@
+CONST
+van      : boolean = False;
+elso_kor : boolean = True;
+tovabb   : boolean = False;
+Sok_Jelolo: boolean = False;
+Csik : String[21] = '컴컴컴컴컴컴컴컴컴컴�';
+
+PROCEDURE choose(      Var dir_tomb :  nevtomb;
+                       var dir_attr :  attrtomb;
+                           dirhossz :  integer;
+
+                           DirDb    : Integer;
+                       Var DirDates,
+                           FileDates,
+                           FileSizes);
+
+VAR
+
+    FileMeret  : Array [1..Dir_Nagysag] of LongInt Absolute FileSizes;
+    FileDatum  : Array [1..Dir_Nagysag] of LongInt Absolute FileDates;
+
+    DirDatum   : Array [1..Dir_darab] of LongInt Absolute DirDates;
+
+    Graphic : Boolean;
+    cikl    : integer;
+    dirpoz  : integer;
+    kiirasi_hossz,
+    lap,
+    oldal   : byte;
+    CH      : CHAR;
+    kilepes : boolean;
+    a,b     : byte;
+    kivalasztva : integer;
+    Tat     : Byte;
+    Inv     : Boolean;
+    pfffff  : word;
+
+    NewPoz,
+    UjPoz,
+    CharPoz : Byte;
+    Wst     : String[40];
+
+    spacc       : string[30];
+    egy_oldalon : integer;
+    shossz      : integer;
+    sszel       : integer;
+    margox      : integer;
+    margoy      : integer;
+    hany_sor    : integer;
+    Plusssz     : Integer;
+
+    Ws : String[80];
+    Wi : Integer;
+
+Procedure AddHelpText;
+Var S : String[28];
+    B : Byte;
+    Begin
+
+      Ws := Ws + ':  ';
+      B  := Lo(Wi);
+
+      Case ChooseMode Of
+       Blokk_Mode: Begin
+                     If B <= 12 Then Alt_help(B+12,S)
+                     Else
+                     Begin
+                       If B <= 27 Then S := FontNames[B-12] + ' FONT'
+                                  Else S := OsszegSt + CalcOperators[B-27];
+                     End;
+                   End;
+        CtrlMode : Begin
+                     {$IFDEF VER3} If (B > DirHossz-2) Then Inc(B,2); {$ENDIF}
+                     Ctrl_help(B,S);
+                   End;
+        AltMode  : Begin
+                     (*
+                     {$IFDEF VER3} If (B = DirHossz) Then Inc(B,2); {$ENDIF}
+                     *)
+                     If (VanNyelvEsz) AND (B = 14) AND (NOT BlockMode) Then
+                       S := 'Helyes죚쟳ellen뱑z굎' Else
+                     Alt_Help(B,S);
+                   End;
+        Ctrl_AltMode:
+                   Case B Of
+                      1: S := SzovegMentes;
+                   End; { Case }
+        Ctrl_ShiftMode:
+                   Case B Of
+                      1: S := Billentyumakro;
+                      2: S := FranciaFormat;
+                   End; { Case }
+      End; { Case }
+      Ws := Ws + S;
+    End;
+
+PROCEDURE tn;
+  BEGIN
+    If (cikl+oldal*egy_oldalon)<=nev_db then
+      If (Byte(Dir_tomb[Wi][1]) and 128)<128 then TextAttr := CAttr_1[DispMode]
+      else TextAttr:= CAttr_8[Dispmode]
+    else TextAttr:= CAttr_6[DispMode];
+    Inverz := False;
+  end;
+
+PROCEDURE tn1;
+  BEGIN
+    If (dirpoz+oldal*egy_oldalon)<=nev_db then
+      If (Byte(Dir_tomb[Wi][1]) and 128)<128 then TextAttr := CAttr_1[DispMode]
+      else TextAttr:= CAttr_8[Dispmode]
+    else TextAttr:= CAttr_6[DispMode];
+    Inverz := False;
+  end;
+
+PROCEDURE tv;
+  BEGIN
+    TextAttr := CAttr_2[DispMode];
+    Inverz := False;
+  end;
+
+PROCEDURE ti;
+  BEGIN
+    If (dirpoz+oldal*egy_oldalon)<=nev_db then TextAttr := CAttr_3[DispMode]
+    else TextAttr:= CAttr_7[DispMode];
+    Inverz := True;
+  end;
+
+PROCEDURE tvi;
+  BEGIN
+    TextAttr := CAttr_4[DispMode];
+    Inverz := True;
+  end;
+
+PROCEDURE ts;
+  BEGIN
+    TextAttr := CAttr_5[DispMode];
+    Inverz := False;
+  end;
+
+Procedure WriteString;
+Begin
+
+  spacc[0] := char(shossz-length(Ws));
+  Ws[1]:=Char(Byte(Ws[1]) and 127);
+  SystemWriting := False;
+  writ(Ws+spacc);
+  SystemWriting := False;
+
+End;
+
+PROCEDURE uj_poz(ujp:integer);
+Var S : String[80];
+    T : DateTime;
+    Ho: String[16];
+    Ev,Nap,Ora,Perc,Mp : String[4];
+    Datum : LongInt;
+
+Function Formatted(Size:LongInt): String;
+Var SizeSt : String[80];
+    Ci     : Byte;
+Begin
+  Str(Size:9,SizeSt);
+  Ci := Length(SizeSt)+1-3;
+
+  While (Ci > 1) AND (SizeSt[Ci-1] <> ' ') Do
+  Begin
+    Insert(',',SizeSt,Ci);
+    Dec(Ci,4);
+    Delete(SizeSt,1,1);
+  End;
+  Formatted := SizeSt;
+End;
+
+  BEGIN
+
+      MouseCursor(False);
+
+      gotox(((dirpoz-1) div hany_sor)*sszel+margox+Byte(Graphic)*wkx1,
+              (Byte(Graphic)+1)*((dirpoz-1) mod hany_sor+margoy+
+              Byte(Graphic)*Wky1));
+
+    Wi := dirpoz+oldal*egy_oldalon;
+    If (dir_attr[dirpoz+oldal*egy_oldalon]=1) { and ((dirpoz+oldal*egy_oldalon)<=nev_db) }
+      then tv else tn1;
+
+    Ws := dir_tomb[Wi];
+
+    If ChooseMode <> None Then AddHelpText;
+
+    WriteString;
+
+    dirpoz := ujp;
+    Wi := dirpoz+oldal*egy_oldalon;
+    Ws := dir_tomb[Wi];
+
+    gotox(((dirpoz-1) div hany_sor)*sszel+margox+Byte(Graphic)*wkx1,
+            (Byte(Graphic)+1)*((dirpoz-1) mod hany_sor+
+            margoy+Byte(Graphic)*wky1));
+
+    If dir_attr[dirpoz+oldal*egy_oldalon]=1
+      then
+        tvi
+      else
+        ti;
+    If ChooseMode <> None Then AddHelpText;
+
+    WriteString;
+
+    {$IFDEF EKSZINFO}
+    If MostKellInf Then AdatKiir(IndexM^[Wi]);
+    {$ELSE}
+    If InfoWindow Then
+    Begin
+
+      S := Ws + '    ';
+
+      { S := Space12+Ws;
+      S := Copy(S,Length(S)-11,12) + '   '; }
+
+      If Wi < DirHossz-DirDb Then
+      Begin
+        S := S + Formatted(FileMeret[Wi]);
+        S := S + ' Byte    ';
+        Datum := FileDatum[Wi];
+      End
+      Else
+      Begin
+        Plusssz := Byte(Dir_Tomb[DirHossz][1] = '.');
+        If Ws[1] = '.' Then Datum := 0
+                       Else Datum := DirDatum[Wi-(DirHossz-DirDb)+Plusssz];
+        S := S + '   <Directory>    ';
+      End;
+
+      If Datum <> 0 Then
+      Begin
+
+        UnpackTime(Datum,T);
+
+        With T Do
+        Begin
+          Str(Year:4,Ev);
+          Ho := Honapok[Month];
+          EkSzer_To_ASCII(Ho);
+          Str(Day:2,Nap);   Nap[1] := Char(Byte(Nap[1]) OR $30);
+          Str(Hour:2,Ora);  Ora[1] := Char(Byte(Ora[1]) OR $30);
+          Str(Min:2,Perc); Perc[1] := Char(Byte(Perc[1]) OR $30);
+          Str(Sec:2,Mp);     Mp[1] := Char(Byte(Mp[1]) OR $30);
+        End;
+
+        {$IFDEF OROSZ}
+        S := S + Nap+'.'+Ho+' '+Ev+'.'+Copy(Space12,1,13-Length(Ho))+Ora+':'+Perc+':'+Mp;
+        {$ELSE}
+
+        {$IFDEF NORVEG}
+        S := S + Nap+'.'+Ho+' '+Ev+'.'+Copy(Space12,1,13-Length(Ho))+Ora+':'+Perc+':'+Mp;
+        {$ELSE}
+        S := S + Ev+'.'+Ho+' '+Nap+'.'+Copy(Space12,1,13-Length(Ho))+Ora+':'+Perc+':'+Mp;
+        {$ENDIF}
+
+        {$ENDIF}
+
+      End;
+
+      Spacc[0] := #30;
+      S := Copy(S+Spacc+Spacc+Spacc,1,70);
+      Display(S,21,6);
+
+    End;
+    {$ENDIF}
+
+    If (NOT Graphic) AND (CharPoz > 0) Then
+    Attribute(WhereY+Hi(WindMin),WhereX+Lo(WindMin)-Shossz,WhereY+Hi(WindMin),
+              WhereX+Lo(WindMin)-Shossz+CharPoz-1,CA[DispMode,4]);
+    tn1;
+
+    MouseCursor(True);
+
+  end;
+
+Procedure CheckMouse;
+Var Sx,Sy : Integer;
+    SWindmin,SWindMax : Word;
+    Graphic : Boolean;
+
+    ClickOnCurrentWindow : Boolean;
+
+    FirstLine, Step    : Integer;
+    Osz1Eleje,Osz1Vege,
+    Osz2Eleje,Osz2Vege : Integer;
+    HanyadikSor        : Integer;
+    HanyadikOszlop     : Integer;
+
+Begin
+
+  Graphic := (CRTMODE = 6);
+  ClickOnCloseBox := False;
+
+  If NOT Graphic Then
+  Begin
+
+    If LeftButtonPressed Then
+    Begin
+
+      LeftButtonPressed := False;
+
+      ClickOnCurrentWindow:= (MouseXpos In [Lo(ActWindMin)..Lo(ActWindMax)]) AND
+                             (MouseYpos In [Hi(ActWindMin)..Hi(ActWindMax)]);
+
+      ClickOnCloseBox     := (MouseXPos = EscPoint.X) AND
+                             (MouseYPos = EscPoint.Y);
+
+      If ClickOnCurrentWindow Then
+      Begin
+        ClickXpos := MouseXpos - Lo(ActWindMin);
+        ClickYPos := MouseYpos - Hi(ActWindMin);
+      End;
+
+      If ((ClickXPos-(MargoX-1)) >= 0) AND
+         ((ClickXPos-(MargoX-1)) Mod SSzel < SHossz) AND
+         ((ClickYPos-(MargoY-2)) <= Hany_Sor) AND
+         (ClickYPos >= (MargoY-1))  Then
+
+      ClickOnChooseItem   :=
+
+      (((ClickXPos-(MargoX-1)) DIV Sszel) * Hany_Sor +1) +
+        (ClickYPos - (MargoY-1) +1) -1
+      Else
+        ClickOnChooseItem := -1;
+
+      If ClickOnChooseItem > Kiirasi_Hossz Then
+        ClickOnChooseItem := -1;
+
+      Mouse_Bill := False;
+
+    End;
+  End
+  Else  {If Graphic}
+  Begin
+    If LeftButtonPressed Then
+    Begin
+      Case GrMode Of
+        CgaMode :  Begin
+                     FirstLine := 29;
+                     Step      := 10;
+                     Osz1Eleje := 70;
+                     Osz1Vege  := 310;
+                     Osz2Eleje := 342;
+                     Osz2Vege  := 582;
+                   End;
+        EgaMode :  Begin
+                     FirstLine := 47;
+                     Step      := 16;
+                     Osz1Eleje := 70;
+                     Osz1Vege  := 310;
+                     Osz2Eleje := 342;
+                     Osz2Vege  := 582;
+                   End;
+        HerMode :  Begin
+                     FirstLine := 47;
+                     Step      := 16;
+                     Osz1Eleje := 110;
+                     Osz1Vege  := 350;
+                     Osz2Eleje := 382;
+                     Osz2Vege  := 622;
+                   End;
+        VgaMode :  Begin
+                     FirstLine := 47;
+                     Step      := 16;
+                     Osz1Eleje := 70;
+                     Osz1Vege  := 310;
+                     Osz2Eleje := 342;
+                     Osz2Vege  := 582;
+                   End;
+      End;
+
+      If (MouseYPos < FirstLine-4) AND (MouseYPos >= FirstLine-4-Step) AND
+         (MouseXPos < Osz1Eleje-4) AND (MouseXPos >= Osz1Eleje-4-20) Then
+         ClickOnCloseBox := True
+      Else
+      Begin
+
+        If MouseYPos < FirstLine Then HanyadikSor := 0
+        Else HanyadikSor := ((MouseYPos-FirstLine) DIV Step) + 1;
+
+        If HanyadikSor In [1..16] Then
+        Begin
+
+          HanyadikOszlop := -1;
+
+          If (MouseXPos >= Osz1Eleje) AND (MouseXPos <= Osz1Vege)
+            Then HanyadikOszlop := 0
+          Else
+            If (MouseXPos >= Osz2Eleje) AND (MouseXPos <= Osz2Vege)
+              Then HanyadikOszlop := 1
+            Else ClickOnChooseItem := -1;
+
+          If HanyadikOszlop >= 0 Then
+             ClickOnChooseItem := 16*HanyadikOszlop + HanyadikSor;
+
+        End
+        Else ClickOnChooseItem := -1;
+
+        If ClickOnChooseItem > Kiirasi_Hossz Then
+          ClickOnChooseItem := -1;
+
+      End; { If NOT ClickOnCloseBox }
+
+    End; { If LeftButtonPressed }
+
+    Mouse_Bill := False;
+    LeftButtonPressed   := False;
+    RightButtonPressed  := False;
+    CenterButtonPressed := False;
+
+  End;  { If Graphic }
+
+End;
+
+BEGIN {CHOOSE}
+
+  ClickOnChooseItem := -1;
+
+  InChooseban := True;
+  MouseCursor(False);
+
+  Inv := Inverz;
+  Tat := TextAttr;
+
+  Graphic := (CrtMode = 6);
+
+  If Graphic Then
+  BEGIN
+    FontNum[Editnum] := 00;
+    NemKellCursor := True;
+  End;
+
+  FillChar(Spacc,31,' ');
+  Spacc[0] := #30;
+
+  margoy :=  2;
+  shossz := slength;
+  hany_sor := wky2-wky1-1;
+  egy_oldalon := ((wkx2-wkx1) div (shossz+1))*hany_sor;
+  If egy_oldalon div hany_sor <> 1 then
+    sszel  := shossz + ((wkx2-wkx1-1)-(egy_oldalon div hany_sor)*shossz) div
+                                      (egy_oldalon div hany_sor -1)
+  else
+    sszel := shossz;
+  margox := ((wkx2-wkx1+1)
+                         -(egy_oldalon div hany_sor)*shossz
+                         -(egy_oldalon div hany_sor -1)*(sszel-shossz)) div 2
+                         +1;
+  fillchar(dir_attr,dir_nagysag,0);
+
+  If Not Graphic Then Window(wkx1,wky1,wkx2,wky2);
+
+  gotox(1,(Byte(Graphic)+1)*(1+Byte(Graphic)*wky1));
+
+  oldal :=0;
+  lap   :=(dirhossz-1) div egy_oldalon;
+
+  Kilepes := False;
+
+  If dirhossz <> 0
+    then
+      Begin
+
+        If Dirhossz = dir_nagysag Then Speak2(107,207);
+
+        repeat
+          If Dirhossz = dir_nagysag Then
+          BEGIN
+            If Not Graphic Then
+            Begin
+    {%%%%}    Display(InpST10,Wky1,Wkx1);
+              Attribute(Wky1,Wkx1,Wky1,Wkx1+Length(InpST10),CA[DispMode,2]);
+            End;
+          End;
+          If oldal=lap
+            then
+              kiirasi_hossz  := dirhossz-oldal*egy_oldalon
+            else
+              BEGIN
+                kiirasi_hossz := egy_oldalon;
+                If Not Graphic Then Display(InpST9,Wky2+1,Wkx2-17);
+              End;
+
+          Plusssz := Byte(Dir_Tomb[DirHossz][1] = '.');
+
+          for cikl := 1 to kiirasi_hossz-(Byte((kiirasi_hossz) <= egy_oldalon)
+                                          *Byte(Sok_jelolo)*(dir_db-Plusssz)) do
+            BEGIN
+              gotox(((cikl-1) div hany_sor)*sszel+margox+Byte(Graphic)*wkx1,
+                      (Byte(Graphic)+1)*((cikl-1) mod hany_sor+margoy+
+                      Byte(Graphic)*wky1));
+              Wi := Cikl+oldal*egy_oldalon;
+              If dir_attr[cikl+oldal*egy_oldalon]=1
+                then
+                  tv
+                else
+                  tn;
+              Ws := dir_tomb[Wi];
+
+              If ChooseMode <> None Then AddHelpText;
+
+              WriteString;
+            end;
+
+          { dirpoz := 1+(Byte(Sok_jelolo)*(dirpoz-1)); }
+
+          If Kilepes Then DirPoz := NewPoz
+          Else
+          Begin
+
+            CharPoz := 0;
+            Wst     := '';
+
+            {$IFDEF NORVEG}
+            If ChooLang Then DirPoz := LanguagePos Else
+            {$ENDIF}
+            DirPoz := 1;
+
+          End;
+
+          Sok_jelolo:=False;
+          uj_poz(dirpoz);
+          a := 0;
+          b := 0;
+          kilepes := false;
+
+          MouseCursor(True);
+
+          repeat
+              PuffiRekurzio := True;
+  {@@@}       Puffi(A,B);
+              PuffiRekurzio := False;
+              If Enged > 0 Then
+              Case A Of
+               32 : BEGIN
+                      If (dirpoz+oldal*egy_oldalon)<=nev_db then
+                      dir_attr[dirpoz+oldal*egy_oldalon] :=
+                      dir_attr[dirpoz+oldal*egy_oldalon] XOR 1;
+                      uj_poz(dirpoz)
+                    end;
+               43 : BEGIN    { + }
+                      Sok_jelolo:=True;
+                      fillchar(dir_attr,nev_db,1);
+                      kilepes := true;
+                      NewPoz := DirPoz;
+                      {uj_poz(dirpoz);}
+                    end;
+               45 : BEGIN    { - }
+                      Sok_jelolo:=True;
+                      fillchar(dir_attr,nev_db,0);
+                      kilepes := true;
+                      NewPoz := DirPoz;
+                      {uj_poz(dirpoz);}
+                    end;
+              End;
+
+
+              {$IFNDEF CDVIEW}
+              If (ChooseMode <> None) Then
+              Begin
+                Cik := 1;
+                Case ChooseMode Of
+                  Blokk_Mode    : Begin
+                                    Dec(Cik);
+                                    Repeat
+                                      Inc(Cik);
+                                    Until (Cik > DirHossz) OR
+                                          ((BlokkHelpScans[Cik] = 222) AND
+                                           (A = BlokkHelpKeys[Cik]))
+                                          OR
+                                          ((B = BlokkHelpScans[Cik]) AND
+                                           (A = BlokkHelpKeys[Cik]));
+                                  End;
+                  CtrlMode      : Begin
+                                    If (B = Space) AND (KbFlag AND CtrlKey <> 0)
+                                      Then Cik := DirHossz
+                                    Else
+                                    While (Cik <= DirHossz) AND
+                                          ((B <> CtrlHelpScans[Cik]) OR
+                                           (A <> CtrlHelpKeys[Cik])) Do Inc(Cik);
+                                  End;
+                  AltMode       : Begin
+                                    If (B = Space) AND (KbFlag AND AltKey <> 0)
+                                      Then Cik := DirHossz
+                                    Else
+                                    While (Cik <= DirHossz) AND
+                                          ((B <> AltHelpKeys[Cik]) OR
+                                          (A <> 0)) Do Inc(Cik);
+                                  End;
+                  Ctrl_AltMode  : Begin
+                                    If KbFlag AND CtrlKey <> 0 Then
+                                    While (Cik <= DirHossz) AND
+                                          ((B <> CtrlAltHelpKeys[Cik]) OR
+                                          (A <> 0)) Do Inc(Cik)
+                                    Else Cik := DirHossz+1;
+                                  End;
+                  Ctrl_ShiftMode: Begin
+                                    If KbFlag AND 3 <> 0 Then
+                                    While (Cik <= DirHossz) AND
+                                          ((B <> CtrlShiftHelpScans[Cik]) OR
+                                           (A <> CtrlShiftHelpKeys[Cik])) Do
+                                           Inc(Cik)
+                                    Else Cik := DirHossz+1;
+                                  End;
+                End;
+
+                If Cik <= DirHossz Then
+                Begin
+                  If Cik < DirPoz Then
+                    For Cikl := DirPoz DownTo Cik Do Uj_Poz(Cikl)
+                  Else
+                    For Cikl := DirPoz To Cik Do Uj_Poz(Cikl);
+                  Dir_Attr[DirPoz] := 1;
+                  Kilepes := True;
+                  A := 255;
+                End;
+
+              End;
+
+              {$ENDIF CDVIEW}
+
+              If Mouse_Bill Then
+              Begin
+                PrevChooseItem := ClickOnChooseItem;
+                CheckMouse;
+                If ClickOnCloseBox Then A := Escape
+                Else
+                  If ClickOnChooseItem <> -1 Then
+                  Begin
+                    Uj_Poz(ClickOnChooseItem);
+                    If ClickOnChooseItem = PrevChooseItem Then A := Enter;
+                  End;
+              End;
+
+              If A <> 255 Then
+              Case A Of
+
+              Enter : BEGIN
+                        dir_attr[dirpoz+oldal*egy_oldalon] := 1;
+                        uj_poz(dirpoz);
+                        KILEPES := TRUE;
+                      end;
+              Escape : BEGIN
+                         For pfffff:=1 to dir_nagysag do dir_attr[pfffff]:=0;
+                         ESC:=True;
+                         Kilepes := TRUE;
+                       End;
+
+              Byte('!')..Byte('~'):
+                       Begin
+                         Inc(CharPoz);
+                         WSt := Wst + UpCase(Char(A));
+                         Cik := 1;
+                         While (Copy(Dir_Tomb[Cik],1,CharPoz) <> Wst) AND
+                               (Cik <= DirHossz) Do Inc(Cik);
+                         If Cik <= DirHossz Then
+                         Begin
+
+                           UjPoz := Cik MOD Egy_Oldalon;
+                           If UjPoz = 0 Then UjPoz := Egy_Oldalon;
+
+                           If (Cik < Oldal*Egy_Oldalon) OR
+                              (Cik > (Oldal+1)*Egy_Oldalon) Then
+                           Begin
+                             Oldal := Cik DIV Egy_Oldalon;
+                             NewPoz := UjPoz;
+                             Kilepes := True;
+                             ts;
+                             clrscr;
+                             tn;
+                           End
+                           Else Uj_Poz(UjPoz);
+                         End
+                         Else
+                         Begin
+                           Beepel(555);
+                           Wst := '';
+                           CharPoz := 0;
+                         End;
+                       End;
+            End; {Case}
+
+            If a=0
+              then
+              Begin
+
+                CharPoz := 0;
+                Wst     := '';
+
+                case b of
+
+
+           {$IFDEF EKSZINFO}
+             F2      : If MostKellInf Then
+                       Begin
+                         UjFileNev(Dir_Tomb[Dirpoz]);
+                         Nev_bejelol(Dir_Tomb,IndexM^,DirHossz);
+                         Uj_Poz(DirPoz);
+                       End;
+           {$ENDIF}
+
+
+           FelNyil   : If dirpoz>1
+                         then uj_poz(dirpoz-1);
+
+           LeNyil    : If dirpoz<kiirasi_hossz
+                         then uj_poz(dirpoz+1);
+
+           BalraNyil : If DIRPOZ-hany_sor>0
+                         THEN
+                           UJ_POZ(DIRPOZ-hany_sor);
+
+           Jobbranyil: If DIRPOZ+hany_sor <= KIIRASI_HOSSZ
+                         THEN
+                           UJ_POZ(DIRPOZ+hany_sor);
+
+           PageUp    : If oldal > 0
+                         then
+                           BEGIN
+                             Csik[0] := #18;
+                             Dec(oldal);
+
+                             If Not Graphic Then
+                             Begin
+                               If Oldal = 0 Then
+                                 Display(Csik,Wky2+1,Wkx1+2)
+                               Else
+                                 Display(InpST9,Wky2+1,Wkx2-17);
+                             End;
+
+                             kilepes := true;
+                             NewPoz := 1;
+
+                             ts;
+                             clrscr;
+                             tn
+                           end;
+
+           PageDown  : If oldal < lap
+                         then
+                           BEGIN
+                             Csik[0] := #18;
+                             Inc(oldal);
+
+                             If Not Graphic Then
+                             Begin
+                               If Oldal = Lap Then
+                                 Display(Csik,Wky2+1,Wkx2-18);
+
+                               Display(InpST7,Wky2+1,Wkx1+2);
+                             End;
+
+                             kilepes := true;
+                             NewPoz := 1;
+
+                             ts;
+                             clrscr;
+                             tn
+                           end;
+                end; { OF CASE }
+
+              End;
+
+          Until Kilepes;
+
+        Until (A In [Enter,Escape,255] );
+
+      End;
+
+  tn;
+
+  NemKellCursor := False;
+
+  Inverz := Inv;
+  TextAttr := Tat;
+
+  InChooseban := False;
+END; {CHOOSE}

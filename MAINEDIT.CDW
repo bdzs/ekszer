@@ -1,0 +1,1419 @@
+var Oxpos,
+    cik,cik2,hp,Oxp,Oyp : integer;
+    SorT   : Array[0..MaxMaxChars] Of Boolean;
+    ArrowStroke : Word;
+    NemCsakNezeget : Boolean;
+    FKeyValue      : Byte;
+
+
+Const
+    KilepSet : Set Of Byte = [Alt_H,Alt_Q,Ctrl_F1..Ctrl_F4
+                 {$IFNDEF VER3},Alt_minus,Alt_egyen,Ctrl_F7{$ENDIF}];
+    NoFrKeys   : Set Of Byte = [Alt_H,Ctrl_F1..Ctrl_F4];
+    SorTavKeys : Set Of Byte = [Alt_1..Alt_9];
+
+Procedure ValtozasEditNumTrue;
+Begin
+  Valtozas[EditNum] := True;
+End;
+
+
+{$IFNDEF CDVIEW}
+{$IFNDEF VER3}
+Var
+    Kiadv_tart : FnTyp;
+    Kiadv_ind  : array [0..76] of byte absolute Kiadv_tart;
+
+PROCEDURE Publicat_valaszt;
+
+VAR
+    { ScBuff     : array [1..15000] of Byte; }
+
+    Buff       : array [1..12] of byte;
+    Pb_file    : file of FnTyp;
+    Kiadv_tart : FnTyp;
+    Kiadv_ind  : array [0..FnSize] of byte absolute Kiadv_tart;
+    IOR        : integer;
+    cikl       : byte;
+    darab      : byte;
+    kiad_neve  : nevtomb;
+    kiad_val   : attrtomb;
+
+BEGIN
+  Assign(Pb_file,Pub_nev);
+  {$I-}
+  ReSet(Pb_file);
+  {$I+}
+  If IOResult=0 then
+    BEGIN
+      {$I-}
+      Read(Pb_file,Kiadv_tart);
+      {$I+}
+      If IOResult=0 then
+        BEGIN
+          If Kiadv_ind[0]>1 then
+            BEGIN
+              darab:=Kiadv_ind[0];
+              cikl:=1;
+              While cikl<=darab do
+                BEGIN
+                  {$I-}
+                  Read(Pb_file,Kiadv_tart);
+                  {$I+}
+                  If IOResult<>0 then
+                    BEGIN
+                      Error(6,Pub_nev);
+                      Dec(darab);
+                    End
+                  else
+                    BEGIN
+                      Kiad_neve[cikl]:=Nev_ad(Kiadv_tart);
+                      Inc(cikl);
+                    End;
+                End;
+            End
+          else
+            BEGIN
+              {$I-}
+              Close(Pb_file);
+              {$I+}
+              IOR:=IOResult;
+              Error(36,Pub_nev);
+              Exit;
+            End;
+        End
+      else
+        BEGIN
+          {$I-}
+          Close(Pb_file);
+          {$I+}
+          IOR:=IOResult;
+          Error(6,Pub_nev);
+          Exit;
+        End;
+    End
+  else
+    BEGIN
+      Error(3,Pub_nev);
+      Exit;
+    End;
+
+  {$I-}
+  Close(Pb_file);
+  {$I+}
+  IOR:=IOResult;
+
+
+  GlobalFont := 0;
+  MezoFont   := 0;
+
+  Move(Wkx1,Buff,12);  {Wkx1,Wky1,Wkx2,Wky2,Slength,Enged: Integer}
+
+  Set_Choose(7,0,72,10,12,0);
+
+  SaveXY;
+  (*
+  Inline($FC);
+  FelSor_IdeOdaW(Wkx1-1,Wkx2-Wkx1+4,(Wky2-Wky1)*2+4,Wky1-5,Ofs(ScBuff),Seg(ScBuff),Sortaboffs,0);
+  *)
+  InLine($FC);
+  GrWindow(Wkx1-1,(Wky1+4),Wkx2+3,(Wky1+4+(Wky2-Wky1)*2),'*.DOC');
+
+  ChooseMode := None;
+
+  PuffiRekurzio:=True;
+  Choose(Kiad_neve,Kiad_val,Darab,0,Buff,Buff,Buff);
+  PuffiRekurzio:=False;
+
+  (*
+  Inline($FC);
+  {FelSor_IdeOdaW(Wkx1-1,Wkx2-Wkx1+4,(Wky2-Wky1)*2+4,Wky1-5,Ofs(ScBuff),Seg(ScBuff),Sortaboffs,1);}
+  *)
+
+  RestoreXY;
+
+  Move(Buff,Wkx1,12);  {Wkx1,Wky1,Wkx2,Wky2,Slength,Enged: Integer}
+
+  If ESC then
+    BEGIN
+      ESC := False;
+      Exit;
+    End;
+
+  cikl:=2;
+  While (cikl<=darab) and (Kiad_val[cikl]=0) do Inc(cikl);
+  If cikl>darab then Exit;
+
+  {$I-}
+  ReSet(Pb_file);
+  {$I+}
+  If IOResult=0 then
+    BEGIN
+      {$I-}
+      Read(Pb_file,Kiadv_tart);
+      {$I+}
+      If IOResult=0 then
+        BEGIN
+          Seek(Pb_file,Kiadv_ind[cikl]);
+          {$I-}
+          Read(Pb_file,Kiadv_tart);
+          {$I+}
+          If IOResult<>0 then
+            BEGIN
+              {$I-}
+              Close(Pb_file);
+              {$I+}
+              IOR:=IOResult;
+              Error(6,Pub_nev);
+            End
+          else
+            BEGIN
+              {$I-}
+              Close(Pb_file);
+              {$I+}
+              IOR:=IOResult;
+              If Valtozas[Editnum] then Temp_Backup(NormalMode);
+              FileName[EditNum]:=Nev_ad(Kiadv_tart);
+              Load(Kiadv_tart,Document,NoWriteMode);
+              Top_text;
+              akt_kiadv_szam:=cikl;
+            End;
+        End
+      else
+        BEGIN
+          {$I-}
+          Close(Pb_file);
+          {$I+}
+          IOR:=IOResult;
+          Error(6,Pub_nev);
+          Exit;
+        End;
+    End
+  else
+    BEGIN
+      Error(3,Pub_nev);
+      Exit;
+    End;
+End;
+
+PROCEDURE Doc_betolt(irany : boolean); { Ha TRUE akkor lenyil }
+
+VAR IORES : integer;
+    Pb_file : file of FnTyp;
+
+BEGIN
+  If ((not irany) and (akt_kiadv_szam>2)) or (irany) then
+    BEGIN
+      Assign(Pb_file,Pub_nev);
+      {$I-}
+      ReSet(Pb_file);
+      {$I+}
+      If IOResult=0 then
+        BEGIN
+          {$I-}
+          Read(Pb_file,Kiadv_tart);
+          {$I+}
+          If IOResult=0 then
+            BEGIN
+              If Kiadv_ind[0]>1 then
+                BEGIN
+                  If ((Kiadv_ind[0]>akt_kiadv_szam) and irany) or (not irany) then
+                    BEGIN
+                      If irany then Inc(akt_kiadv_szam)
+                      else Dec(akt_kiadv_szam);
+                      Seek(Pb_file,Kiadv_ind[akt_kiadv_szam]);
+                      {$I-}
+                      Read(Pb_file,Kiadv_tart);
+                      {$I+}
+                      If IOResult=0 then
+                        BEGIN
+                          {$I-}
+                          Close(Pb_file);
+                          {$I+}
+                          IORES:=IOResult;
+                          If Valtozas[Editnum] then Temp_Backup(NormalMode);
+                          FileName[EditNum]:=Nev_ad(Kiadv_tart);
+                          Load(Kiadv_tart,Document,NoWriteMode);
+                          If not irany then End_Text
+                          else Top_text;
+                        End
+                      else
+                        BEGIN
+                          {$I-}
+                          Close(Pb_file);
+                          {$I+}
+                          IORES:=IOResult;
+                          Error(6,Pub_nev);
+                          If irany then Dec(akt_kiadv_szam)
+                          else Inc(akt_kiadv_szam);
+                        End;
+                    End
+                  else
+                    If Irany then
+                      BEGIN
+                        {$I-}
+                        Close(Pb_file);
+                        {$I+}
+                        IORES:=IOResult;
+                      End;
+                End
+              else
+                BEGIN
+                  Error(36,Pub_nev);
+                  {$I-}
+                  Close(Pb_file);
+                  {$I+}
+                  IORES:=IOResult;
+                End;
+            End
+          else
+            BEGIN
+              Error(6,Pub_nev);
+              {$I-}
+              Close(Pb_file);
+              {$I+}
+              IORES:=IOResult;
+            End;
+        End
+      else
+        BEGIN
+          Error(3,Pub_nev);
+          {$I-}
+          Close(Pb_file);
+          {$I+}
+          IORES:=IOResult;
+        End;
+    End;
+End;
+
+{$ENDIF}
+{$ENDIF CDVIEW}
+
+Procedure HomeEndPos;
+Var MainP,Xp   :   Integer;
+    JustPoint  : Justarray;
+    Eleje,Vege,
+    SE,SV      : Integer;
+Begin
+  FillChar(SorT,c78,0);
+  MainP := MainOfIndex[Ypos];
+  CompoundLines(MainP,JustPoint,Eleje,Vege);
+  SorT[LeftMar[EditNum]]         := True;
+  SorT[RightMar[EditNum]]        := True;
+  SorT[0]               := True;
+  SorT[c77]              := True;
+  If Sync Or (ImageToHeap[Ypos] = 0) Then
+    Begin
+      SV := JSorH(JustPoint,Eleje,Vege);
+      If Sv > c77 Then Sv := c77;
+      SE := JSorE(JustPoint,Eleje,Vege);
+    End
+  Else
+    Begin
+      SV := SorH(ImageToHeap[Ypos]);
+      If Sv > c77 Then Sv := c77;
+      SE := SorE(ImageToHeap[Ypos])
+    End;
+
+  SorT[SE] := True;
+  SorT[SV] := True;
+  CompoundFree(MainP,JustPoint,Eleje,Vege);
+End;
+
+Procedure HomeEnd(I: Integer);
+Begin
+  HomeEndPos;
+  Inc(Xpos,I);
+  While Not SorT[Xpos] Do
+    Inc(Xpos,I);
+  Mozgott := True;
+  CheckXpos(True);
+End;
+
+Procedure SetEditColor;
+Begin
+   Case GrMode Of
+     EGAMode,
+     VGAMode : Begin
+                 Ega_Hatter(BackG[EditNum]);
+                 Set_EGA_Color(Color[EditNum]);
+               End;
+     CGAMode : port[$3d9] := Color[EditNum];
+   End;
+End;
+
+Procedure FullFresh;
+Begin
+  SetEditColor;
+  FejTab(1);
+  FreshPage
+End;
+
+{$IFNDEF CDVIEW}
+
+Procedure PlotChar(Ch : Byte);
+Var C,K : Char;
+    X   : Byte;
+Const
+   St1  : String[11] = '|+k+jkj++jk';
+   St2  : String[11] = '+_i+immim++';
+   St3  : String[11] = 'jii+u+ji+j+';
+   St4  : String[11] = 'kio+ik+i++k';
+   St5  : String[11] = 'jm++jmn+mj+';
+   St6  : String[11] = 'kmk++,m+m+k';
+
+   TablazatSet : Set Of Char = ['|','_','o','+','u',',','n','i','m','j','k'];
+Begin
+  If ImageToHeap[Ypos] > 0 Then
+  Begin
+    Heap_Pos(Heapline,PointerTomb^[ImageToHeap[Ypos]]);
+
+    If ((HeapLine^.Attribs[Xpos] AND 15) = 8) AND
+       (HeapLine^.Chars[C80+Xpos] In TablazatSet)
+    Then
+    Begin
+      C := HeapLine^.Chars[C80+Xpos];
+      X := Pos(C,'|_o+u,nimjk');
+      K := Char(Ch);
+      If Radir Then
+      Begin
+        If C = '+' Then
+        Case K Of
+          '|' : Ch := Byte('_');
+          '_' : Ch := Byte('|');
+          Else  Ch := 00;
+        End
+        Else Ch := 00;
+      End
+      Else
+      Case K Of
+        '|' : Ch := Byte(St1[X]);
+        '_' : Ch := Byte(St2[X]);
+        'u' : Ch := Byte(St3[X]);
+        'o' : Ch := Byte(St4[X]);
+        'n' : Ch := Byte(St5[X]);
+        ',' : Ch := Byte(St6[X]);
+      End; {Case}
+    End
+    Else If Radir Then Ch := 00;
+    FreeEms1(PointerTomb^[ImageToHeap[Ypos]]);
+  End
+  Else If Radir Then Ch := 00;
+  New_Char(Ch);
+End;
+
+
+{Var     AscSzo             : Str160;}
+
+Procedure CallGib(Par : Byte; Var X1,X2: Byte);
+
+Var BXr,CXr            : Word;
+    Hp,XX              : Integer;
+    Hossz2,MainS,MainI : Integer;
+    Len,PP             : Byte;
+    Xp,Xpos2,Ypos2,Cik : Byte;
+    Legutolso          : Boolean;
+    AscSzo             : Str160;
+
+Begin
+
+  Szo    := '';
+  SzoAtt := '';
+
+  If X1 = 0 Then Xp := Xpos
+            Else Xp := X1;
+
+  If NOT MainLineI(Ypos) Then
+    MainI := MainOfIndex[Ypos]
+  Else
+    MainI := ImageToHeap[Ypos];
+
+  If X1 = 0 Then
+  Begin
+    Heap_Pos(Heapline,PointerTomb^[MainI]);
+
+    While (Byte(Heapline^.Chars[C80+Xp]) AND 32 <> Byte(Heapline^.Chars[C80+Xp])) AND
+          (Xp > 0) Do Dec(Xp);
+
+    FreeEms1(PointerTomb^[MainI]);
+  End;
+
+  XX := Xp;
+
+  Legutolso := LastMain(MainI);
+
+  If X2 = 0 Then Len := LenLine(MainI)
+            Else Len := X2;
+
+  Heap_Pos(Heapline,PointerTomb^[MainI]);
+
+  If X1 = 0 Then While NemBetuHeap(XX) AND (XX < Len) Do Inc(XX);
+
+  Kezdo := 0;
+
+  If XX < Len Then
+  Begin
+
+    If X2 <> 0 Then
+    While XX <= Len Do
+      Begin
+        Szo := Szo + Heapline^.Chars[C80+XX];
+        Inc(XX)
+      End
+    Else
+      Create_Szo(XX,Len);
+
+    If Length(Szo) > 0 Then
+    Begin
+
+      Xpos2 := 0;
+      Ypos2 := 0;
+      Hossz2:= 0;
+
+      If (Szo[Length(Szo)] = '-') AND (HeapLine^.Attribs[XX-1] = 0) Then
+      Begin
+        Dec(Byte(Szo[0]));
+        If NOT Legutolso Then
+        Begin
+          MainS := MainI;
+          Repeat
+            Hossz2 := 0;
+            Hp := NextMain(MainI);
+            Heap_Pos(HeapLine,PointerTomb^[Hp]);
+
+            While (Hossz2 < c76) AND
+                  (HeapLine^.Chars[C80+Hossz2] In HardSoftSpace) Do
+                    Inc(Hossz2);
+
+            FreeEms1(PointerTomb^[Hp]);
+            MainI := Hp;
+          Until (LastMain(MainI)) OR (Hossz2 < c76);
+
+          MainI := MainS;
+
+          If Hossz2 < c76 Then
+          Begin
+            Xpos2 := Hossz2;
+
+            While NOT(NemBetuHeap(Hossz2)) Do
+            Begin
+              Szo := Szo + HeapLine^.Chars[C80+Hossz2];
+              Inc(Hossz2);
+            End;
+            Dec(Hossz2,Xpos2);
+
+          End;  { If Hossz2 < C76 }
+
+        End;  { If NOT Legutolso }
+
+      End;  { If ElvalasztoJel }
+
+    End; { If Length(Szo) > 0 }
+
+  End; { If XX < Len }
+
+  FreeEms1(PointerTomb^[MainI]);
+
+  If Par = 255 Then
+  Begin
+    AscSzo := Szo;
+    EkSzer_To_ASCII(AscSzo);
+    Szotagok := Szotagol(AscSzo);
+    For Cik := Szotagok DownTo 1 Do
+      If KotoJel[Cik] >= 2 Then Insert('/',Szo,KotoJel[Cik]+1);
+    Szotarba(Szo);
+  End
+  Else
+  Begin
+
+    If Szo = '' Then BXr := 0
+    Else
+    Begin
+      EkSzer_To_ASCII(Szo);
+      GibWord^ := Szo;
+      BXr      := 1;
+    End;
+
+    CXr := Par;
+
+    GIBHotKeys(True);
+
+    Asm
+      MOV CX,CXr
+      MOV BX,BXR
+
+      MOV AX,$F821 { Call GIB }
+
+      PUSH BP
+      INT $16
+      POP  BP
+
+      MOV BXR,BX
+    End;
+
+    GIBHotKeys(False);
+
+    SetEditColor;
+
+    If BXR > 0 Then
+    Begin
+
+      Szo := GibWord^;
+
+      Create_StandardFont;
+
+      If Par = 1 Then
+      Begin
+        MagyarVolt := True;
+        Create_MagyarFont;
+        Create_SzoAtt(Szo);
+      End
+      Else
+      Begin
+        SzoAtt[0] := Szo[0];
+        FillChar(SzoAtt[1],Length(Szo),StandardFont);
+      End;
+
+      SzotarResult := Szo;
+    End;
+
+  End; { If Par <> 255 - GIB }
+
+End;
+
+{$ENDIF}
+
+Var Kar : Byte;
+    Pozz: Byte;
+
+Const Operate : Array [0..3] Of Integer = (16,-16,1,-1);
+
+Begin    (********** Edit **********)
+   {$IFNDEF DPMI}
+   OvrClearBuf;
+   {$ENDIF}
+
+   CreateCharSets;
+
+   {$IFNDEF CDVIEW}
+   NemCsakNezeget := (EditNum<29) And (not CsakNez) and (ReadOnlyT[EditNum]=False);
+   {$ELSE}
+   NemCsakNezeget := True;
+   {$ENDIF}
+
+   Fkeycount := 00;
+
+   If EditNum = MaxEditor {Help} Then
+     Tom[0] := 'SC>'
+   Else
+     Tom[0] := '   ';
+
+   SetEditColor;
+
+   ElsoBelep := False;
+
+   If New_Kell[Editnum] Then
+     Begin
+       New_CompLine(StartLine[EditNum],AlsoIndexek,FelsoIndexek);
+       New_kell[Editnum] := False;
+       SeekToFirstLine;
+       SeekToLastp;
+       SeekToMain
+     End
+   Else
+     SeekToLastp;
+
+   Make_Tab;
+
+   Ch := 00; Sc := 00; Lastsc := 00;
+
+   While
+   ((Ch <> Escape) {$IFNDEF CDVIEW} AND ((Not (Sc In KilepSet) {$ENDIF})
+   {$IFNDEF CDVIEW} OR (Ch <> 0))) Or BlockMode {$ENDIF}
+
+   Do
+   Begin
+
+     Lastsc := Sc;
+     Mozgott:= FALSE;
+
+     Puffi(Ch,SC);  {Wait for a key  +  cursor flashing }
+
+     MouseCursor(FALSE);
+
+     If FrameMode AND (Ch = 00) AND (Sc In NoFrKeys) Then
+     Begin
+       Beepel(440);
+       Sc := 00;
+     End;
+
+     {Writeln(lst,'CH :',Ch,'SC :',Sc);}
+
+     MegisKell := False;
+
+     If Volt_Bill Then UpKey(SC,Ch);
+
+     Oxp := Xpos;
+     Oyp := Ypos;
+
+     If FrameMode Then
+     Begin
+       If Ch = Escape Then Ch := Ctrl_B
+       Else
+       If (Sc = GrayPlus) OR (Sc = GrayMinus) Then Ch := 00;
+     End;
+
+     Ctp := (Ch = Byte(^P));
+     If Ctp And (EditNum In [4..27]) Then Ch := Byte('h'); {Lapvege}
+
+
+     {$IFNDEF CDVIEW}
+     If BlockMode Then
+     Begin
+       Kar := Ch;
+       Ch  := 255;
+
+       If Kar = Escape Then Abort_Block
+       Else
+       Begin
+         If MagyarE(FontNum[EditNum]) Then
+           Pozz := Pos(Char(Kar),CalcOpKeyM)
+         Else
+           Pozz := Pos(Char(Kar),CalcOpKey);
+         If Pozz > 0 Then
+           Calculate_Block(CalcType((Pozz DIV 6)+(Pozz MOD 6)-1))
+         Else Ch := Kar;
+       End;
+
+     End;
+
+     {$ENDIF}
+
+     If Ch = 00 then {Alt or special Key}
+     Begin
+
+       {$IFNDEF CDVIEW}
+       If GIBEnabled Then
+       Begin
+         Case Sc Of
+           Ctrl_F8 : If NOT BlockMode Then CallGib(1,Ch,Ch) Else GIBBlock(1);
+           Ctrl_F9 : If NOT BlockMode Then CallGib(2,Ch,Ch) Else GIBBlock(2);
+         End;
+       End;
+       {$ENDIF}
+
+       If BlockMode Then
+       Begin
+         {$IFNDEF CDVIEW}
+         If Sc = Alt_H Then Ctrl_Alt_Help(Blokk_Mode);
+         {$ENDIF}
+       End
+       Else
+       If (Kbfb AND CtrlKey = 0) Then
+       Case Sc of
+
+         Alt_F1..Alt_F4: Next_Color(Operate[Alt_F4-Sc]);
+         Alt_F5..Alt_F8: Next_Background(Operate[Alt_F8-Sc]);
+
+         {
+         Alt_F1       : Next_Color(-1);
+         Alt_F2       : Next_Color(+1);
+         Alt_F3       : Next_Color(-16);
+         Alt_F4       : Next_Color(+16);
+
+         Alt_F5       : Next_Background(-1);
+         Alt_F6       : Next_Background(+1);
+         Alt_F7       : Next_Background(-16);
+         Alt_F8       : Next_Background(+16);
+         }
+
+       End;
+
+       {$IFNDEF CDVIEW}
+
+       Case Sc Of
+
+
+         Alt_F1..Alt_F10 : If (Not FrameMode) AND (BlockMode) Then
+                               Begin
+                                 If (KbfB And 3) = 0 Then
+                                   OldFont := Sc-Alt_F1+1
+                                 Else
+                                   OldFont := Sc-Alt_F1+11;
+                                 Beepel(666);
+                               End;
+
+         F1..MaxFontKey,Shift_F1..MaxShiftFontKey,F11,F12:
+
+                          If Not FrameMode Then
+                          Begin
+                            If Sc In [F11,F12] Then
+                              FKeyValue := Sc-F11+11
+                            Else
+                            If Sc > MaxFontKey Then
+                              FKeyValue := Sc-Shift_F1+11
+                            Else
+                              FKeyValue := Sc-F1+1;
+
+                            Begin
+                              {$IFNDEF CDVIEW}
+                              If BlockMode Then
+                                Change_Block_Font(FKeyValue)
+                              Else
+                                If NOT ExtendedE(FKeyValue) Then
+                                Change_Font(FKeyValue)
+                                Else
+                                Begin
+                                  Fkeycount := 0;
+                                  Beepel(400);
+                                  Beepel(200);
+                                End;
+                            {$ENDIF CDVIEW}
+                            End;
+                          End;
+         Else
+           If Not FrameMode Then Restore_Font;
+
+       End;  {Fkey CASE}
+
+       {$ENDIF CDVIEW}
+
+       If (Ch = 0) And NemCsakNezeget And Not(FrameMode)
+       Then
+       Begin
+         If Not(BlockMode) Then
+         Begin
+           Case Sc of
+
+             {$IFNDEF CDVIEW}
+             Alt_I  : InvertSorveg;
+
+             {$IFDEF PROTECT}
+             Alt_X  : Begin
+                        If ((GKbf And 6) = 6) OR ((KbFlag And 6) = 6) Then
+                        ProtectLine(False) Else
+                        If ((GKbf And 4) = 4) OR ((KbFlag And 4) = 4) Then
+                        ProtectLine(True);
+                      End;
+             {$ENDIF}
+             {$ENDIF}
+
+             Space  : Begin
+                        {$IFDEF CGAONLY}
+                          Fonts^[0].FontC[103,6] := Fonts^[0].FontC[103,6] Xor 16;
+                        {$ELSE}
+                        If GrMode = CgaMode Then
+                          Fonts^[0].FontC[103,6] := Fonts^[0].FontC[103,6] Xor 16
+                        Else
+                          Fonts^[0].FontE[103,8] := Fonts^[0].FontE[103,8] Xor 8;
+                        {$ENDIF}
+                        FreshPage
+                      End;
+
+             {$IFNDEF CDVIEW}
+             Alt_A  : If ((GKbf And 4) = 4) OR ((KbFlag And 4) = 4) Or
+                         (WsMode And Control) Then
+                        Begin
+
+                          GlobalErrorNum := Byte(NOT(Valtozas[EditNum]));
+                          Temp_Backup(NormalMode);
+                          If GlobalErrorNum = 0 Then InvertFileName;
+
+                          New_Header;
+                          Mozgott := True
+                        End;
+
+             {$ENDIF}
+
+
+             {$IFNDEF CDVIEW}
+             Alt_K   : If VanNyelvEsz AND Enabled[6] Then
+		       Begin
+                         {$IFDEF HELYESKE}
+                         Correction;
+                         {$ELSE}
+		         If NOT SwapError Then
+		         Begin
+		           If Not NyelveszBent Then
+			     ChangeToNyelv;
+		           If NOT SwapError Then Correction;
+		         End;
+		         If SwapError Then Error(26,': '+SErrorSt); {File muveleti hiba}
+                         {$ENDIF}
+		       End;
+
+             Alt_J   : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin
+                         JobbraIgazitas := True;
+                         HelyreTomorit;
+                         JobbraIgazitas := False;
+                       End;
+             {$ENDIF}
+
+             {$IFNDEF CDVIEW}
+             Alt_M  : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       If EditNum <> BufferNum Then
+                       Begin
+                         OnlyMain := Not(Sync);
+                         Block_Begin(False);
+                       End;
+
+             Alt_O  : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       If EditNum <> BufferNum Then
+                       Begin
+                         OnlyMain := Not(Sync);
+                         Block_Begin(True);
+                       End;
+
+             Alt_P  : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                      If EditNum <> BufferNum Then Move_Block;
+
+
+             Alt_L     : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                         Begin
+                           ValtozasEditNumTrue;
+                           DeleteCompLine(0,0);  { Meghivas AutoMode - dal }
+                         End;
+
+             Del       : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                         Begin
+                           ValtozasEditNumTrue;
+                           Del_Char(Forw);
+                         End;
+
+             Alt_T     : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                         Begin
+                           ValtozasEditNumTrue;
+                           Del_Char(OneWord);
+                         End;
+
+             Ins       : Change_Ins;
+
+
+             {$IFNDEF VER3}
+             Alt_minus : If EditNum in [1..3] then
+                           If Pub_nev<>'' then Doc_betolt(False)
+                           else Error(39,'');
+             Alt_egyen : If EditNum in [1..3] then
+                           If Pub_nev<>'' then Doc_betolt(True)
+                           else Error(39,'');
+             {$ENDIF VER3}
+             {$ENDIF CDVIEW}
+
+           End; {Case}
+         End;
+
+         Begin
+           Case Sc of
+             Alt_S  : Begin
+                        BlokkSearch := BlockMode;
+                        If BlockMode Then Set_Kicsi_Nagy_Kezd_Veg;
+                        Abort_Block;
+                        FindMode := Find;
+                        Find_And_Replace(False,False);
+                      End;
+
+             Alt_G  : Begin
+                        BlokkSearch := BlockMode;
+                        If BlockMode Then Set_Kicsi_Nagy_Kezd_Veg;
+                        Abort_Block;
+                        Find_And_Replace(True,False);
+                      End;
+             {$IFNDEF CDVIEW}
+             Alt_R  : Begin
+                        BlokkSearch := BlockMode;
+                        If BlockMode Then Set_Kicsi_Nagy_Kezd_Veg;
+                        Abort_Block;
+                        ReplaceBool := False;
+                        Repeat
+                          FindMode := Replace;
+                          Find_And_Replace(ReplaceBool,ReplaceBool);
+                          ReplaceBool := True;
+                        Until ExitFind;
+                      End;
+             {$ENDIF CDVIEW}
+           End;
+         End;
+       End;
+
+       {$IFNDEF CDVIEW}
+       If FrameMode Then
+       Case Sc Of
+          Del      : Begin
+                       Radir := True;
+                       Fresh_Header;
+                     End;
+          Ins      : Begin
+                       Radir := False;
+                       Fresh_Header;
+                     End;
+          GrayPlus : Begin
+                       Pen := Down;
+                       Fresh_Header;
+                     End;
+          GrayMinus: Begin
+                       Pen := Up;
+                       Fresh_Header;
+                       ArrowStroke := 0;
+                     End;
+       End; {Case}
+       {$ENDIF}
+
+       Case Sc Of
+         Felnyil   : Begin
+                       Mozgott:= TRUE;
+                       SorCurKi;
+                       If Not FrameMode Then
+                       Begin
+                         If Sync Then
+                           If Not(FirstMain(MainOfIndex[Ypos])) Or
+                                  DownlineI(Ypos) Then
+                             {$IFNDEF VER3}
+                             If SmoothScroll Then
+                             {$ENDIF}
+                               GoOneLineUpS
+                             {$IFNDEF VER3}
+                             Else
+                               GoOneLineUp
+                             {$ENDIF}
+                           Else Begin End
+                         Else
+                           Begin
+                             HalfLineUp;
+                             {$IFDEF PROTECT}
+                             If BlockMode AND (
+                                ProtectedLine(MainOfIndex[Ypos])) Then
+                               HalfLineDown;
+                             {$ENDIF}
+                           End
+                       End
+                       {$IFNDEF CDVIEW}
+                       Else
+                       Begin
+                         If ArrowStroke = 0 Then Direction := Up;
+                         If (Direction <> Down) AND (Pen = Down) Then
+                         Begin
+                           PlotChar(Byte(UpArray[Byte(Direction)]));
+                           PrevPos(0,c77);
+                         End;
+                         Direction := Up;
+                         HalfLineUp;
+                         HalfLineUp;
+                         If Pen = Down Then Inc(ArrowStroke);
+                       End
+                       {$ENDIF}
+                       ;
+                       SorCurBe
+                     End;
+         Lenyil    : Begin
+                       Mozgott:= TRUE;
+                       SorCurKi;
+                       If Not FrameMode Then
+                       Begin
+                         If Sync Then
+                           If Not (LastMain(MainOfIndex[Ypos])) Or
+                              UplineI(Ypos) Then
+                             {$IFNDEF VER3}
+                             If SmoothScroll Then
+                             {$ENDIF}
+                               GoOneLineDownS
+                             {$IFNDEF VER3}
+                             Else
+                               GoOneLineDown
+                             {$ENDIF}
+                           Else Begin End
+                         Else
+                           Begin
+                             HalfLineDown;
+                             {$IFDEF PROTECT}
+                             If BlockMode AND (
+                                ProtectedLine(MainOfIndex[Ypos])) Then
+                               HalfLineUp;
+                             {$ENDIF}
+                           End
+                       End
+                       {$IFNDEF CDVIEW}
+                       Else
+                       Begin
+                         If ArrowStroke = 0 Then Direction := Down;
+                         If (Direction <> Up)  AND (Pen = Down) Then
+                         Begin
+                           PlotChar(Byte(DownArray[Byte(Direction)]));
+                           PrevPos(0,c77);
+                         End;
+                         Direction := Down;
+                         HalfLineDown;
+                         HalfLineDown;
+                         If Pen = Down Then Inc(ArrowStroke);
+                       End
+                       {$ENDIF}
+                       ;
+                       SorCurBe
+                     End;
+         Jobbranyil: If Not LP(MainOfIndex[Ypos],Xpos,c77) Then
+                       Begin
+                         {$IFNDEF CDVIEW}
+                         If FrameMode Then
+                         Begin
+                           If ArrowStroke = 0 Then Direction := Right;
+                           OXpos := Xpos;
+                           If (Direction <> Left) AND (Xpos < RightMar[EditNum]) Then
+                           Begin
+                             If Pen = Down Then
+                             Begin
+                               PlotChar(Byte(RightArray[Byte(Direction)]));
+                             End
+                             Else NextPos(0,c77);
+                           End;
+                           If OXpos < RightMar[EditNum] Then Direction := Right;
+                           If Pen = Down Then Inc(ArrowStroke);
+                         End
+                         Else
+                         {$ENDIF}
+                           NextPos(0,c77);
+                         Mozgott:= TRUE;
+                       End;
+         Balranyil : If Not FP(MainOfIndex[Ypos],Xpos,0) Then
+                       Begin
+                         {$IFNDEF CDVIEW}
+                         If FrameMode Then
+                         Begin
+                           If ArrowStroke = 0 Then Direction := Left;
+                           If (Direction <> Right) AND (Xpos > 0) Then
+                             If Pen = Down Then
+                             Begin
+                               PlotChar(Byte(LeftArray[Byte(Direction)]));
+                               PrevPos(0,c77);
+                             End;
+                           If Xpos > 0 Then Direction := Left;
+                           If Pen = Down Then Inc(ArrowStroke);
+                         End;
+                         {$ENDIF}
+                         If (NOT FrameMode) OR (Xpos > 0) Then
+                           PrevPos(0,c77);
+                         Mozgott:= TRUE;
+                       End;
+       End; {Case}
+
+       If Not FrameMode Then
+       Case Sc of
+
+         Alt_H     : If Not NemCsakNezeget Then Sc := 1;
+         Btab      : Back_Tab;
+         Pageup    : Page_Up;
+         Pagedown  : Page_Down;
+         ALT_V     : PosToPage(0,LeftMar[EditNum]);
+
+        {$IFNDEF TITKAR}
+
+        Ctrl_Pageup    : Begin
+                           SorCurKi;
+                           HalfLineUp;
+                           Mozgott := True;
+                           SorCurBe
+                         End;
+        Ctrl_Pagedown  : Begin
+                           SorCurKi;
+                           HalfLineDown;
+                           Mozgott := True;
+                           SorCurBe
+                         End;
+
+         {$ENDIF}
+
+         Ctrl_Home      :  Top_text;
+         Ctrl_End       :  End_text;
+         Ctrl_Jobbranyil:  Next_Word;
+         Ctrl_Balranyil :  Prev_Word;
+
+         {$IFDEF JOZSI}
+         Ctrl_F7   : Get_Pic_Name;
+         {$ENDIF}
+
+         {$IFNDEF CDVIEW}
+         {$IFNDEF VER3}
+         Ctrl_F7   : If Pub_nev <> '' then Publicat_valaszt
+                                      else Error(39,'');
+
+         Ctrl_F8   : Get_Pic_Name;
+
+         (*
+         Ctrl_F9   : Begin
+                       SmoothScroll := Not(SmoothScroll);
+                       Beepel(200+Byte(SmoothScroll)*100);
+                     End;
+         *)
+         {$ENDIF}
+         {$ENDIF}
+
+         Home      : If Xpos <> 0 Then   HomeEnd(-1);
+         Endkey    : If Xpos <> c77 Then HomeEnd(1);
+
+         {$IFNDEF CDVIEW}
+
+         Alt_C  : Move_Block_End;
+         Alt_D  : Copy_Block_End;
+         Alt_I  : Change_Block_Bek;
+         Alt_Y  : Delete_Block_End;
+
+         Alt_K  : UpperCase_Block(BlockLow);
+         Alt_N  : UpperCase_Block(BlockUp);
+         Alt_B  : UpperCase_Block(BlockInv);
+
+         {$IFNDEF NOSPEAK}
+         Alt_X  : If BlockMode And VanWLib Then
+                  Begin
+                    SayBlock;
+                  End;
+         {$ENDIF}
+
+      {$ENDIF}
+{$IFDEF Debug}
+
+         Alt_F  :  Begin
+                     FifiP;
+                   End;
+
+{$ENDIF}
+
+{$IFNDEF CDVIEW}
+         Else If NemCsakNezeget Then
+                If Sc IN SorTavKeys  Then
+                Begin
+                  If BlockMode Then
+                    Change_Block_Spacing(Sc- Alt_1+ 1)
+                  Else
+                  Begin
+                    Set_Lines(Sc- Alt_1+ 1);
+                    Mozgott := True;
+                  End;
+                End
+                Else
+                  If Sc = Alt_0 Then
+                  Begin
+                    If BlockMode Then
+                      Change_Block_Spacing(0)
+                    Else
+                      Begin
+                        Set_Lines(0);
+                        Mozgott := True;
+                      End;
+                  End;  { Alt_0  }
+{$ENDIF CDVIEW}
+       End; {Case}
+
+     End;
+
+{$IFNDEF CDVIEW}
+     If (Ch <> 0) And NemCsakNezeget And Not(BlockMode) Then      {Normal key}
+     Begin
+       If Ch in ControlChars Then
+       Begin
+
+         If Ch = Ctrl_B Then
+         Begin
+           If NOT FrameMode Then
+           Begin
+             Temp_Ins := Inser;
+             Temp_Sync:= Sync;
+             Temp_Just:= Just;
+             Temp_Font:= FontNum[EditNum];
+             Inser    := False;
+             Sync     := False;
+             Just     := False;
+             FontNum[EditNum] := 8;
+             ArrowStroke := 0;
+             ValtozasEditNumTrue;
+           End
+           Else
+           Begin
+             Inser := Temp_Ins;
+             Sync  := Temp_Sync;
+             Just  := Temp_Just;
+             FontNum[EditNum] := Temp_Font;
+             Radir := False;
+           End;
+           FrameMode := NOT FrameMode;
+           Mozgott   := True;
+         End
+         Else
+         If NOT FrameMode Then
+         Case Ch of
+
+           Ctrl_D    : Mozgott := True;
+
+           {$IFNDEF TITKAR}
+
+
+           Ctrl_A    : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin
+                         Mozgott := True;
+                         ValtozasEditNumTrue;
+                         Ins_Indexline(Ypos);
+                       End;
+           Ctrl_Z    : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin
+                         Mozgott := True;
+                         ValtozasEditNumTrue;
+                         Del_Indexline(Ypos);
+                       End;
+
+           {$ENDIF}
+
+           Ctrl_U    : CallGIB(255,Nulla,Nulla); { Szotarba(''); }
+
+           Ctrl_C    : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin
+                         Mozgott := True;
+                         ValtozasEditNumTrue;
+                         CenterLine;
+                       End;
+
+           Ctrl_T    : Change_Tab;
+
+           {$IFNDEF OROSZ}
+           Ctrl_E    : Begin
+                         {$IFDEF ROMAN}
+                         If Elvalaszt AND Kell_Roman Then
+                           Kell_Roman := False
+                         Else
+                           If Elvalaszt AND NOT(Kell_Roman)
+                         Then Elvalaszt := False
+                         Else
+                         Begin
+                           Elvalaszt := True;
+                           Kell_Roman := True;
+                         End;
+                         Beepel(440+220*Byte(Elvalaszt)+220*Byte(Kell_Roman));
+                         Mozgott := True;
+                         {$ELSE}
+                         Elvalaszt := Not(Elvalaszt);
+                         Beepel(440+220*Byte(Elvalaszt));
+                         Mozgott := True;
+                         {$ENDIF}
+                       End;
+           {$ENDIF}
+
+           Ctrl_F    : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin
+                         ValtozasEditNumTrue;
+                         Format;
+                       End;
+
+           Ctrl_G    : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin
+                         BalraIgazitas := True;
+                         HelyreTomorit;
+                         BalraIgazitas := False;
+                       End;
+
+           Ctrl_V    : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       HelyreIgazit;
+
+           Ctrl_P    : SetPageEnd;
+
+           Ctrl_J    : Change_Just;
+
+           Ctrl_W    : If Enabled[2] Then
+                       Begin
+                         view_pic;
+                         FullFresh
+                       End;
+
+           Ctrl_S    : Change_Sync;
+
+
+           Ctrl_L    : If Xpos < RightMar[EditNum] Then
+                         Begin
+                           LeftMar[EditNum]  := Xpos;
+                           Make_Tab;
+                         End;
+           Ctrl_R    : If Xpos In [LeftMar[EditNum]+1..c77-2] Then
+                         Begin
+                           RightMar[EditNum] := Xpos;
+                           Make_Tab;
+                         End;
+           Enter     : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin       {  Uj sor letrehozasa  }
+                         Mozgott:= TRUE;
+                         ValtozasEditNumTrue;
+                         SorCurKi;
+                         InsertImageLines(Ypos,Xpos,1,Hp);
+                         If Hp <> 0 Then
+                         Begin
+                           While ImageToHeap[Ypos] <> Hp Do
+                             HalfLineDown;
+                           Xpos := Leftmar[EditNum];
+                         End;
+                         CheckXpos(True);
+                         SorCurBe
+                       End;
+
+           Backspace : {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                       Begin
+                         ValtozasEditNumTrue;
+                         Del_Char(Back);
+                       End;
+
+           Tabu      : If INSER Then
+                      Begin
+                        {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                        For_Tab_Ins;
+                      End
+                      Else
+                        For_Tab;
+
+         End; {Case}
+
+         Restore_Font;
+
+       End   {If Ctrl char.}
+       Else  If (Ch in NormalChars) AND (Not FrameMode) Then {Any character}
+                Begin
+                  {$IFDEF GOROG}
+                  If (GorogE(FontNum[EditNum])) AND ((Ch = 39) OR (Ch = 34))
+                  Then
+                  Begin
+                    Cik := 1;
+                    While NOT((GorogE(Cik)) AND (ExtendedE(Cik))) AND
+                             (Cik <= MaxFontNum) Do Inc(Cik);
+                    If Cik <= MaxFontNum Then
+                    Begin
+                      KettosPont := (Ch = 34);
+                      Change_Font(Cik);
+                    End
+                    Else Error(20,'GREEK '+ExtFontNotLoaded);
+                  End
+                  Else
+                  {$ENDIF}
+                  {$IFDEF PROTECT} If NOT ProtectedLine(MainOfIndex[Ypos]) Then {$ENDIF}
+                  Begin
+                    ValtozasEditNumTrue;
+                    New_Char(Ch);
+                  End;
+                End;
+
+     End;  {Normal Key}
+
+{$ENDIF CDVIEW}
+
+   If Mozgott Then
+     Begin
+       Fresh_Header;
+       {$IFNDEF CDVIEW}
+       If Blockmode And (((Ypos = Oyp) And (Xpos <> Oxp)) Or MegisKell) Then
+         NewX(Oxp);
+       {$ENDIF}
+     End;
+
+     MouseCursor(TRUE);
+
+   End; {While not kilep}
+
+   SaveLastp;
+   ExitCode := Sc;
+   If (StartLine[EditNum] = EndLine[EditNum]) And
+     Not(VanBenne(StartLine[EditNum],0)) Then
+       FreeEdit(EditNum);
+End;
+

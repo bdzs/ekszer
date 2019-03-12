@@ -1,0 +1,61 @@
+
+Procedure Well;
+
+Const
+
+    Invalid    : String[9] = 'Partition';
+
+Var Register   : Registers;
+    X,Cik      : Integer;
+    Res        : Byte;
+    Ok         : Boolean;
+    Test       : String[8];
+    Buf        : Array[1..1024] Of Char;
+
+procedure READSECTOR(drive,track,head,sector,num :byte;
+                     var result:byte;var buf);
+
+ begin
+   with register do begin
+                      bx:=OFS(buf);
+                      ax:=512+num;
+                      es:=SEG(buf);
+                      dx:=256*head+drive;
+                      cx:=256*track+sector;
+                    end;
+
+      intr($13,register);
+
+  result:= register.ah * (register.flags and Fcarry);
+
+end; {procedure READSECTOR }
+
+Begin
+
+  Ok      := False;
+  ReadSector($80,0,0,1,1,Res,Buf);
+
+  If Res = 0 Then
+  Begin
+
+    Test[0] := #09;
+
+    For Cik := 1 To 512 Do
+     If Buf[Cik] = Invalid[1] Then
+     Begin
+       Move(Buf[Cik],Test[1],9);
+       If Test = Invalid Then
+       Begin
+         Inc(Cik,9);
+         Ok := (Buf[Cik] = #255);
+       End;
+     End;
+  End;
+
+  If Not Ok Then
+  Begin
+    Inline($EA/$F0/$FF/$00/$f0); { JMP F000:FF00  Elszall ! }
+  End;
+
+End;
+

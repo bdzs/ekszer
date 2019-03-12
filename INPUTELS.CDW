@@ -1,0 +1,352 @@
+Procedure FejTab(N:Word);
+Begin
+  fej_tab(N,0,0,FontOffs,SortabOffs,ImageOffs);
+  If (N=0) AND (Valtozas[EditNum]) Then InvertFileName;
+End;
+
+Procedure Change_YZ(Var ASC,Scan : Byte);
+Begin
+  IF CYZ Then
+  Case Scan Of
+    $2C : Begin
+            Scan := $15;
+            Case ASC Of
+              $7A    : ASC := $79;
+              $5A    : ASC := $59;
+              CTRL_Z : ASC := CTRL_Y
+            End  { Case ASC}
+          End;
+    $15 : Begin
+            Scan := $2C;
+            Case ASC Of
+              $79    : ASC := $7A;
+              $59    : ASC := $5A;
+              CTRL_Y : ASC := CTRL_Z
+            End  { Case ASC}
+          End;
+  End {Case Scan}
+End;
+
+procedure set_choose; {(x1,y1,x2,y2,h,e:integer)}
+begin
+  wkx1 := x1;
+  Wky1 := y1;
+  wkx2 := x2;
+  wky2 := y2;
+  if h <> 0 then slength := h;
+  enged := e;
+end;
+
+Function Fmem;
+Begin
+  Fmem := Trunc((Full_Lines/Max_Lines)*100)
+End;
+
+Procedure UpKey;  { (Var Scan,Asc:Byte) }
+
+Var
+Num,PP: Byte;
+kb : Byte Absolute $40:$17;
+
+Begin
+
+  {$IFNDEF ANGOL}
+
+  If (Scan = INS) AND (Char(ASC) = '0') AND MagyarE(FontNum[EditNum]) Then
+  Begin
+    ASC := Byte('!');
+    Scan:= 02;
+  End
+  Else
+
+  {$ENDIF}
+
+  If ASC <> 0 Then
+    Begin
+      If (Kb And 67) = 64 Then
+      Begin
+        PP := Pos(Char(ASC),UpCasePoint[FontNum[EditNum],1]^);
+        If PP > 0 Then ASC := Byte(UpCasePoint[FontNum[EditNum],2]^[PP]);
+      End
+      Else If (Kb And 67) In [65..67] Then
+      Begin
+        PP := Pos(Char(ASC),UpCasePoint[FontNum[EditNum],2]^);
+        If PP > 0 Then ASC := Byte(UpCasePoint[FontNum[EditNum],1]^[PP]);
+      End;
+    End;
+End;
+
+Procedure InvertFileName;
+Var Cik     : Byte;
+    OldXoff : Word;
+Begin
+  ASM
+    CLD
+  END;
+  OldXoff := Xoffset;
+  SetXoffset(0);
+  For Cik := 0 To 1 Do
+    Inv_Line(Cik,0,Length(EditorCim)-1,0,SortabOffs,1);
+  SetXoffset(OldXoff);
+
+End;
+
+Procedure Fill_Line;
+Begin
+  For X := 0 To c79 Do
+  Begin
+    Image[Num]^.Attribs[X] := Font;
+    Image[Num]^.Chars[C80+X]   := ' ';
+  End;
+End;
+
+
+Procedure New_Header;
+Var Bc,P : Byte;
+       c: char;
+Begin
+  Fill_Line(-2,0);
+  For Bc := 1 to BYTE(Editorcim[0]) Do
+    Begin
+      C := EditorCim[Bc];
+      {$IFDEF OROSZ}
+         if c > #127 then
+          begin
+            P := pos(c,GOST_ciril);
+            if P <> 0 then
+             begin
+              c := Ekszer_ciril[P];
+              Image[-2]^.Attribs[Bc-1] := 2;
+             end;
+          end;
+      {$ENDIF}
+      Image[-2]^.Chars[C80+Bc-1]:= c;
+    End;
+  For X:= -1 to 8 do
+    For Bc := 1 to BYTE(Texts[X][0]) Do
+      Begin
+      c := Texts[X][Bc];
+      {$IFDEF OROSZ}
+         if c > #127 then
+          begin
+            P := pos(c,GOST_ciril);
+            if P <> 0 then
+             begin
+              c := Ekszer_ciril[P];
+              Image[-2]^.Attribs[Positions[X]+Bc-1] := 2;
+             end;
+          end;
+      {$ENDIF}
+        Image[-2]^.Chars[C80+Positions[X]+Bc-1] := c;
+      End;
+
+End; {New_Header}
+
+Procedure Help_Header;
+Var X : Integer;
+Begin
+  ConvertString(IneSt1);
+  For X := 1 to length(IneSt1) Do
+    Sys_Write(X+9,0,Word(IneSt1[X]),FontOffs,SortabOffs,0);
+End;
+
+Procedure Fresh_One(BB : Boolean; Item : Integer);
+Var Bc : Integer;
+    C  : Char;
+    P  : Byte;
+
+Begin
+  If BB Then
+    For Bc := 1 To Byte(Texts[Item][0]) Do
+      Begin
+        c := Texts[Item][Bc];
+        {$IFDEF OROSZ}
+           if c > #127 then
+            begin
+              P := pos(c,GOST_ciril);
+              if P <> 0 then
+               begin
+                c := Ekszer_ciril[P];
+                Image[-2]^.Attribs[Positions[Item]+Bc-1] := 2;
+               end;
+            end;
+        {$ENDIF}
+          Image[-2]^.Chars[C80+Positions[Item]+Bc-1] := c;
+      End
+  Else
+    For Bc := 1 To Byte(Texts[Item][0]) Do
+      Image[-2]^.Chars[C80+Positions[Item]+Bc-1] := ' ';
+End;
+
+Procedure Fresh_Header;
+Var St : String[5];
+    Bc : Integer;
+    Lap,Sor : Integer;
+    Ws : String[40];
+
+Procedure Fresh_Num(Num,Item,Len : INTEGER);
+Var  Bc : Integer;
+Begin
+  STR(Num:Len,St);
+  If Item = 3 Then
+  Begin
+    St := St + '%';
+    Full := (Num > 100);
+  End;
+  For Bc := 1 to Byte(St[0]) Do
+    Image[-2]^.Chars[C80+Positions[Item]+Bc-1+Byte(Texts[Item][0])] := St[Bc];
+End;
+
+Begin
+
+  PageAndLine(Ypos,Lap,Sor);
+  If Editnum < 29 Then
+  Begin
+    {$IFNDEF CDVIEW}
+
+    {$IFDEF ROMAN}
+    If Kell_Roman Then Texts[-2] := 'DES'
+                  Else Texts[-2] := 'ELV';
+    {$ENDIF}
+
+    Fresh_One(Elvalaszt,-2);
+
+    {$ENDIF}
+    {Fresh_One(Recording,-1);}
+    If FrameMode Then
+    Begin
+
+      Ws := RajzTorl_St[Radir];
+      Ws := Ws + KiBe_St[Byte(Pen)] + '  ';
+
+      For Bc := 1 To Length(Ws) Do
+        Image[-2]^.Chars[C80+Bc+Positions[0]-1] := Ws[Bc];
+    End
+    Else
+    Begin
+      Fresh_One(Inser,0);
+      Fresh_One(Sync,1);
+      Fresh_One(Just,2);
+    End;
+  End
+  Else
+  Begin
+    Fresh_One(False,0);
+    Fresh_One(False,1);
+    Fresh_One(False,2);
+  End;
+
+  Fresh_Num(Fmem,            3,  3);
+  Fresh_Num(Linespace,       4,  1);
+  Fresh_Num(Fontnum[EditNum],5,  2);
+  Fresh_Num(Sor+1,           6,  3);      { Scount+Ypos+1 }
+  Fresh_Num(Xpos+1,          7,  3);      { Scount+Ypos+1 }
+  Fresh_Num(Lap+1,           8,  3);
+
+  FejTab(0);
+
+  If Editnum = 29 Then Help_Header;
+
+End;
+
+Procedure Writ;
+
+Var  Cikl,SFont : Byte;
+     Kst : String[1];
+     OldOffs : Word;
+     CirillBetu : Boolean;
+     Ch : char;
+     P  : byte;
+
+Begin
+  If (CRTMode = 6) Then
+    Begin
+      For Cikl := 1 To Byte(St[0]) Do
+        Begin
+          SFont := GlobalFont;
+
+          If (SFont = 0) {$IFDEF OROSZ} AND (Pos(St[Cikl],gost_ciril) = 0) {$ENDIF}
+          Then
+          Begin
+            If Not SystemWriting Then St[Cikl] := Upcase(St[Cikl]);
+	    Kst := St[Cikl];
+	    ConvertString(Kst);
+	    St[Cikl] := Kst[1];
+          End;
+
+          If St[Cikl] = #01 Then
+          Begin
+            St[Cikl] := 'e';
+            Sfont := 0;
+          End;
+
+          Sys_Write(Xpos,Ypos+2,Byte(St[Cikl]),FontOffs,SortabOffs,SFont);
+
+          If Inverz Then
+            Begin
+              OldOffs := Xoffset;
+              SetXoffset(0);
+              Inv_Kar(Xpos,Ypos+2,0,0,SortabOffs,0);
+              SetXoffset(Oldoffs)
+            End;
+          Inc(Xpos)
+        End
+    End
+  Else
+    Write(St)
+End;
+
+Function WherX;
+Begin
+  If (CRTMode = 6) Then
+    Wherx := Xpos
+  Else
+    Wherx := WhereX
+End;
+
+Function WherY;
+Begin
+  If (CRTMode = 6) Then
+    WherY := Ypos
+  Else
+    WherY := WhereY
+End;
+
+Procedure GotoX;
+Begin
+  If (CRTMode = 6) Then
+    Begin
+      Xpos := X;
+      Ypos := Y;
+    End
+  Else
+    GotoXY(X,Y);
+End;
+
+
+Procedure Fresh_Def;
+Begin
+  If CrtMode <> 6 Then
+    If Recording Then
+      Display(Texts[-1],21+3,45)
+    Else
+      Display('   ',21+3,45)
+  Else
+    If Not Recording Then
+      Begin
+        SaveXY;
+        Gotox(12,-2);
+        SystemWriting := True;
+        Writ(Tom[0]);
+        SystemWriting := False;
+        RestoreXY;
+      End;
+End;
+
+Procedure RestoreCur(Cur : Byte);
+Begin
+  Case Cur Of
+    1 : CurOn;
+    2 : BigCur;
+  End;
+End;

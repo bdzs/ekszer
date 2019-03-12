@@ -1,0 +1,286 @@
+
+Procedure Szotarba(St: String);
+
+Procedure MagyarLowerCaseCWI(Var S,SCWI:String);
+Var P,Cik : Byte;
+    Ws    : String;
+Begin
+  SCWI[0] := S[0];
+  For Cik := 1 To Length(S) Do
+  Begin
+    P := Pos(S[Cik],MagyUpcSt[1]);
+    If P > 0 Then S[Cik] := MagyUpcSt[0][P]
+    Else If (S[Cik] >= 'A') AND (S[Cik] <= 'Z') Then
+           S[Cik] := Char(Byte(S[Cik])+$20);
+
+    P := Pos(S[Cik],CWIConvSt[0]);
+    If P > 0 Then SCWI[Cik] := CWIConvSt[1][P]
+             Else SCWI[Cik] := S[Cik];
+  End;
+End;
+
+Function Equal(A,B : St160): Boolean;
+Begin
+  While Pos('-',A) > 0 Do Delete(A,Pos('-',A),1);
+  While Pos('-',B) > 0 Do Delete(B,Pos('-',B),1);
+  Equal := (A=B);
+End;
+
+Function Greater(X,Y : Char): Boolean;
+Begin
+  Greater := Pos(X,MABC_STRING) > Pos(Y,MABC_STRING);
+End;
+
+Const SzoSzo   : String[64] = '';
+
+Var
+CWISzo,
+Ws,OWs: String[64];
+BakFn : FnTyp;
+Ok    : Boolean;
+Cur,BB: Byte;
+IORES : Word;
+Poz   : Byte;
+Jo    : Boolean;
+Buff  : Array [0..12] Of Byte;
+Scbuf : Array [1..6*69*8] Of Byte;
+SzoTx1,SzoTx2,Bakf : Text;
+TOUT  : Word;
+
+NemBetuSzo : Boolean;
+
+Procedure WriteSzo;
+Var S : String[64];
+Begin
+  If (Ws[1] <> OWs[1]) OR (Ws[2] <> OWs[2]) Then
+  Begin
+    GotoX(12,14{20});
+    S := Ws;
+    DollarToSz(S);
+    Writ(S+SpaceT+SpaceT+SpaceT);
+  End;
+  OWs[1] := Ws[1];
+  OWs[2] := Ws[2];
+End;
+
+Procedure WriteOldToNew;
+Var S1,S2 : St160;
+Begin
+  S1 := Ws;
+  S2 := CWISzo;
+  DollarToSz(S1);
+  DollarToSz(S2);
+  GotoX(12,14{20});
+  Writ(S1+SpaceT+'->'+SpaceT+SpaceT);
+  GotoX(70-Length(S2),14{20});
+  Writ(S2);
+  Beepel(440);
+  Beepel(660);
+  Delay(2000);
+  GotoX(70-Length(S2),14{20});
+  FillChar(S2[1],Length(S2),' ');
+  Writ(S2);
+End;
+
+Procedure SzoBeillesztes;
+Begin
+  OWs:= '@@';
+  Ws := 'a';
+
+  Assign(SzoTx1,SzotarFile);
+  {$i-} Reset(SzoTx1); {$i+}
+
+  WordStarMode(False);
+
+  IORES := 0;
+
+  If IOresult <> 0 Then Error(1,SzotarFile) Else
+  Begin
+    Assign(SzoTx2,Copy(SzotarFile,1,Pos('.',SzotarFile))+'$$$');
+    {$i-} Rewrite(SzoTx2);
+
+    If IOResult = 0 Then
+    Repeat
+      Readln(SzoTx1,Ws);  Inc(IORES,IOResult);
+      SzToDollar(Ws);
+      Ok := (CWISzo[1] = Ws[1]);
+      If NOT Ok Then
+      Begin
+        DollarToSz(Ws);
+        WriteLn(SzoTx2,Ws);  Inc(IORES,IOResult);
+      End;
+      WriteSzo;
+    Until Ok OR (IORES <> 0) OR (EOF(SzoTx1));
+
+    If IORES <> 0 Then Exit;
+
+    Ok := Greater(CWISzo[2],Ws[2]);
+
+    While Ok AND (IORES = 0) AND (NOT EOF(SzoTx1)) Do
+    Begin
+      If Ok Then
+      Begin
+        DollarToSz(Ws);
+        WriteLn(SzoTx2,Ws);  Inc(IORES,IOResult);
+      End;
+      Readln(SzoTx1,Ws);  Inc(IORES,IOResult);
+      SzToDollar(Ws);
+      Ok := (CWISzo[1] = Ws[1]) AND Greater(CWISzo[2],Ws[2]);
+      WriteSzo;
+    End;
+
+    IF IORES <> 0 Then Exit;
+
+    If NOT Ok Then
+    Begin
+
+      If Equal(Ws,CWISzo) Then
+      Begin
+        WriteOldToNew;
+        Ok := True;
+      End;
+
+      DollarToSz(CWISzo);
+      WriteLn(SzoTx2,CWISzo);  Inc(IORES,IOResult);
+
+      If (Not Ok) {AND (NOT EOF(SzoTx1))} Then
+      Begin
+        DollarToSz(Ws);
+        WriteLn(SzoTx2,Ws);   Inc(IORES,IOResult);
+      End;
+
+      If IORES <> 0 Then Exit;
+
+      While (IORES = 0) AND (NOT EOF(SzoTx1)) Do
+      Begin
+        Readln(SzoTx1,Ws);    Inc(IORES,IOResult);
+        If (Ws[1] = CWISzo[1]) AND Equal(Ws,CWISzo) Then WriteOldToNew
+        Else
+        Begin
+          WriteLn(SzoTx2,Ws); Inc(IORES,IOResult);
+        End;
+        WriteSzo;
+      End;
+
+    End;
+
+    IF IORES <> 0 Then Exit;
+
+    BakFn := Copy(SzotarFile,1,Pos('.',SzotarFile))+'BAK';
+    Assign(Bakf,BakFn);
+    Erase(Bakf);
+    BB := IOResult;
+
+    Rename(SzoTx1,BakFn);
+    Inc(IORES,IOResult);
+    Close(SzoTx1); Inc(IORES,IOResult);
+
+    Close(SzoTx2); Inc(IORES,IOResult);
+    Rename(SzoTx2,SzotarFile);
+    Inc(IORES,IOResult);
+
+  End;
+
+  {$i+}
+
+  WordStarMode(True);
+
+End;
+
+Begin
+
+  GraphicMenu := True;
+
+  If (Not InKeyHelp) AND (CRTMode = 6) Then
+  Begin
+    TOUT := OutJel;
+    Set_Nem_lehet;
+
+    Cur := Gcur;
+
+    FelSor_IdeOdaW(6,69,6,14,Ofs(ScBuf),Seg(ScBuf),SortabOffs,0);
+    GrWindow(20,14,61,17,KivetelSt);
+    SaveXY;
+    GotoX(22,14);
+
+    GlobalFont := 2;
+    MezoFont   := 2;
+
+    MaxStringLen := 64;
+
+    Repeat
+      GotoX(22,14);
+      Jo := True;
+      If St <> '' Then SzoSzo := St;
+      PuffiRekurzio := True;
+      Input_String(UjSzoSt,SzoSzo,24);
+      PuffiRekurzio := False;
+      Poz := Pos('/',SzoSzo);
+
+      NemBetuSzo := False;
+
+      BB := 1;
+      While (BB <= Length(SzoSzo)) AND (NOT NemBetuSzo) Do
+      Begin
+        If (UpCase(SzoSzo[BB]) < 'A') AND
+           (UpCase(SzoSzo[BB]) > 'Z') AND
+           (Pos(SzoSzo[BB],MagyUpcSt[0]) + Pos(SzoSzo[BB],MagyUpcSt[1]) = 0)
+        Then NemBetuSzo := True;
+        Inc(BB);
+      End;
+
+      If (NOT ESC) AND
+         (((Poz > 0) AND (Poz < 3)) OR
+          (Length(SzoSzo) < 2) OR
+          (NemBetuSzo) OR
+          ((Upcase(SzoSzo[1]) = 'A') AND (Upcase(SzoSzo[2]) = 'A'))) Then
+      Begin
+        Beepel(660);
+        Beepel(440);
+        Jo := False;
+      End;
+    Until ESC OR Jo;
+
+    MagyarLowerCaseCWI(SzoSzo,CWISzo);
+
+    CurOff;
+
+    If CWISzo < 'a' Then ESC := True;
+
+    SzToDollar(CWISzo);
+
+    If Not ESC Then
+    Begin
+
+      Move(Wkx1,Buff,12);
+
+      GrWindow(6,14,75,18,UjSzoBeSt);
+
+      SzoBeillesztes;
+
+      If IORES <> 0 Then Error(26,'') {"File mÅveleti hiba"}
+
+      Else
+      Begin
+
+        GrWindow(6,14,75,18,SzoIndexSt);
+
+        Kivetelszotar;
+
+      End;
+
+      Move(Buff,Wkx1,12);
+
+    End; {If Not Esc}
+
+    FelSor_IdeOdaW(6,69,6,14,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+    RestoreXY;
+
+    RestoreCur(Cur);
+
+    OutJel := TOUT
+  End;
+
+  GraphicMenu := False;
+
+End;

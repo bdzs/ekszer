@@ -1,0 +1,60 @@
+Procedure CenterLine;
+
+Var MainP : Integer;
+    X1,X2 : Integer;
+    Hossz,
+    Thossz,Difi,
+    Xt,Cikl : Integer;
+    Inst,Synct : Boolean;
+Begin
+  Inst := Inser;
+  Synct := Sync;
+  Inser := True;
+  Sync := True;
+
+
+  Mainp := MainOfIndex[Ypos];
+  X1 := 0;
+  While (X1 < c77) And Lukas(MainP,X1,[#0]) Do
+    Inc(X1);
+  X2 := c77;
+  While (X2 > 0) And Lukas(MainP,X2,[#0]) Do
+    Dec(X2);
+  If X2 >= X1 Then
+    Begin
+      Hossz  := X2-X1+1;
+      THossz := RightMar[EditNum]-LeftMar[EditNum] + 1;
+      Difi   := (Thossz - Hossz) Div 2; { Hany ch fer el a margo utan }
+      Dec(Difi,(X1-LeftMar[EditNum]));
+      If (Difi < 0) And ((X1+Difi) >= 0) Then
+        Begin
+          Xt := Xpos;
+          For Cikl := Difi To -1 Do
+            Begin
+              Xpos := 0;
+              CheckXpos(True);
+              Del_Char(Forw)
+            End;
+          Xpos := Xt + Difi;
+          If Xpos < LeftMar[EditNum] Then
+            Xpos := LeftMar[EditNum]
+        End
+      Else
+        If (Difi > 0) And ((X2+Difi) <= RightMar[EditNum]) Then
+          Begin
+            Xt := Xpos;
+            For Cikl := 1 To Difi Do
+              Begin
+                Xpos := 0;
+                CheckXpos(True);
+                New_Char(0)
+              End;
+            Xpos := Xt + Difi;
+            If Xpos > RightMar[EditNum] Then
+              Xpos := RightMar[EditNum];
+          End
+    End;
+  Inser := Inst;
+  Sync := Synct;
+  CheckXpos(True);
+End;

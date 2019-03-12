@@ -1,0 +1,1 @@
+I:\BORLAND\TD\td286 -sdH:\work\cdw H:\work\exe\cdw

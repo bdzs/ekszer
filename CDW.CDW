@@ -1,0 +1,99 @@
+
+Procedure CD(Var Path:St80);
+Begin
+  {$i-} ChDir(Path); {$i+}
+  If IOresult <> 0 Then
+  Begin
+    Error(2,': '+Csak12(Path));
+    Path := '';
+  End;
+End;
+
+{$IFNDEF CDVIEW}
+Procedure Read_Helpfile(Num : Byte);
+Var Fn : St80;
+Begin
+  CheckRead(PathSt);
+  If Not Esc Then
+  Begin
+    Fn := PathSt+Helpfile[Num];
+    Assign(Fontfile,Fn);
+    {$i-} Reset(Fontfile); {$i+}
+    If IOresult <> 0 Then Error(1,HelpFile[Num])
+    Else
+    Begin
+      {$IFDEF ANGOL}
+
+      Writeln(CDWST1,Helpfile[Num]);
+
+      {$ELSE}
+
+      Writeln(Helpfile[Num],CDWST1);
+
+      {$ENDIF}
+
+      Close(Fontfile);
+      Editnum := 29;
+      Load(Fn,Document,NoWriteMode);
+    End;
+  End;
+End; {Read_Helpfile}
+{$ENDIF}
+
+Procedure Read_Files;
+
+Var Lpath,Fn : St80;
+    ciklikus : byte;
+
+Begin
+
+
+
+  For Ciklikus := 1 To 3 Do
+    If Toltes[Ciklikus] Then
+      Begin
+        Lpath := Path;
+
+        If  (Pos('\',FileName[Ciklikus])+
+             Pos(':',FileName[Ciklikus])) <> 0 Then
+          Lpath := ''
+        Else
+          If Path <> '' Then
+            If Lpath[Length(Lpath)] <> '\' Then
+               Lpath := Lpath + '\';
+
+        EditNum:=Ciklikus;
+        CheckRead(Lpath+FileName[Ciklikus]);
+        If Not Esc Then
+        Begin
+          Assign(Fontfile,Lpath+FileName[Ciklikus]);
+          {$i-} Reset(Fontfile); {$i+}
+          If IOresult <> 0 Then
+            Begin
+              If FileName[Ciklikus] <> UresName Then
+                Error(1,Lpath+FileName[Ciklikus])
+            End
+          Else
+          Begin
+            {$IFDEF ANGOL}
+
+            Writeln(CDWST1,FileName[Ciklikus]);
+
+            {$ELSE}
+
+            Writeln(FileName[Ciklikus],CDWST1);
+
+            {$ENDIF}
+
+            Close(Fontfile);
+
+            Fn := Lpath+FileName[Ciklikus];
+            KellJelszo := True;
+            Load(Fn,Document,NoWriteMode);
+            KellJelszo := False;
+
+          End;
+        End;
+      End;  { Ha be kell tolteni ezt a file-t }
+End; {Read_Files}
+

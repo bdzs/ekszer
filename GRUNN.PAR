@@ -1,0 +1,58 @@
+PL   166
+RM   65  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76  76
+PM     6
+IN     1
+JU     1
+SY     1
+ST     1
+SP    51
+MI  9999
+LE  1000
+EL     1
+KL     1
+PP     0
+LN     0
+CT 1.50
+FD H:\WORK\NORVEG
+WD H:\SOFT\EKSZER\DOC
+F1 STANDARD
+F2 S-KUR
+F3 S-FET
+F4 S-STA
+F5 NORSKUTV
+F6 SAMIUTV
+F7 RUSSISK
+F8 RUSS-FET
+F9 RUSS-KUR
+F0 EURO1
+X1 EURO1FET
+X2 EURO1KUR
+X3 TYSK
+X4 TYSK-FET
+X5 TYSK-KUR
+TA    6  11  16  21  26  31  36  41  46  51  56  61
+LM    0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+FP     1
+LP   999
+SA     0
+PN     1
+CO  54 63 59 15 15 15 15 15 15 15 15 15 15 15 15 63 10 10 10 10 10 10 10 10 10 10 10 14 63
+BG  40  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1
+CC   15  30  31  78  79  63 127 113 158  23 126  30  31 126  63  31  78 127  47  63  30  63  28 124  26  47  79
+CM    7   7  15 127 127 120   7   9 143   7   7 112   7 112 127   7   7 112   7   7   7 112  15   9 143 143  15
+FO  11  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2 76  8 32 78  2  2206  2
+WS     0
+MO     0
+DM DOC
+PD     0
+SD     0
+CD    10
+YZ     0
+FN EKWIN6.DOC URES.DOC URES.DOC valami.doc
+TI     2
+KF     2
+PF     1
+CP     0
+GY     0
+FR     0
+\=

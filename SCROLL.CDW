@@ -1,0 +1,319 @@
+Procedure HalfScrollUp;
+
+Var
+ Nemkell,
+ Fline,
+ Mainp,
+ FP,Lp  : Integer;
+ Fheap  : Boolean;{True=A heap elso sora ebben a komplexben van}
+ vbit   : Byte;
+
+Begin
+  Legalso := False;
+
+  If Not Legfelso Then
+    Begin
+      MainP := MainOfIndex[FirstLine];
+      FirstAndLast(MainP,Fp,Lp);
+      Fheap := Fp = StartLine[EditNum];
+
+      Fline := DownInd(MainP)+UpInd(MainP)+1;  { Also sorok+Felso sorok+Fosor }
+
+      NemKell := CountNemKell(FirstLine);
+
+      If (Nemkell = 0) AND Not(Fheap) Then
+        Begin   {  Uj complex sor kovetkezik }
+          MainP := PrevMain(MainP);
+          NemKell := FullOfComplex(MainP)
+        End;
+
+      Dec(NemKell);
+
+      TrueLast := GoodLast(TrueLast + 1);
+
+      Sc_dn(LastLine+2,0+2,0,0,SorTabOffs,ImageOffs);
+      ScrollPlusD(1);
+
+      Dec(Scount);
+      If Not((Nemkell = -1) And Fheap) Then
+        Begin
+          HalfToImage(MainP,FirstLine,Nemkell,1);
+          LapVegKi(FirstLine);
+        End
+      Else
+        Begin  { Atmentunk legfelso modba }
+          FillImageLine(FirstLine);
+          LegFelso := True
+        End;
+      WriteImageLine(FirstLine,True);
+
+      {$IFNDEF CDVIEW}
+      If LeszBlokk Then Disp_LiN(FiInv,LaInv,FirstLine);
+      {$ENDIF}
+
+      Fresh_Stat(FirstLine+1,FirstLine+1,True)
+
+    End; { Ha nem a legfelso }
+  NoVege
+End;
+
+Procedure HalfScrollDown;
+Var Nemkell,Fline,Mainp,LP,FP : Integer;
+    Uheap  : Boolean;  { True =  A heap utolso sora ebben a komplexben van  }
+    vbit   : Byte;
+    Ujlap,UjSor : Integer;
+Begin
+  If Not Legalso Then
+    Begin
+      MainP := MainOfIndex[LastLine];
+
+      FirstAndLast(MainP,Fp,Lp);
+      Uheap := Lp = EndLine[EditNum];
+
+      Fline := DownInd(MainP)+UpInd(MainP)+1; { Also sorok+Felso sorok+Fosor }
+
+      NemKell := CountNemKell(LastLine)+1;
+
+      If (Not Legfelso) And LapVegeI(FirstLine) Then
+        PushLapveg(FirstLine);
+      PageAndLine(FirstLine+1,UjLap,UjSor);
+      Sc_up(0 +2,LastLine+2,0,0,SorTabOffs,ImageOffs);
+      ScrollPlusU(0);
+      Inc(Scount);
+      PCount := UjLap;
+      LCount := UjSor;
+
+      If Not((Nemkell = Fline) And Uheap) Then
+        HalfToImage(MainP,LastLine,Nemkell,2)
+      Else
+        Begin { A legutolso is felkerul }
+          FillImageLine(LastLine);
+          LegAlso := True;
+          TrueLast := LastLine - 1
+        End;
+      WriteImageLine(LastLine,True);
+      {$IFNDEF CDVIEW}
+      If LeszBlokk Then
+      Begin
+        If Not OszlopMode Then
+          Disp_LiN(FiInv,LaInv,LastLine)
+        Else
+          Disp_LiN(Kisebb(InvPoz[0],InvPoz[1]),
+                   Nagyobb(InvPoz[0],InvPoz[1]),LastLine);
+      End;
+      {$ENDIF}
+      Fresh_Stat(LastLine-1,LastLine-1,True);
+    End; { Ha nem a legalso }
+  Legfelso := False;
+  NoEleje
+End;
+
+Procedure HalfLineUp;
+Begin
+  SorCurKi;
+    {$IFNDEF CDVIEW}
+    LeszBlokk := (UpLineI(Ypos) And
+                 (UpIndI(Ypos) = UpInd(MainOfIndex[Ypos]))) Or
+                 (Ypos <= FirstLine+1);
+
+    If BlockMode And LeszBlokk Then
+    Begin
+      If Lefele(Ypos) Then          { Ha lefele log a blokk }
+      Begin
+        If Not OszlopMode Then Disp_LiN(0,InvPoz[1],Ypos)
+        Else InvertMiddleOfLine;
+      End
+      Else
+        If Folfele(Ypos) Then
+        Begin
+          If Not OszlopMode Then Disp_LiN(InvPoz[1],c77,Ypos) { Eltunteti a (fel)sort }
+          Else InvertMiddleOfLine;
+        End
+        Else
+        Begin
+          InvertMiddleOfLine;
+        End;
+    End;
+    {$ENDIF}
+    If Ypos > FirstLine+1 Then
+      Dec(Ypos)
+    Else
+      HalfScrollUp;
+
+  {$IFNDEF CDVIEW}
+  If BlockMode And LeszBlokk Then
+    Begin
+      Block_End;
+      If Folfele(Ypos) Then
+        Begin
+          InvertLine(Ypos+1,True);        { Az alatta levo sort invertalja }
+          InvertLine(Ypos,True)           { Az uj sort invertalja          }
+        End
+      Else
+        Begin
+          If Lefele(Ypos) Then        { Lefele logo mod               }
+          Begin
+            If Not OszlopMode Then Disp_Lin(0,c77,Ypos) { Eltunteti, amire ralepett     }
+            Else InvertMiddleOfLine;
+          End
+          Else
+          Begin
+            If Not OszlopMode Then Disp_Lin(InvPoz[0],c77,Ypos) { Ha a kezdosoron vagyunk       }
+            Else InvertMiddleOfLine;
+          End;
+          InvertLine(Ypos,True);           { Megjeleniti,amire raleptunk   }
+        End
+    End;
+  {$ENDIF}
+  SorCurBe;
+  LeszBlokk := True;
+End;
+
+Procedure HalfLineDown;
+Var Cik : Integer;
+Begin
+  SorCurKi;
+  If Not ((Ypos = TrueLast) And (TrueLast <> LastLine)) Then
+   {  Ha nem az utolso soron vagyunk, mikozben az kisebb a kepernyonel }
+    Begin
+      {$IFNDEF CDVIEW}
+      LeszBlokk := (DownLineI(Ypos) And
+                   (UpIndI(Ypos) = DownInd(MainOfIndex[Ypos]))) Or
+
+                   (MainLineI(Ypos) And
+                   (DownIndI(Ypos) = 0)) Or
+
+                   (Ypos >= LastLine-1);
+
+      If BlockMode And LeszBlokk Then
+        Begin
+          If Folfele(Ypos) Then            { Folfele logo blokk    }
+          Begin
+            If Not OszlopMode Then Disp_LiN(InvPoz[1],c77,Ypos)    { Eltuntetes            }
+            Else InvertMiddleOfLine;
+          End
+          Else
+            If (Not OszlopMode) AND (Lefele(Ypos)) Then
+              Disp_LiN(0,InvPoz[1],Ypos)   { Eltunteti a (fel)sort }
+            Else                      { A kezdosoron vagyunk  }
+              InvertMiddleOfLine;
+        End;
+      {$ENDIF CDVIEW}
+      If Ypos < LastLine-1 Then
+        Inc(Ypos)
+      Else
+        HalfScrollDown;
+      {$IFNDEF CDVIEW}
+      If BlockMode And LeszBlokk Then
+        Begin
+          Block_End;
+          If Lefele(Ypos) Then
+            Begin
+              InvertLine(Ypos-1,True);     {  Az elozo sor invertalasa    }
+              InvertLine(Ypos,True)        {  Az aktualis sor invertalasa }
+            End
+          Else
+            Begin
+              If Folfele(Ypos) Then
+              Begin
+                If Not OszlopMode Then Disp_Lin(0,c77,Ypos)   {  Ha a blokk felfele log      }
+                Else InvertMiddleOfLine;
+              End
+              Else
+              Begin
+                If Not OszlopMode Then Disp_Lin(0,InvPoz[0],Ypos)
+                Else InvertMiddleOfLine;
+              End;
+              InvertLine(Ypos,True);
+            End
+        End;
+      {$ENDIF}
+    End;
+  SorCurBe
+End;
+
+{$IFNDEF VER3}
+Procedure GoOneLineDown; Forward;
+
+Procedure GoOneLineUp;
+Var UjMp,Mp,Kell,
+    Cikl,Meddig : Integer;
+Begin
+  Mp := MainOfIndex[Ypos];
+  UjMp := Mp;
+  If MainLineI(Ypos) Or UpIndexI(Ypos) Then
+    UjMp := PrevMain(UjMp);
+  Cikl := Ypos;
+  While (Cikl > FirstLine+1) And (ImageToHeap[Cikl] <> UjMp) Do
+    Dec(Cikl);
+  Ypos := Cikl;
+  If ImageToHeap[Cikl] <> UjMp Then
+    Begin
+      Mp := MainOfIndex[Cikl];
+      If Mp = UjMp Then
+        Kell := UpIndI(Cikl)
+      Else
+        If MainLineI(Cikl) Then
+          Kell := UpInd(Mp)+DownInd(UjMp)+1
+        Else
+          If UpIndexI(Cikl) Then
+            Kell := UpInd(Mp)-UpIndI(Cikl) + DownInd(UjMp)+1
+          Else
+            Kell := UpIndI(Cikl)+UpInd(Mp)+DownInd(UjMp)+1;
+      Sc_Dn(LastLine+2,0+2,Kell,0,SorTabOffs,ImageOffs);
+      ScrollPlusD(Kell);
+      Meddig := FirstLine;
+      Dec(Scount,Kell);
+      ComplexHeapToImage(UjMp,UpInd(UjMp)-1,2,Meddig);
+      For Cikl := FirstLine+Kell-1 Downto FirstLine Do
+        LapVegKi(Cikl);
+      For Cikl := FirstLine To Meddig Do
+        WriteImageLine(Cikl,True);
+      TrueLast := GoodLast(TrueLast + 1);
+    End;
+
+End;
+
+Procedure GoOneLineDown;
+Var UjMp,Mp,Kell,
+    Cikl,Meddig : Integer;
+Begin
+  If Not ((Ypos = TrueLast) And (TrueLast <> LastLine)) Then
+    Begin
+      Mp := MainOfIndex[Ypos];
+      UjMp := Mp;
+      If MainLineI(Ypos) Or Not(UpIndexI(Ypos)) Then
+        UjMp := PrevMain(UjMp);
+      Cikl := Ypos;
+      While (Cikl > FirstLine+1) And (ImageToHeap[Cikl] <> UjMp) Do
+        Dec(Cikl);
+      Ypos := Cikl;
+      If ImageToHeap[Cikl] <> UjMp Then
+        Begin
+        End;
+    End;
+
+End;
+{$ENDIF}
+
+Procedure GoOneLineDownS; Forward;
+
+Procedure GoOneLineUpS;
+Begin
+  While (ImageToHeap[Ypos] <> 0)
+      And MainLine(ImageToHeap[Ypos]) Do
+    HalfLineUp;
+  While (ImageToHeap[Ypos] = 0) Or
+        (NOT MainLine(ImageToHeap[Ypos])) Do
+    HalfLineUp;
+End;
+
+Procedure GoOneLineDownS;
+Begin
+  While (ImageToHeap[Ypos] <> 0) And
+         MainLine(ImageToHeap[Ypos]) Do
+    HalfLineDown;
+  While (ImageToHeap[Ypos] = 0) Or
+        (NOT MainLine(ImageToHeap[Ypos])) Do
+    HalfLineDown;
+End;

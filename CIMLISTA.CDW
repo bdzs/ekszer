@@ -1,0 +1,421 @@
+Procedure Use_CimLista; {AutoLoad : Boolean}
+
+Var N,Cik   : Integer;
+    Count,
+    Num,
+    Font,
+    Attr,
+    Hossz,X : Byte;
+    Ws      : String[60];
+    RecSize : Word;
+    Varp    : Word;
+    Fil     : File;
+    Fi      : File OF LongInt;
+    Lx      : LongInt;
+    Buf     : Array[0..400] Of Byte;
+
+    CimMask  : String[8];
+
+    Escap,Kilepett,Kesz : Boolean;
+    elozoovr     : boolean;
+
+
+Begin
+  With CLV^ Do
+    Begin
+      If AutoLoad Then
+      Begin
+        Kesz := True;
+        Esc  := False;
+        Writeln(IneSt25,' : ',CimFile);
+      End
+      Else
+      Begin
+
+        Kesz := False;
+
+        BOOL := CREATE_WINDOW(11,7,68,11,IneSt25,CA[DispMode,1],CA[DispMode,3]);
+
+      End;
+
+      Repeat
+
+      If Not AutoLoad Then
+      Begin
+        GotoXY(2,2);
+        MaxStringLen := FnSize;
+        Input_String(Enter_Fn,CimFile,36);
+        UpperCase(CimFile);
+        If CimFile <> '' Then CheckFileName(CimFile);
+        CurOff;
+
+        Kilepett := Esc;
+
+      End;
+
+      If NOT Esc Then
+      Begin
+
+        CimMask := '';
+
+        If CimFile[2] = ':' Then
+        Begin
+          CimMask := Copy(CimFile,1,2);
+          If CimFile[0] = #02 Then CimFile[0] := #00;
+        End;
+
+        CimMask := CimMask + CMask;
+
+        If CimFile <> '' Then
+        Begin
+          If Pos('.',CimFile) = 0 Then CimFile := CimFile + Copy(CMask,2,4);
+        End
+        Else Select_File(CimMask,CimFile,2);
+
+        Escap := Esc;
+        CheckRead(CimFile);
+        Esc := Escap OR Esc;
+
+        If Not Esc Then
+        Begin
+
+          Assign(Fi,CimFile);
+          {$i-} Reset(Fi); {$i+}
+
+          If IOresult <> 0 Then
+          Begin
+            Error(1,Csak12(CimFile));
+            CimFile := '';
+          End
+          Else
+          Begin
+
+            Kesz := True;
+
+            Read(Fi,Lx);
+            Close(Fi);
+
+            ADB40 := (Lx = 4473088);
+            {4.0 tol az adatbazis elso 4 byte-ja: 00 "AD" 00 }
+
+            If (Lx = 0) OR ADB40 Then   { Ha jo cimlista file (azonosito 4 byte) }
+            Begin
+
+              Assign(Fil,CimFile);
+              Reset(Fil,1);
+              BlockRead(Fil,Buf,CimFejlecLen); { fejlec }
+
+              With CimDate Do
+              Begin
+                Move(Buf[4],Ev,2);
+                Honap := Buf[6];
+                Nap   := Buf[7];
+              End;
+
+              With CimDateM Do
+              Begin
+                Move(Buf[8],Ev,2);
+                Honap := Buf[10];
+                Nap   := Buf[11];
+              End;
+
+              VarNum    := Buf[12];
+              CimRecLen := 4;
+
+              Cik := 0;
+
+              If VarNum > 0 Then
+              Begin
+                VarPos[1] := 0;
+                Varp      := 0;
+                For Cik := 1 To VarNum Do
+                Begin
+                  Move(Buf[23*(Cik-1)+13],VarSt[Cik],21);
+                  VarLen[Cik] := Buf[23*(Cik-1)+34];    { VarPozicio[Cik] := Buf[23*(Cik-1)+35]; }
+                  If Cik > 1 Then VarPos[Cik] := Varp;
+                  Inc(Varp,2*VarLen[Cik]);
+                  Inc(CimRecLen,2*VarLen[Cik]);
+                End;
+              End;
+
+              If ADB40 Then { 0. record }
+              Begin
+
+                BlockRead(Fil, CimRecBuff^, CimRecLen);
+
+                If VarNum > 0 Then
+                  For N := 1 To VarNum Do
+                  Begin
+                    BlankVar[N] := GetVarName(N);
+                    Move(CimRecBuff^[VarPos[N]+VarLen[N]],Ws[1],VarLen[N]); {Attr}
+                    Hossz := Length(BlankVar[N]);
+                    Ws[0] := Char(Hossz);
+
+                    If Hossz > 0 Then
+                    BEGIN
+
+                      Font  := $80;
+                      Count := 0;
+                      Num := 1;
+
+                      For X := 1 To Hossz Do   { Attributum ciklus }
+                        BEGIN
+                          Attr := Byte(Ws[X]) AND 15;
+                          If (Attr <> Font) Then  { font valtas }
+                            BEGIN
+                              If Count > 0 Then { Az el”z” azonos karakterek attributuma }
+                                BEGIN
+                                  Count := (Count SHL 4);
+                                  Inc(Count,Font);
+                                  BlankVarAttr[N][Num] := Char(Count);
+                                  Inc(Num);
+                                End;
+                              Count := 1;
+                              Font  := Attr;
+                            End
+                          Else  { ugyanaz a font marad }
+                            BEGIN
+                              Inc(Count);
+                              If Count = 15 Then
+                                BEGIN
+                                  BlankVarAttr[N][Num] := Char($F0 + Font);
+                                  Inc(Num);
+                                  Count := 0;
+                                End;
+                            End;
+
+                        End;  {For X = 1 To Hossz }
+
+                      If Count > 0 Then { A maradek karakterek attributuma }
+                        BEGIN
+                          Count := (Count SHL 4);
+                          Inc(Count,Font);
+                          BlankVarAttr[N][Num] := Char(Count);
+                          Inc(Num);
+                        End;
+
+                      BlankVarAttr[N][0] := Char(Num-1);
+
+                    End; {If Hossz > 0}
+                  End;  { For N := 1 To VarNum }
+              End;
+
+              Close(Fil);
+
+              Inc(Cik);
+              VarSt[Cik] := 'RNUM';
+              Inc(Cik);
+              VarSt[Cik] := 'RDATE';
+
+              VarNum := Cik;
+
+              Move(Buf[381],AktivCimRec,4);
+              Move(Buf[385],MaxCimRec,4);
+
+            End
+            Else
+            Begin
+              Error(28,Csak12(CimFile));
+              CimFile := '';
+            End;
+
+          End; {If IOresult = 0}
+
+        End; { If NOT ESC }
+
+      End; { If NOT ESC }
+
+      Until Kilepett Or Kesz;
+
+      If (NOT Kilepett) Or (CimFile = '') Then
+      Begin
+        Fresh_Strings;
+        If CimFile = '' Then VarNum := 00;
+      End;
+
+      If Not AutoLoad Then Bool := Remove_Window;
+    End;
+End; { Use_Cimlista }
+
+Procedure Save_Condition;
+VAR Cik : Integer;
+    Fil : Text;
+    Escap : Boolean;
+    elozoovr     : boolean;
+
+Begin
+  With CLV^ Do
+    Begin
+      If Condi <> '' Then
+      Begin
+
+      {$IFDEF NORVEG}
+         BOOL := CREATE_WINDOW(11,9,68,13,InpSt6+Feltetel,CA[DispMode,1],CA[DispMode,3]);
+      {$ELSE}
+        {$IFDEF ANGOL}
+            BOOL := CREATE_WINDOW(11,9,68,13,InpSt6+Feltetel,CA[DispMode,1],CA[DispMode,3]);
+        {$ELSE}
+            BOOL := CREATE_WINDOW(11,9,68,13,Feltetel+InpSt6,CA[DispMode,1],CA[DispMode,3]);
+        {$ENDIF}
+      {$ENDIF}
+
+        GotoXY(2,2);
+        MaxStringLen := FnSize;
+        Input_String(Enter_Fn,CondiFile,36);
+
+        If Pos('.',CondiFile) = 0 Then
+          CondiFile := CondiFile + Copy(JMask,2,4);
+
+        UpperCase(CondiFile);
+
+        If Not ESC Then CheckFileName(CondiFile);
+        CurOff;
+
+        Escap := Esc;
+        If Not Escap Then CheckWrite(CondiFile);
+        Esc := Escap OR Esc;
+
+        If NOT Esc Then
+        BEGIN
+
+          Assign(Fil,CondiFile);
+          {$i-} Rewrite(Fil); {$i+}
+
+          If IOresult <> 0 Then Error(3,'  '+Csak12(CondiFile))
+          Else
+          BEGIN
+             {$I-}
+             Writeln(Fil,GCondi);
+             Close(Fil);
+             {$I+}
+
+             If Ioresult <> 0 Then
+               BEGIN
+                 Erase(fil);
+                 Error(3,'  '+Csak12(CondiFile));
+               End
+
+          End; {If IOresult = 0}
+        End; { If NOT ESC }
+
+        Bool := Remove_Window;
+
+      End               { If Condi <> '' }
+      Else Beepel(440);
+    End
+End; { Save_Condition }
+
+Procedure Load_Condition; {AutoLoad : Boolean}
+
+Var Cik     : Integer;
+    Fil     : Text;
+
+    CimMask  : String[8];
+
+    Escap,Kilepett,Kesz : Boolean;
+    elozoovr     : boolean;
+
+Begin
+  With CLV^ Do
+    Begin
+      If AutoLoad Then
+      Begin
+        Kesz := True;
+        Esc  := False;
+        Writeln(Feltetel,' : ',CondiFile);
+      End
+      Else
+      Begin
+
+        Kesz := False;
+
+    {$IFDEF NORVEG}
+        BOOL := CREATE_WINDOW(11,7,68,11,InpSt5+Feltetel,CA[DispMode,1],CA[DispMode,3]);
+    {$ELSE}
+      {$IFDEF ANGOL}
+          BOOL := CREATE_WINDOW(11,7,68,11,InpSt5+Feltetel,CA[DispMode,1],CA[DispMode,3]);
+      {$ELSE}
+          BOOL := CREATE_WINDOW(11,7,68,11,Feltetel+InpSt5,CA[DispMode,1],CA[DispMode,3]);
+      {$ENDIF}
+    {$ENDIF}
+
+      End;
+
+      Repeat
+
+      If Not AutoLoad Then
+      Begin
+        GotoXY(2,2);
+        MaxStringLen := FnSize;
+        Input_String(Enter_Fn,CondiFile,36);
+        UpperCase(CondiFile);
+        If CondiFile <> '' Then CheckFileName(CondiFile);
+        CurOff;
+
+        Kilepett := Esc;
+
+      End;
+
+      If NOT Esc Then
+      Begin
+
+        CimMask := '';
+
+        If CondiFile[2] = ':' Then
+        Begin
+          CimMask := Copy(CondiFile,1,2);
+          If CondiFile[0] = #02 Then CondiFile[0] := #00;
+        End;
+
+        CimMask := CimMask + Jmask;
+
+        If CondiFile <> '' Then
+        Begin
+          If Pos('.',CondiFile) = 0 Then CondiFile := CondiFile + Copy(Jmask,2,4);
+        End
+        Else Select_File(CimMask,CondiFile,2);
+
+        Escap := Esc;
+        CheckRead(CondiFile);
+        Esc := Escap OR Esc;
+
+        If Not Esc Then
+        Begin
+
+          Assign(Fil,CondiFile);
+          {$i-} Reset(Fil); {$i+}
+
+          If IOresult <> 0 Then Error(1,Csak12(CondiFile))
+          Else
+          Begin
+
+            Readln(Fil,GCondi);
+            Condi := GCondi;
+
+            For Cik := 1 To Length(Condi) Do
+              If Byte(Condi[Cik]) >= 128 Then ASC_Eksz(Condi[Cik]);
+
+            Close(Fil);
+
+            UpperCase(Condi);
+            Input_Conditions(False);
+
+            Kilepett := ESC;
+
+          End; {If IOresult = 0}
+
+        End; { If NOT ESC }
+
+      End; { If NOT ESC }
+
+      Until Kilepett Or Kesz;
+
+      If (NOT Kilepett) Or (CondiFile = '') Then
+      Begin
+        Fresh_Strings;
+      End;
+
+      If Not AutoLoad Then Bool := Remove_Window;
+    End
+End; { Load_Condition }
+

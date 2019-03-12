@@ -1,0 +1,284 @@
+Procedure New_Char(Ch : Byte);
+
+Var
+    Cikl,Hp,XP,Hossz,
+    MainP,ElsoI,UtolsoI,
+    MainI,Elso,Utolso,
+    Hely,NewMain,Rp       : Integer;
+    TeleVeg,Mar_Beszurta,
+    VanValami,VanValami2,
+    CsakSpace,MargoUres,
+    MegisJo,
+    UtolsoUres            : Boolean;
+    JustPoint        : JustArray;
+    Jeleje,Jvege     : Integer;
+
+Procedure Beszur;
+Begin {  Heap-en, egyet }
+  Move(HeapLine^.Chars[C80+Xpos],HeapLine^.Chars[C80+Xpos+1],c76-Xpos);
+  Move(HeapLine^.Attribs[Xpos],HeapLine^.Attribs[Xpos+1],c76-Xpos);
+  HeapLine^.Chars[C80+Xpos] := #0
+End;
+
+Procedure NewC;
+Begin
+  Mozgott := True;
+  Heapline^.Chars[C80+Xpos] := CHAR(Ch);
+  If Ctp Then
+    Heapline^.Attribs[Xpos] := 0
+  Else
+    Heapline^.Attribs[Xpos] := Fontnum[EditNum];
+  If Xpos = 0 Then
+    Heapline^.Attribs[0] := Heapline^.Attribs[0] OR FirstAttrib;
+
+  Heapline^.Attribs[0] := Heapline^.Attribs[0] OR 32;
+  MoveHeapLine(ImageToHeap[Ypos],Ypos);
+
+End;
+
+Procedure ScrRight;
+Var Cikl : Integer;
+    KDispE,KdispU : Boolean;
+
+Begin               
+  Heap_Pos(Heapline,PointerTomb^[ImageToHeap[Ypos]]);
+
+  If (Inser And Sync) Then
+    Begin
+      For Cikl := Elso To Utolso Do
+        Begin
+          Heap_Pos(Heapline,PointerTomb^[Cikl]);
+          Beszur;    { Beszuras a heapen  }
+          FreeEms1(PointerTomb^[Cikl])
+        End;
+
+      Scroll_Right(Xpos,ElsoI+2,UtolsoI+2,1,SorTabOffs,ImageOffs);  { Image }
+      ElotteUtana(Xpos,ElsoI,UtolsoI,KDispE,KDispU);
+      If Xpos >= Xoffset Then
+        Scroll_Right(Xpos-Xoffset,ElsoI+2,UtolsoI+2,0,SorTabOffs,ImageOffs);  { Screen }
+      Heap_Pos(Heapline,PointerTomb^[ImageToHeap[Ypos]]);
+
+      If KDispU Then
+        Disp_Li(Xpos,UtolsoI);
+      If KDispE Then
+        Disp_Li(Xpos,ElsoI-1);
+      NewC;
+      Disp_Kar(Xpos,Ypos+2,0,FontOffs,SortabOffs,ImageOffs);
+      FreeEms1(PointerTomb^[ImageToHeap[Ypos]]);
+    End
+  Else
+    Begin
+      If Inser Then
+        beszur;
+      NewC;
+      Disp_Li(Xpos,Ypos);
+    End;
+
+  If MegisJo Then
+    Rp := c77
+  Else
+    Rp := RightMar[EditNum] + 1;
+
+
+  If Not LP(MainP,Xpos,Rp) Then
+    NextPos(LeftMar[EditNum],Rp);
+  Restore_Font;
+  FreeEms1(PointerTomb^[ImageToHeap[Ypos]]);
+End;
+
+Var HosszabbVolt : Boolean;
+
+Procedure TeleASor;
+Var Difi : Integer;
+    Hline: LPoint;
+Begin
+  Hely := RightMar[EditNum] - LeftMar[EditNum] +1;
+  If LastMain(MainP) Or (TrueLen(NextMain(MainP))+Hossz > Hely) Or
+     HardCr(MainP) Then
+{ Ha utolso sorban vagyunk, vagy Hard cr, vagy a kovetkezo ele nem fer be }
+    Begin  {  Uj sor kell }
+      If Xpos < Xp Then { A karakter es a kurzor nem kerul at a kovetkezo sorba }
+        LegyenJust := False;
+      SorCurKi;
+
+      If (Figyel) AND (VisszaKellRakni) Then
+      Begin
+        Heap_Pos(Hline,PointerTomb^[MainP]);
+        HLine^.Attribs[LeKellPoz] := 00;     {kirakja az elvalasztojelet}
+        HLine^.Chars[C80+LeKellPoz] := '-';  {kirakja az elvalasztojelet}
+        Image[Ypos]^.Attribs[LeKellPoz] := 00;
+        Image[Ypos]^.Chars[C80+LeKellPoz] := '-';
+        FreeEms1(PointerTomb^[MainP]);
+      End;
+
+      VisszaKellRakni := False;
+
+      InsertImageLines(Ypos,Xp,0,NewMain);
+
+      {Atrak(MainP,NewMain,Xp,LeftMar[EditNum],Hossz,MainI,EditNum,EditNum,Yes);}
+
+      SorCurBe;
+      LegyenJust := True;
+
+
+      If Xpos >= Xp Then { A karakter es a kurzor }
+        Begin {  a kovetkezo sorba kerul }
+          Inc(Xpos,(LeftMar[EditNum]-Xp));
+          CheckXpos(True);
+          {If HosszabbVolt Then Inc(Xpos);}
+          While ImageToHeap[Ypos] <> NewMain Do
+            HalfLineDown;
+          Mar_Beszurta := False;  { Meg egy kor }
+          Telelett := True;
+        End
+      Else
+        ScrRight;
+    End
+  Else  { Nem kell letores, }
+    Begin     {  At a mar meglevo sorba  }
+      NewMain := NextMain(MainP);
+      Tomorit(NewMain);
+
+      If Hossz > 0 Then
+      Begin
+        CompBeszur(NewMain,LeftMar[EditNum],Hossz);
+        Atrak(MainP,NewMain,Xp,LeftMar[EditNum],Hossz,MainI,EditNum,EditNum,Yes);
+      End;
+
+      NewMain := NextMain(MainP);
+      If Xpos < Xp Then LegyenJust := False;
+
+      If Hossz > 0 Then ComplexToScreen(Xp,Ypos);
+
+      LegyenJust := False;
+
+      Difi := MainI + DownInd(MainOfIndex[Ypos])+1;
+      If Difi <= LastLine Then
+        ComplexToScreen(0,Difi);
+
+      LegyenJust := True;
+
+      If Xpos >= Xp Then
+        Begin {  Menjunk a kovetkezo sorba }
+          Inc(Xpos,(LeftMar[EditNum]-Xp));
+          CheckXpos(True);
+          While ImageToHeap[Ypos] <> NewMain Do
+            HalfLineDown;
+          Mar_Beszurta := False;  { Meg egy kor }
+        End
+      Else
+        ScrRight;
+    End;
+End;  { TeleASor }
+
+Procedure LetoriE;
+Begin
+  If Lukas(MainP,Xpos-1,[' ',#0]) Then
+    Begin
+      Xp := Xpos;
+      Hossz := SorH(MainP)-1;
+      HosszabbVolt := (Hossz >= Xp);
+      If HosszabbVolt Then
+        Dec(Hossz,(Xp+1))
+      Else
+        Hossz := 0
+    End
+  Else
+    Begin
+      Hely := RightMar[EditNum] - LeftMar[EditNum] +1;
+      PrevBegin(MainP,Xpos,Hely,Xp,Hossz,1);
+    End;
+End;
+
+
+Begin  {  New_Char  }
+
+  Telelett := False;
+
+  If Ch = 254 Then Ch := 0;
+
+  IF ((ImageToHeap[Ypos] =  0) And
+          ElegLesz(0,1,CdwFST1)) Or
+     ((ImageToHeap[Ypos] <> 0) And
+          ElegLesz(MainOfIndex[Ypos],0,CdwFST1)) Then
+  Repeat { Addig csinalja amig be nem szurta a karaktert }
+    GlobLeszedes;
+    Mar_Beszurta := True;
+    If (NOT MainLineI(Ypos)) Then
+      Begin
+        If Ch = 32 Then
+          Ch := 0;
+        If EmptyLineI(Ypos) Then
+          CreateIndexLine(Ypos);
+      End;
+    Heap_Pos(Heapline,PointerTomb^[ImageToHeap[Ypos]]);
+    FirstAttrib := Heapline^.Attribs[0] AND $F0;
+    FreeEms1(PointerTomb^[ImageToHeap[Ypos]]);
+
+    MainP := MainOfIndex[Ypos];
+
+    {$IFDEF JELSZAVAS}
+      Inc(MainP,ElSzaro);
+    {$ENDIF}
+      Inc(MainP,ElSzarr^[EEN]);
+
+    { Heap es Image kezdo es vegertek beallitas }
+
+    CompoundLines(MainP,JustPoint,JEleje,JVege);
+
+    MainI := CompMainI(Ypos);
+    ElsoI := GoodLast(MainI - UpInd(MainP));
+    UtolsoI := GoodLast(MainI + DownInd(MainP));
+    FirstAndLast(MainP,Elso,Utolso);
+    VanValami  := VanBennuk(Elso,Utolso,RightMar[EditNum]);
+    UtolsoUres := Lukas(MainP,c76,[#0]);
+    MargoUres  := EzVeg(RightMar[EditNum],Space_Is,JustPoint,Jeleje,JVege);
+    CsakSpace  := EzVeg(RightMar[EditNum]+1,Space_Is,JustPoint,Jeleje,JVege);
+    MegisJo    :=  Not(((NOT VanValami) Or NOT(Inser)) And
+                       (Xpos <= RightMar[EditNum])) And
+       (((Xpos >  RightMar[EditNum]) And (Xpos < c77) And (Ch In [32,0]) And UtolsoUres And CsakSpace) Or
+        ((Xpos <= RightMar[EditNum]) AND MargoUres And UtolsoUres));
+
+    If (((NOT VanValami) Or NOT(Inser)) And
+       (Xpos <= RightMar[EditNum])) Or MegisJo
+       Then
+      ScrRight  { Ha van meg hely, akkor csak scrollozni kell }
+    Else  { Valami van a margon vagy mogotte,es az a valami nem space }
+      If Lukas(MainP,RightMar[EditNum],[' ']) Then  { Ha a jobb margon space van }
+        If Xpos > RightMar[EditNum] Then   { Ha a jobb margon tul vagyunk }
+          Begin  { Eltores Xpos - tol,vagy az utolso szotol }
+            LetoriE;
+            TeleASor
+          End
+        Else     { Ha a jobb margon belul vagyunk }
+          If Lukas(MainP,c76,[' ']) Then  { Az utolso poz. is foglalt ? }
+            Begin  { Eltores az utolso pozicional }
+              Xp := c76;
+              Hossz := 1;
+              {HosszabbVolt := False;}
+              TeleASor;
+            End
+          Else { Az utolso poz. nem foglalt }
+            ScrRight  { Sima beszuras }
+      Else { Ha a jobb margon nem space van }
+        If Xpos > RightMar[EditNum] Then   { Ha a jobb margon tul vagyunk }
+          Begin  { Eltores Xpos - tol,vagy az utolso szotol }
+            LetoriE;
+            TeleASor
+          End
+        Else                      { Ha a jobb margon belul vagyunk }
+          Begin  { Beszuras helyenek megkeresese, beszurasa }
+            Hely := RightMar[EditNum] - LeftMar[EditNum] +1;
+            PrevBegin(MainP,c77,Hely,Xp,Hossz,0);
+            {HosszabbVolt := (Hossz >= Xpos);}
+            Figyel := True;
+            TeleASor;
+            Figyel := False;
+          End;
+
+    GlobFelrakas;
+    CompoundFree(MainP,JustPoint,JEleje,JVege);
+
+  Until Mar_Beszurta
+End;  { New_Char }
+

@@ -1,0 +1,58 @@
+PL   160
+RM   65  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75  75
+PM     6
+IN     1
+JU     1
+SY     1
+ST     1
+SP    51
+MI  9999
+LE  1000
+EL     1
+KL     0
+PP     0
+LN     0
+CT 0.70
+FD C:\WORK\EKSZER
+WD C:\AKOS\EKSOFT\EKSZER\DOC\SZERZ
+F1 STANDARD
+F2 MAGYAR
+F3 M-DOLT
+F4 M-VASTAG
+F5 M-INDEX
+F6 OROSZ
+F7 GOROG
+F8 SPEC1
+F9 SPEC2
+F0 SPEC3
+X1 E1-DOLT
+X2 E1-DOLT
+X3 E1-DOLT
+X4 E1-DOLT
+X5 E1-DOLT
+TA    6  11  16  21  26  31  36  41  46  51  56  61
+LM    0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+FP     4
+LP     4
+SA     0
+PN     1
+CO  62 11 10  9  9  9  9  9  9  9  9  9  9  9  9 12 12 12 12 12 12 12 12 12 12 12 12 13  7
+BG   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1
+CC   15  30  31  78  79  63  14 126 158  23 123  27  31 126  63  31  78 127  47  63  23  63  28 124  26  47  79
+CM    7   7  15 127 127 120   7  15 143   7   7 120   7 120 127   7   7 120   7   7   7 112  15 127  15 143  15
+FO   1  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2  2 61  2  2  2
+WS     0
+MO     0
+DM DOC
+PD     0
+SD     0
+CD    10
+YZ     0
+FN C:\AKOS\EKSOFT\EKSZER\DOC\SZERZ\KBDCONT.DOC URES.DOC URES.DOC URES.DOC
+TI     0
+KF     2
+PF     1
+CP     0
+GY     1
+FR     1
+\=

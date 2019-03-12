@@ -1,0 +1,1 @@
+i:\borland\tasm\tasm %1 %2 %3

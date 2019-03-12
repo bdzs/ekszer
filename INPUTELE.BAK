@@ -1,0 +1,2658 @@
+Procedure Set_Macro_Environment(Elso,Graph : Boolean);
+Begin
+  If Elso And (MacLevel = 1) Then
+  Begin
+    TempInser     := Inser;
+    TempJust      := Just;
+    TempSync      := Sync;
+    TempLineSpace := LineSpace;
+    If SaveCount > 0 Then
+      TempFont:= SaFont[SaveCount]
+    Else
+      TempFont:= FontNum[EditNum];
+  End;
+
+  If MacEnv[PActMacNum].MacSpacing <> 255 Then
+  With MacEnv[PActMacNum] Do
+  Begin
+    If (Byte(MacJust) SHR 4) = 1 Then FrameMode := True;
+
+    {Ctrl Çs Alt nÇlkÅli billentyñmakr¢n†l nem †ll°tja vissza a kîrnyezetet}
+
+    If (NOT Mac3_15) OR (Byte(MacName[PactMacNum][0]) <> $80) Then
+    Begin
+      Inser           := MacIns;
+      Byte(Just)      := Byte(MacJust) AND 1;
+      Sync            := MacSync;
+    End;
+
+    LineSpace       := MacSpacing;
+    If SaveCount > 0 Then
+      SaFont[SaveCount] := MacFont
+    Else
+      FontNum[EditNum] := MacFont;
+    If Graph Then Fresh_Header;
+  End;
+  Set_Nem_lehet
+End;
+
+Procedure Restore_Environment(Graph : Boolean);
+Begin
+  Inser            := TempInser;
+  Just             := TempJust;
+  Sync             := TempSync;
+  LineSpace        := TempLineSpace;
+  If SaveCount > 0 Then
+    SaFont[SaveCount] := TempFont
+  Else
+    FontNum[EditNum] := TempFont;
+  If Graph Then
+    Begin
+      Fresh_Header;
+      If (EditNum <> MaxEditor) Then
+        Set_Lehet;
+    End;
+End;
+
+Var Ctrl_Alt : Boolean;
+
+Function KeyName(Sc,Ch,Flag : Byte):String;
+Var St : String;
+Begin
+
+  If Sc = 222 Then St := '['+Char(Ch)+']'
+  Else
+  Begin
+    Ctrl_Alt := False;
+
+    If Sc = $0F Then St := 'Shift-'
+                Else St := '';
+
+    Case Sc Of
+
+    $01..$35:Begin
+               If ((Ch In [1..31]) And Not(Sc In SpecScans)) Or
+                  (Flag And 4 = 4) Then St := 'Ctrl-';
+               If (Ch = 0) And (Sc <> $03) And (Sc <> $0F) Then
+               Begin
+                 Ctrl_Alt := (St <> '');
+                 St := St + 'Alt-';
+               End;
+               If Sc In SpecScans Then
+                 St := St + KeyNames[Byte(KeyChars[Sc])-48]
+               Else
+                 St := St + UpCase(KeyChars[Sc]);
+             End;
+    $37..$39: St:= FirstKeyStrings[Sc];
+    $3B..$44: St:= 'F'+Char(Sc-$3B+Byte('1'));
+    $47..$53: St:= ShortKeyStrings[Sc];
+    $54..$5D: St:= 'Shift-F'+Char(Sc-$54+Byte('1'));
+    $5E..$67: St:= 'Ctrl-F'+Char(Sc-$5E+Byte('1'));
+    $68..$71: St:= 'Alt-F'+Char(Sc-$68+Byte('1'));
+    $72..$77: St:= 'Ctrl-'+KeyStrings[Sc];
+    $78..$80: St:= 'Alt-'+Char(Sc-$78+Byte('1'));
+    $81     : St:= 'Alt-0';
+    $82     : St:= 'Alt -';
+    $83     : St:= 'Alt =';
+    $84     : St:= 'Ctrl-PgUp ';
+
+    End;
+
+    If Sc In [$44,$5D,$67,$71] Then { F10,Shift-F10,Ctrl-F10,Alt-F10 }
+    Begin
+      Dec(Byte(St[0]));
+      St := St + '10';
+    End;
+
+  End;
+
+  KeyName := St;
+
+End;
+
+Procedure Replay_KeyMacro;
+
+Var
+Boo,Graphic : Boolean;
+TempMacName : FnTyp;
+Cur   : Byte;
+TOUT  : Word;
+
+Begin
+  If (Not InKeyHelp) And (MacCount > 0) Then
+  Begin
+    TOUT := OutJel;
+    Set_Nem_lehet;
+    Graphic := (CRTmode = 6);
+
+    Boo := True;
+    Cik := ParamNum;
+
+    If Macro[PActMacNum] Then
+    Begin
+      MacNum[MacLevel] := PActMacNum;
+      Inc(MacLevel);
+    End;
+
+    If Boo Then PactMacNum := Cik
+    Else
+    Begin
+      PActMacNum := 0;
+      For Cik := 1 To MaxMac Do
+      Begin
+        UpperCase(MacName[Cik]);
+        If ActMacName = Macname[Cik] Then PActMacNum := Cik;
+      End;
+    End;
+
+    If PActMacNum = 0
+    Then
+    Begin
+      PActMacNum := 1;
+      Macro[PActMacNum] := False;
+      Error(17,ActMacName);      { Nem letezo makro }
+      ActMacName := TempMacName;
+    End
+    Else
+    Begin
+      Macro[PActMacNum] := True;
+      ActMacPos[PActMacNum] := 1;
+
+      Set_Macro_Environment(True,Graphic);
+
+    End;
+
+    OutJel := TOUT;
+
+  End;
+End;
+
+{$IFNDEF CDVIEW}
+Procedure Replay_Macro;
+
+Var
+Boo,Graphic : Boolean;
+TempMacName : FnTyp;
+Cur   : Byte;
+Buff  : Array [0..12] Of Byte;
+Scbuf : Array [1..15800] Of Byte;
+Ntomb : Nevtomb;
+Atomb : AttrTomb;
+TOUT  : Word;
+
+Begin
+  If (Not InKeyHelp) And (MacCount > 0) Then
+  Begin
+    TOUT := OutJel;
+    Set_Nem_lehet;
+    Graphic := (CRTmode = 6);
+
+    Cur := Gcur;
+
+    If Graphic Then
+    Begin
+      FelSor_IdeOdaW(10,61,32,12,Ofs(ScBuf),Seg(ScBuf),SortabOffs,0);
+      GrWindow(24,14,57,17,ReplaySt);
+      SaveXY;
+      GotoX(26,14);
+    End
+    Else
+    Begin
+        BOOL := CREATE_WINDOW(15,16,66,18,ReplaySt,CA[DispMode,7],CA[DispMode,2]);
+        GotoXY(8,1);
+    End;
+
+    GlobalFont := 0;
+    MezoFont   := 0;
+
+    If Length(ActMacName) >= $80 Then ActMacName := '';
+    TempMacName := ActMacName;
+    MaxStringLen := 8;
+    { If Byte(ActMacName[0]) >= $80 Then ActMacName := ''; }
+    Input_String(MacroNameString,ActMacName,8);
+    UpperCase(ActMacName);
+    CurOff;
+
+    Boo := False;
+
+    If Not ESC Then
+    Begin
+      If ActMacName = '' Then
+      Begin
+        Move(Wkx1,Buff,12);  {Wkx1,Wky1,Wkx2,Wky2,Slength,Enged: Integer}
+
+        If Graphic Then
+          GrWindow(10,20,71,34,MacSt)
+        Else
+          BOOL := CREATE_WINDOW(10,8,71,15,MacSt,CA[DispMode,7],CA[DispMode,6]);
+        For Cik := 1 To MaxMac Do
+          If Length(MacName[Cik]) < $80 Then
+            Ntomb[Cik] := Macname[Cik]
+          Else
+            Ntomb[Cik] := KeyName(Byte(MacName[Cik][2]),
+                                  Byte(MacName[Cik][1]),
+                                  Byte(MacName[Cik][0]));
+
+        Set_Choose(13,9,68,14,12,0);
+        Choose(Ntomb,Atomb,MacCount,0,Buff,Buff,Buff);
+        If Not ESC
+        Then
+        Begin
+          Cik := 0;
+          Repeat
+            Inc(Cik);
+          Until Atomb[Cik] = 1;
+          Boo := True;
+        End;
+
+        Move(Buff,Wkx1,12);  { Wkx1,Wky1,Wkx2,Wky2,Slength,Enged }
+
+        If Not Graphic Then Bool := Remove_Window
+
+      End; {If ActMacName = ''}
+
+      If Not Esc Then
+      Begin
+
+        If Macro[PActMacNum] Then
+        Begin
+          MacNum[MacLevel] := PActMacNum;
+          Inc(MacLevel);
+        End;
+
+        If Boo Then PactMacNum := Cik
+        Else
+        Begin
+          PActMacNum := 0;
+          For Cik := 1 To MaxMac Do
+          Begin
+            UpperCase(MacName[Cik]);
+            If ActMacName = Macname[Cik] Then PActMacNum := Cik;
+          End;
+        End;
+
+        If PActMacNum = 0
+        Then
+        Begin
+          PActMacNum := 1;
+          Macro[PActMacNum] := False;
+          Error(17,ActMacName);      { Nem letezo makro }
+          ActMacName := TempMacName;
+        End
+        Else
+        Begin
+          Macro[PActMacNum] := True;
+          ActMacPos[PActMacNum] := 1;
+
+          Set_Macro_Environment(True,Graphic);
+
+        End;
+
+      End; {If Not Esc}
+
+    End; {If Not Esc}
+
+    If Graphic Then
+    Begin
+      FelSor_IdeOdaW(10,61,32,12,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+      RestoreXY;
+    End
+    Else Bool := Remove_Window;
+
+    RestoreCur(Cur);
+
+    OutJel := TOUT
+  End { Ha van makro }
+End;
+
+{$IFNDEF NEMFIGYEL}
+{$IFDEF HALO}
+Procedure WriteMessage;
+Var Cik   : Byte;
+    Ch    : Char;
+    OraSt,
+    PercSt,
+    MpSt  : String[2];
+    Scbuf : Array[1..5000] Of Byte;
+    A,B,Po: Byte;
+Begin
+  InMsg := True;
+  If Pos('From',Message) = 1 Then
+  Begin
+    Delete(Message,1,4);
+    Po := Pos('[',Message);             { [2] cserÇje (2)-re }
+    If Po > 0 Then Message[Po] := '(';
+    Po := Pos(']',Message);
+    If Po > 0 Then Message[Po] := ')';
+    Insert(Kuldte,Message,1);
+  End;
+
+  Graphic := (CRTmode = 6);
+
+  Str(MsgOra,OraSt);
+  Str(MsgPerc,PercSt);
+  Str(MsgMp,MpSt);
+
+  Wst := UzenetJott+'('+OraSt+':'+PercSt+':'+MpSt+') '+IneSt1;
+
+  If Graphic Then
+  Begin
+    FelSor_IdeOdaW(1,78,8,0,Ofs(ScBuf),Seg(ScBuf),SortabOffs,0);
+    SaveXY;
+    GrWindow(1,2,79,5,Wst);
+    GotoX(39-(Length(Message) DIV 2),2);
+    SystemWriting := False;
+    GlobalFont := Magyar;
+    Ascii_To_EkSzer(Message);
+  End
+  Else
+  Begin
+    CREATE_WINDOW(1,22,80,24,Wst,CA[DispMode,1]+Blink,CA[DispMode,5]);
+    GotoXY(39-(Length(Message) DIV 2),1);
+  End;
+
+  Speak(137);
+
+  Writ(Message);
+  For Cik := 1 to 4 Do
+  Begin
+    Sound(333);
+    Delay(70);
+    Sound(888);
+    Delay(70);
+  End;
+  NoSound;
+
+  Broadcast(DisableBMsg);
+
+  Ch := #00;
+  Repeat
+    If Graphic Then
+    Begin
+      If (IdoAlap-LastDefIdo) >= 6 Then
+      Begin
+        LastDefIdo := IdoAlap;
+        Inv_Line(4,2,77,FontOffs,SortabOffs,0);
+      End;
+    End;
+
+
+    Puffirekurzio := True;
+
+    Puffi(A,B);
+
+    Puffirekurzio := False;
+
+    {If KeyPressed Then Ch := ReadKey;}
+
+  Until (A = Escape) Or TimeOutJ;
+
+  Broadcast(EnableBMsg);
+
+  If Graphic Then
+  Begin
+    FelSor_IdeOdaW(1,78,8,0,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+    RestoreXY;
+  End
+  Else
+  Begin
+    Remove_Window;
+  End;
+
+  Message := '';
+
+  InMsg := False;
+End; {Procedure WriteMessage}
+
+{$ENDIF HALO}
+{$ENDIF}
+
+Procedure Record_Macro;
+Var
+   WsN   : String[12];
+   SpacC : String[55];
+   AxR   : Word;
+   Ch,Sc : Byte;
+   Graphic,
+   JoBill: Boolean;
+   TempLen,
+   Key   : Char;
+   KeySc,
+   Kbf,
+   Cur   : Byte;
+   TOUT  : Word;
+   Scbuf : Array[1..3860] Of Byte;
+Begin
+  TOUT := OutJel;
+  Set_Nem_lehet;
+  SpacC[0] := #50;
+  FillChar(SpacC[1],50,' ');
+  Cur := Gcur;
+  Recording := False;
+  Graphic := (CRTmode = 6);
+
+  If Graphic Then
+  Begin
+    FelSor_IdeOdaW(10,60,8,18,Ofs(ScBuf),Seg(ScBuf),SortabOffs,0);
+    SaveXY;
+    GrWindow(10,20,70,23,DefMac);
+    GotoX(28,20);
+  End
+  Else
+  Begin
+    BOOL := CREATE_WINDOW(10,16,70,18,DefMac,CA[DispMode,7],CA[DispMode,2]);
+    GotoXY(16,1);
+  End;
+
+  GlobalFont := 0;
+  MezoFont   := 0;
+
+  CtdTiltas := True;
+
+  If KeyMode Then
+  Begin
+    CurOn;
+    Inverz := False;
+
+    Repeat
+      If Graphic Then GotoX(12,20)
+                 Else GotoXY(2,1);
+      TextAttr := CA[DispMode,3];
+      Writ(PressMacKey);
+
+      JoBill := True;
+
+      KeyR := KeyRead[Byte(GepTipus)];
+
+      Asm
+	MOV   AX,KeyR
+	INT   $16
+	MOV   AxR,AX
+      End;
+
+      KBf:= KBFlag;
+      Ch := Lo(AxR);
+      Sc := Hi(AxR);
+
+      If (Sc <> 00) AND (Ch = $E0) Then Ch := 00;
+
+      Esc := (Ch = Escape);
+
+      If Not Esc Then
+      Begin
+        Change_YZ(Ch,Sc);
+        WsN := KeyName(Sc,Ch,KBf);
+        If (Ch In TilosChars) Or ((Ch = 0) And (Sc In TilosScans))
+          Then JoBill := False;
+
+        If Not JoBill Then
+        Begin
+          Beepel(600);
+        End
+(* Begin
+Writ(ReservedKey); {$IFNDEF ANGOL} Writ(PressMacKey); {$ENDIF}
+Inverz:= True; TextAttr:= CA[DispMode,4];
+Writ(' ' + WsN + ' '); Inverz:= False; TextAttr:= CA[DispMode,3];
+End*)
+        Else
+        If (Ch In CommandChars) Or ((Ch = 0) And (Sc In CommandScans)) Then
+        Begin
+          If Graphic Then GotoX(12,20)
+                     Else GotoXY(2,1);
+
+          If Not Ctrl_Alt Then
+          Begin
+            {$IFNDEF NORVEG}
+            Writ(ReDefine); { 'A' vagy 'Redefine' }
+              {$IFNDEF ANGOL}
+              If Wsn[1] In AzBetuk Then Writ('z');
+              {$ENDIF}
+            {$ENDIF}
+            Writ(' ');
+            Inverz := True;
+            TextAttr := CA[DispMode,4];
+            Writ(' ' + WsN + ' ');
+            Inverz := False;
+            TextAttr := CA[DispMode,3];
+            {$IFDEF OROSZ}
+            Writ(Betut+' ? (Ñ/ç) ');
+            {$ELSE}
+            Writ(Betut+' ? ('+YesChar+'/'+NoChar+') ');
+            {$ENDIF}
+            { 'Felulirhato ' vagy  'key ' '(Y/N)' }
+
+            Repeat
+
+              KeyR := KeyRead[Byte(GepTipus)];
+
+              Asm
+                MOV   AX,KeyR
+                INT   $16
+	        MOV   AxR,AX
+              End;
+
+              Key   := UpCase(Char(Lo(AxR)));
+              KeySc := Lo(AxR);
+
+              Change_YZ(Byte(Key),KeySc);
+
+            Until (Key = YesChar) Or (Key = NoChar);
+
+            JoBill := (Key = YesChar);
+
+            If Not JoBill Then
+            Begin
+              If Graphic Then GotoX(12,20)
+                         Else GotoXY(2,1);
+               Writ(SpacC);
+            End;
+          End {If Not Ctrl_Alt}
+          Else JoBill := True;
+        End;  { ReDefine }
+      End; { If Not Esc }
+    Until JoBill;
+
+    If Not ESC Then
+    Begin
+      FillChar(ActMacName,9,' ');
+      If (Kbf AND (CtrlKey+AltKey)) = (CtrlKey+AltKey) Then
+        ActMacName[0] := Char($80 Or (KbF And (CtrlKey+AltKey) ))
+      Else
+      ActMacName[0] := Char($80);
+      ActMacName[1] := UpCase(Char(Ch));
+      ActMacName[2] := Char(Sc);
+
+      TextAttr := CA[DispMode,4];
+
+      Writ(KeyName(Sc,Ch,KBF));
+      Delay(1200);
+    End;
+  End
+  Else
+  Begin
+    MaxStringLen := 8;
+    ActMacName := '';
+    Input_String(MacroNameString,ActMacName,8);
+    UpperCase(ActMacName);
+  End;
+
+  CtdTiltas := False;
+  CurOff;
+
+  If ActMacName = '' Then Esc := True;
+
+  If Not ESC Then
+  Begin
+    RActMacNum := 0;
+    TempLen := #00;
+    If Length(ActMacName) >= $80 Then
+    Begin
+      TempLen := ActMacName[0];
+      ActMacName[0] := #02;
+    End;
+
+    Cik := 1;
+
+    Repeat
+      UpperCase(MacName[Cik]);
+      If ((TempLen  = #00) And (ActMacName = MacName[Cik])) Or
+         ((TempLen  = MacName[Cik][0]) And
+          (ActMacName = Copy(MacName[Cik],1,2))) Then RActMacNum := Cik;
+      Inc(Cik);
+    Until (RActMacNum = Cik) Or (Cik > MaxMac);
+
+    If RActMacNum = 0 Then
+    Begin
+      If MacCount < MaxMac Then
+      Begin
+        Inc(MacCount);
+        RActMacNum := MacCount;
+        MacName[MacCount] := ActMacName;
+        If TempLen <> #00 Then
+        Begin
+          MacName[MacCount][0] := TempLen;
+          ActMacName[0] := TempLen;
+        End;
+      End
+      Else
+      Begin
+        Error(7,''); {Too many macros}
+        Fresh_Def;
+      End
+    End;
+
+    Recording := (RActmacNum > 0);
+
+    If Recording Then
+    Begin
+      ActMacPos[RActMacNum] := 0;
+
+      If Not Graphic Then MacEnv[RActMacNum].MacSpacing := 255
+      Else
+      With MacEnv[RActMacNum] Do
+      Begin
+        MacIns     := Inser;
+        Byte(MacJust)  := Byte(Just) OR (Byte(FrameMode) SHL 4);
+        MacSync    := Sync;
+        MacSpacing := LineSpace;
+        MacFont    := SaFont[SaveCount];
+      End;
+    End;
+  End; {If Not ESC}
+
+  TextAttr := CA[DispMode,1];
+
+  If CRTmode = 6 Then
+  Begin
+    FelSor_IdeOdaW(10,60,8,18,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+    RestoreXY;
+  End
+  Else
+  Begin
+    Fresh_Def;
+    Bool := Remove_Window;
+  End;
+
+  RestoreCur(Cur);
+  OutJel := TOUT;
+End;  { Record_Macro }
+
+{$ENDIF CDVIEW}
+
+{$IFDEF NORVEG}
+Procedure Choose_Language;
+
+Var
+Boo,Graphic : Boolean;
+TempMacName : FnTyp;
+Cur   : Byte;
+Buff  : Array [0..12] Of Byte;
+Scbuf : Array [1..4820] Of Byte;
+Ntomb : Nevtomb;
+Atomb : AttrTomb;
+TOUT  : Word;
+
+Begin
+  If (Not InKeyHelp) Then
+  Begin
+    TOUT := OutJel;
+    Set_Nem_lehet;
+    Graphic := (CRTmode = 6);
+
+    Cur := Gcur;
+
+    If Graphic Then
+    Begin
+      FelSor_IdeOdaW(15,50,12,20,Ofs(ScBuf),Seg(ScBuf),SortabOffs,0);
+      SaveXY;
+    End;
+
+    GlobalFont := 0;
+    MezoFont   := 0;
+
+    Boo := False;
+
+    If Not ESC Then
+    Begin
+        Move(Wkx1,Buff,12);  {Wkx1,Wky1,Wkx2,Wky2,Slength,Enged: Integer}
+
+        If Graphic Then
+          GrWindow(15,20,64,27,LanguageSt)
+        Else
+          BOOL := CREATE_WINDOW(15,8,64,12,LanguageSt,CA[DispMode,3],CA[DispMode,1]);
+
+        For Cik := 1 To MaxLanguage Do
+            Ntomb[Cik] := LanguageName[Cik];
+
+        Set_Choose(24,9,64,11,12,0);
+
+        ChooLang := True;
+        Choose(Ntomb,Atomb,MaxLanguage,0,Buff,Buff,Buff);
+        ChooLang := False;
+
+        If Not ESC
+        Then
+        Begin
+          Cik := 0;
+          Repeat
+            Inc(Cik);
+          Until Atomb[Cik] = 1;
+
+          Language    := LanguageArray[Cik];
+          LanguagePos := Cik;
+
+        End;
+
+        Move(Buff,Wkx1,12);  { Wkx1,Wky1,Wkx2,Wky2,Slength,Enged }
+
+    End; {If Not Esc}
+
+    If Graphic Then
+    Begin
+      FelSor_IdeOdaW(15,50,12,20,Ofs(ScBuf),Seg(ScBuf),SortabOffs,1);
+      RestoreXY;
+    End
+    Else Bool := Remove_Window;
+
+    RestoreCur(Cur);
+
+    OutJel := TOUT
+  End { Ha van makro }
+End;
+{$ENDIF}
+
+
+Procedure MemoryDeAlloc(Ize:Word);
+Begin
+  Regs.ES := Ize;
+  Regs.Ah := $49;
+  Intr($21,Regs)
+End;
+
+{$IFNDEF CDVIEW}
+
+Procedure NyelveszFree;
+Begin
+  {$IFDEF HELYESKE}
+  If NOT VanHelyeske Then
+  {$ENDIF}
+  If VanNyelvEsz Then
+    Begin
+      WinSBe(0);    { Nyelvesz teruletei vissza }
+      DelSwapFiles;
+      If SpellerNum = 1 Then
+        Begin
+          If VanNyelveszEms Then
+            Release_Ems(Mutato_1^[16]);  {  EMS         }
+          MemoryDeAlloc(Mutato_1^[17]);  {  Lektor adat }
+          MemoryDeAlloc(Mutato_1^[15]);  {  PSP         }
+
+          SetIntVec(NyelveszInt1,Ptr(Mutato_1^[19],Mutato_1^[18]));
+          SetIntVec(NyelveszInt2,OldNyelveszInt2);
+        End
+    End;
+End;
+{$ENDIF}
+
+procedure DummyIret(Flags, CS, IP, AX, BX,
+  CX, DX, SI, DI, DS, ES, BP: Word);Interrupt;
+Begin
+  AX := 0000;   { Minden OK !! }
+END;
+
+Procedure SajatFree;
+Begin
+  If XmsFelsz And FromXms Then
+    Begin
+      SetIntVec($67,@DummyIret);
+      If VanXms Then
+        XmsDeAlloc(SajatXmsH);
+      MemoryDeAlloc(MEMW[FreeSeg-$10:$2C]);  { Enviroment  }
+      MemoryDeAlloc(FreeSeg-$10);            { Program PSP }
+    End
+End;
+
+Procedure Terminate;
+Var L,X : Integer;
+    erdu : string[80];
+Begin
+  erdu:='';
+  Bool := Remove_Window;
+  Bool := Remove_Window;
+  SetIntVec($1B,Vector1B);
+  ChDir(OrigPath);
+  CurOn;
+  ErrorStr(GlobalErrorNum,erdu);
+  L := Length(erdu)+Length(GlobalErrorSt)+2;
+  If L < 22 Then L := 22;
+  X := 40 - L DIV 2;
+  If X < 3 Then X := 3;
+  BOOL := CREATE_WINDOW(X-2,20,X+L+2,24,IneSt12,CA[DispMode,1],CA[DispMode,5]);
+  GotoXY(4,2);
+  TextAttr := CA[DispMode,1];
+  Write(erdu,GlobalErrorSt);
+  Window(1,1,80,25);
+  GotoXY(1,25);
+
+  If VanEmsM Then
+    Release_Ems(Ems_Handle);
+  If StandardHandle <> 54321 Then
+    Release_Ems(StandardHandle);
+  If VanXmsM Then
+    XmsDeAlloc(XHand);
+  If VanDskM Then
+    DelDskFile;
+
+  {$IFNDEF CDVIEW}
+  NyelveszFree;
+  {$ENDIF}
+
+  {$IFNDEF NEMFIGYEL}
+  {$IFDEF HALO}
+  If NOT NetError Then
+  Begin
+    If Not(ElsoHVolt) And NOT(HKilep) Then;
+    SetBroadcastMode(0);
+  End;
+  {$ENDIF}
+  {$ENDIF}
+
+  {$IFDEF EKNET}
+  If Not(ElsoHVolt) Then EEnd;
+  {$ENDIF}
+
+  If SajatEMSVan Then
+    SajatFree;
+  WflLezar;
+
+  {$IFDEF HELYESKE}
+  Ext_Close;
+  {$ENDIF}
+
+   Asm
+     MOV   AX,$3301
+     MOV   DL,BreakStatus
+     INT   $21
+   End;
+
+  Halt(1);
+End;
+
+
+{$IFNDEF CDVIEW}
+Procedure Fresh_Strings;
+
+
+Var
+MenuSzam: Integer;
+Poz     : Byte;
+Cimf    : FnTyp;
+Ws,
+vissz   : string[40];
+
+Const PontPont : String[3] = '...';
+
+Procedure Set_IntParam(Mit,Elemszam,Stlen : Word);
+Var  Work   : String[6];
+Begin
+  Str(Mit:StLen,Work);
+  MenuStr(MenuRec[MenuSzam].Start+ElemSzam-1,vissz,False);
+  vissz[0] := Char(Byte(vissz[0])-StLen);
+  vissz    := vissz + Work;
+  MenuStr(MenuRec[MenuSzam].Start+ElemSzam-1,vissz,True);
+End;
+
+Procedure Set_RealParam(Mit : Real; Elemszam,Stlen : Integer);
+Var  Work   : String[6];
+Begin
+  Str(Mit:StLen-3:2,Work);
+  Work := ' ' + Work;
+  MenuStr(MenuRec[MenuSzam].Start+ElemSzam-1,vissz,False);
+  vissz[0] := Char(Byte(vissz[0])-StLen);
+  vissz    := vissz + Work;
+  MenuStr(MenuRec[MenuSzam].Start+ElemSzam-1,vissz,True);
+End;
+
+Procedure Set_StrParam(Mit:St80; Elemszam,StLen: Integer);
+Const Spac : String[30] = '                              ';
+
+VAR vissz : string[40];
+
+Begin
+  MenuStr(MenuRec[MenuSzam].Start+ElemSzam-1,vissz,False);
+  vissz[0] := Char(Byte(vissz[0])-StLen);
+  Spac := '';
+  If Length(Mit) <= StLen Then Spac[0] := Char(StLen-Byte(Mit[0]));
+  vissz:= vissz + Spac + Mit;
+  MenuStr(MenuRec[MenuSzam].Start+ElemSzam-1,vissz,True);
+End;
+
+Begin
+
+{**** Printer options ****}
+
+  If Cimfile <> '' Then
+  Begin
+    Poz := Pos('.',Cimfile);
+    If Poz = 0 Then Cimf := Cimfile
+               Else Cimf := Copy(Cimfile,1,Poz-1);
+    Cimf := Csak12(Cimf);
+  End
+  Else Cimf := Nincs;
+
+{$IFNDEF VER3}
+MenuSzam := 11;
+{$ELSE}
+MenuSzam := 10;
+{$ENDIF}
+
+  Set_IntParam(  FirstPage,            1,  4  );
+  Set_IntParam(  LastPage,             2,  4  );
+  Set_IntParam(  FirstPageNum,         3,  4  );
+{  Set_StrParam(  PgNm[Byte(Lapszamoz)],5,  5  );}
+  Set_StrParam(  KiBe[StopAfterPage],  4,  3  );
+  Set_IntParam(  PrintMargin,          5,  4  );
+  Set_IntParam(  NyomSzam,             6,  2  );
+  Set_StrParam(  KiBe[KellLapDob],     7,  3  );
+
+If NOT KellLapdob Then
+  Set_RealParam( LabelDist,            8,  5  )
+Else
+  Set_StrParam(  Nincs,                8,  5  );
+
+  Set_IntParam(  Serial_Device+1,      9,  1  );
+  Set_IntParam(  Paralell_Device+1,   10,  1  );
+  Set_IntParam(  IroIdo,              11,  3  );
+
+  Set_StrParam(  FormatumSt[Formatum],12,  5 );
+  Set_StrParam(  CondensedSt[Condensed],13,  8);
+
+  Set_StrParam(  KellSt[MindigLetolt],14, Length(KellSt[False]));
+
+{$IFNDEF VER3}
+MenuSzam := 16;
+{$ELSE}
+MenuSzam := 15;
+{$ENDIF}
+
+  Set_StrParam(  Cimf,                1,  8  );
+
+{$IFNDEF VER3}
+MenuSzam := 17;
+
+  Set_StrParam(  PbPr[Byte(PublPrint)],1,  5  );
+  Set_StrParam(  PgNm[Byte(Lapszamoz)],2,  5  );
+{$ENDIF}
+
+{**** Change ****}
+
+{$IFNDEF VER3}
+  MenuSzam := 7;
+{$ELSE}
+  MenuSzam := 6;
+{$ENDIF}
+
+  {
+  Ws := Copy(Path+Space12,1,4)+PontPont;
+  Set_StrParam(  Ws,                  1,  7  );
+  Ws := Copy(FontPath+Space12,1,4)+PontPont;
+  Set_StrParam(  Ws,                  4,  7  );
+  }
+  Set_StrParam(  Dmask,               5,  3  );
+  Set_IntParam(  GEditNum,            6,  1  );
+  Set_StrParam(  Wss[Byte(WsMode)],   7,  8  );
+  Set_StrParam(  ColMo[NewDisp],      8,  6  );
+
+{*** Change Options ***}
+
+{$IFNDEF VER3}
+  MenuSzam := 10;
+{$ELSE}
+  MenuSzam := 9;
+{$ENDIF}
+
+  Set_IntParam(  PageLen,             1,  3  );
+  Set_IntParam(  LineSpacing,         2,  3  );
+  Set_IntParam(  BackupTime,          3,  4  );
+  Set_IntParam(  Max_Key,             4,  5  );
+  Set_StrParam(  SortStr[DateSort],   5,  5  );
+
+  Set_StrParam(
+     Copy(PsFile[False],1,Pos('.',PsFile[False])-1),
+                                      6,  8  );
+  Set_StrParam(
+     Copy(PsFile[True],1,Pos('.',PsFile[True])-1),
+                                      7,  8  );
+
+{$IFNDEF VER3}
+  MenuSzam := 18;
+{$ELSE}
+  MenuSzam := 16;
+{$ENDIF}
+
+  Set_StrParam(  VideoMod[Byte(FirstGrMode)],  1, 4);
+  Set_IntParam(  ModC80,                       2, 3);
+  Set_StrParam(  OvrHely[EMSOvr],              3, 4);
+  Set_StrParam(  Tip[Byte(GepTipus)],          4, Length(Tip[0]));
+  Set_IntParam(  ComPort,                      5, 1);
+
+  If ModemBdr < 11 Then
+  Set_IntParam(  BRS[ModemBdr],                  6, 6) Else
+  Set_StrParam(  HiSpeed,                        6, 6);
+
+  If UjIndS = 0 Then
+    Set_IntParam(  MaxIndex,                     7, 3)
+  Else
+    Set_IntParam(  UjIndS,                       7, 3);
+
+  Set_IntParam(  NoEMSKb,                        8, 4);
+  Set_IntParam(  NoXMSKb,                        9, 4);
+
+  If PRVS = '' Then
+  Set_StrParam(  VideoMod[0],                   10, 4) Else
+  Set_StrParam(  Copy(PRVS,1,2),                10, 4);
+
+  Set_IntParam(  ScStep,                        11, 2);
+
+  {
+  Ws := Copy(AlapPath+Space12,1,4)+PontPont;
+  Set_StrParam(  Ws,                            12, 7);
+  }
+
+  Set_IntParam(  DskLinesT,                     13, 5);
+  Set_IntParam(  SaveScMp,                      15, 5);
+
+  Str(Volume:4,Ws);
+  Ws := Ws + '%';
+  Set_StrParam(  Ws,                            16, 5);
+
+  {
+  Ws := Copy(DiskMemPath+Space12,1,4)+PontPont;
+  Set_StrParam(  Ws,                            14, 7);
+  }
+
+{$IFNDEF VER3}
+  MenuSzam := 19;
+{$ELSE}
+  MenuSzam := 17;
+{$ENDIF}
+
+  Set_IntParam(  Tizedesek,                       1, 2);
+  Set_StrParam(  FormatSt[Format],                2, 7);
+  Set_StrParam(  Kibe[Gyujtes],                   3, 3);
+
+  Ws := GSzammal;
+  If Length(Ws) > 7 Then Ws := Copy(Ws,1,4) + PontPont;
+  Set_StrParam(  Ws,                              4, 7);
+
+  Ws := GBetuvel;
+  If Length(Ws) > 7 Then Ws := Copy(Ws,1,4) + PontPont;
+  Set_StrParam(  Ws,                              5, 7);
+
+End;
+{$ENDIF}
+
+Procedure Set_Lines(Lp : Integer);
+Begin
+  Linespace     := Lp;    { Beallitas az uj ertekre }
+  FelsoIndexek  := Trunc((Lp*Linespacing)/100);
+  Alsoindexek   := Lp - Felsoindexek;
+  Inc(FelsoIndexek);      {  Kotelezo felso }
+End;
+
+
+Function Break:Boolean;
+Begin
+  Break := StopRun;
+  StopRun := False
+End;
+
+Procedure CheckFileName; {(Fn:St80)}
+Const Bfn : Array[1..8] Of String[4] =
+  ('','CON','LPT1','LPT2','COM1','COM2','PRN','AUX');
+Var Cik : Byte;
+Begin
+  UpperCase(Fn);
+
+  Cik := Pos('.',Fn);
+  If Cik > 0 Then Fn := Copy(Fn,1,Cik-1);
+
+  Cik := 1;
+  While (Cik <= 8) And (Fn <> Bfn[Cik]) Do Inc(Cik);
+  If Cik <= 8 Then
+  Begin
+    CurOff;
+    Error(22,Csak12(Fn));
+    CurOn;
+    Esc := True;
+  End;
+End;
+
+Var StopMacVolt : Boolean;
+
+
+
+{$IFDEF ORFK}
+
+Const
+Stix : ST160 = '';
+Ypox : Byte = 5;
+Nove : Boolean = True;
+Elo  : Boolean = True;
+
+Procedure Felirat;
+Begin
+
+  If Not Elo Then Set_String(Stix,Ypox,1);
+
+  Stix[0] := #160;
+
+  Elo := False;
+
+  If Nove Then
+  Begin
+    Inc(Ypox);
+    If Ypox = 18 Then Nove := Not(Nove);
+  End
+  Else
+  Begin
+    Dec(Ypox);
+    If Ypox = 5 Then Nove := Not(Nove);
+  End;
+
+  Get_String(Stix,Ypox,1);
+
+  Display(' Kiz†r¢lag a Magyar RendìrsÇg gÇpein haszn†lhat¢ ',Ypox,20);
+
+End;
+
+{$ENDIF}
+
+{$IFDEF FOLDHIV}
+
+Const
+Stix : ST160 = '';
+Ypox : Byte = 5;
+Nove : Boolean = True;
+Elo  : Boolean = True;
+
+Procedure Felirat;
+Begin
+
+  If Not Elo Then Set_String(Stix,Ypox,1);
+
+  Stix[0] := #160;
+
+  Elo := False;
+
+  If Nove Then
+  Begin
+    Inc(Ypox);
+    If Ypox = 18 Then Nove := Not(Nove);
+  End
+  Else
+  Begin
+    Dec(Ypox);
+    If Ypox = 5 Then Nove := Not(Nove);
+  End;
+
+  Get_String(Stix,Ypox,1);
+
+  Display(' Kiz†r¢lag a Fîldhivatalok gÇpein haszn†lhat¢ ',Ypox,18);
+
+End;
+
+{$ENDIF}
+
+{$IFDEF LICENC}
+
+Const
+Stix : ST160 = '';
+Ypox : Byte = 5;
+Nove : Boolean = True;
+Elo  : Boolean = True;
+
+Procedure Felirat;
+Begin
+
+  If Not Elo Then Set_String(Stix,Ypox,1);
+
+  Stix[0] := #160;
+
+  Elo := False;
+
+  If Nove Then
+  Begin
+    Inc(Ypox);
+    If Ypox = 18 Then Nove := Not(Nove);
+  End
+  Else
+  Begin
+    Dec(Ypox);
+    If Ypox = 5 Then Nove := Not(Nove);
+  End;
+
+  Get_String(Stix,Ypox,1);
+
+  Display(' Kiz†r¢lag a K&H Bank telephelyein haszn†lhat¢ ',Ypox,20);
+
+End;
+
+{$ENDIF}
+
+
+
+
+PROCEDURE PUFFi;               {   P U F F I   }
+
+Procedure StopMac;
+Begin
+  For Cik := 1 to MaxMac Do Macro[Cik] := False;
+  MacLevel  := 1;
+  PActMacNum := 1;
+  Maxkey := 0;
+  Recording := False;
+  EndOfMacro := True;  { Restore_Environment(CRTMode = 6); }
+  StopMacVolt := True;
+  X := 0;
+  Y := 255;
+End;
+
+Var
+
+TempX,TempY: Byte;
+TrueX,TrueY: Byte;
+Cmode    : Boolean;
+AXReg,Flag: Word;
+PP        : Byte;
+StartIdo,UjIdo : LongInt;
+
+Const
+
+OroszTomb    : Array[1..2] Of String[12] = ('1234567890.-','!@#$%^&*()72');
+
+Procedure ConvertKey; {WS}
+Var K : Char;
+
+Procedure ReadNextKey;
+Begin
+  {$IFNDEF CDVIEW}
+  Fresh_One(Elvalaszt,-2);
+  {$ENDIF}
+  FejTab(0);
+  Sys_Write(Positions[-1]+0,0,Word('^'),FontOffs,SortabOffs,0);
+  Sys_Write(Positions[-1]+1,0,Word(X+$40),FontOffs,SortabOffs,0);
+  PuffiRekurzio := True;
+  Puffi(X,Y);
+  PuffiRekurzio := False;
+  X := X Or $40; { Ctrl_A => 'A' }
+  K := Upcase(Char(X));
+  X := 00;
+  Fresh_One(Recording,-1);
+  FejTab(0);
+  Esc := False;
+End;
+
+Begin
+
+  Control := False;
+
+  If X In ControlChars Then
+  Case X Of
+
+  Ctrl_B: X := Ctrl_F;
+  Ctrl_Y: Begin X:= 0; Y:= Alt_L; End;
+  Ctrl_A: Begin X:= 0; Y:= Ctrl_BalraNyil; End;
+  Ctrl_L: Begin X:= 0; Y:= Alt_G; End;
+  Ctrl_F: Begin X:= 0; Y:= Ctrl_JobbraNyil; End;
+  Ctrl_S: Begin X:= 0; Y:= BalraNyil; End;
+  Ctrl_D: Begin X:= 0; Y:= JobbraNyil; End;
+  Ctrl_E: Begin X:= 0; Y:= FelNyil; End;
+  Ctrl_X: Begin X:= 0; Y:= LeNyil; End;
+  Ctrl_R: Begin X:= 0; Y:= PageUp; End;
+  Ctrl_C: Begin X:= 0; Y:= PageDown; End;
+  Ctrl_G: Begin X:= 0; Y:= Del; End;
+  Ctrl_V: Begin X:= 0; Y:= Ins; End;
+  End;
+
+  If X = Ctrl_K Then
+  Begin
+    ReadNextKey;
+    Case K Of
+    'S': Begin Control:= True; Y:= Alt_A; End;
+    'B': Y := Alt_M;
+    'K': Y := Alt_D;
+    'C': Y := Alt_P;
+    'V': Y := Alt_C;
+    'D': Y := Alt_Q;
+    'Q': X := Escape;
+    'Y': Y := Alt_Y;
+    Else Y := 00;
+    End;
+  End
+  Else
+  If X = Ctrl_Q Then
+  Begin
+    ReadNextKey;
+    Case K Of
+    'R' : Y := Ctrl_Home;
+    'C' : Y := Ctrl_End;
+    'F' : Y := Alt_S;
+    'A' : Y := Alt_R;
+      Else Y := 00;
+    End;
+  End
+  Else
+  If X = Ctrl_O Then
+  Begin
+    ReadNextKey;
+    Case K Of
+    'A' : X := Ctrl_A;
+    'Z' : X := Ctrl_Z;
+    'K' : X := Ctrl_K;
+    'D' : X := Ctrl_D;
+    'C' : X := Ctrl_C;
+    'L' : X := Ctrl_L;
+    'R' : X := Ctrl_R;
+    'S' : X := Ctrl_S;
+    'G' : X := Ctrl_G;
+    'V' : X := Ctrl_V;
+    Else Y := 00;
+    End;
+  End;
+End;
+
+{$IFDEF REGIKEYIN}
+
+{$I CWIDRIVE.OLD}
+
+{$ELSE}
+
+{$I CWIDRIVE.PAS}
+
+{$ENDIF}
+
+Procedure sou(X:Integer);
+Begin
+  sound(X);
+  Delay(100);
+  Nosound;
+End;
+
+Procedure Change_CYZ;
+
+Begin
+  CYZ := Not(CYZ);
+  sou(300);
+  If Cyz Then sou(600);
+End;
+
+Procedure DelMacro(Num : Integer);
+Var Item : Integer;
+Begin
+  If MacCount < MaxMac Then
+  Begin
+    If MacName[Num] = ActMacName Then ActMacName := '';
+    Item := MaxMac-MacCount;
+    Move(MacName[Num+1],MacName[Num],MacNameLen*Item);
+    Move(MacPos[Num+1],MacPos[Num],Item);
+    Move(ActMacPos[Num+1],ActMacPos[Num],Item);
+    Move(MacTomb[Num+1,1],MacTomb[Num,1],2*MacLen*Item);
+  End;
+  Dec(MacCount);
+End;
+
+Procedure Record_Next_Key(KbF : Byte);
+Var Tx,Ty : Byte;
+Begin
+  Inc(ActMacPos[RActMacNum]);
+  If ActMacPos[RActMacNum] > Maclen
+  Then
+  Begin
+    Error(5,'');   {'Defined macro too long'}
+    Recording := False;
+    Fresh_Def;
+  End
+  Else
+  Begin
+    Tx := X;
+    Ty := Y;
+    MacPos[RActMacNum] := ActMacPos[RActMacNum];
+    If ((KbF And CtrlKey) = CtrlKey) And (X = 00) Then X := 255;
+    UpKey(Ty,Tx);
+    MacTomb[RActMacNum,ActMacPos[RActMacNum]] := 256*Ty + Tx;
+    { WriteLn(LST,'Rec.  Scan = ',Y:3,'  ASC = ',X:3); }
+  End;
+End;
+
+Procedure CreateDate;
+Var Ev,Ho,Nap,HetNapja : Word;
+    NapSt : String[4];
+Begin
+
+  DatumRes := '';
+
+  If NemetE(FontNum[EditNum]) Then
+    GetDate(Ev,Nap,Ho,HetNapja)
+  Else
+    GetDate(Ev,Ho,Nap,HetNapja);
+
+  If MagyarE(FontNum[EditNum]) Then
+  Begin
+    Str(Ev,DatumRes);
+    Str(Nap,NapSt);
+    DatumRes := DatumRes + '. '+Honapok[Ho]+' '+NapSt+'.';
+  End
+  Else
+  Begin
+    If AngolE(FontNum[EditNum]) OR NemetE(FontNum[EditNum]) Then
+    Begin
+      {$IFDEF NORVEG}
+        Str(Nap,DatumRes);
+        Str(Ev,NapSt);
+        DatumRes := DatumRes + '. '+Honapok[Ho]+' '+NapSt+'.';
+      {$ELSE}
+        Str(Ho:2,DatumRes);
+        DatumRes[1] := Char(Byte(DatumRes[1]) OR $30);
+        DatumRes := DatumRes + '.';
+        Str(Nap:2,NapSt);
+        NapSt[1] := Char(Byte(NapSt[1]) OR $30);
+        DatumRes := DatumRes + NapSt + '.';
+        Str(Ev,NapSt);
+        DatumRes := DatumRes + NapSt;
+      {$ENDIF}
+    End
+    Else If OroszE(FontNum[EditNum]) Then
+    Begin
+      Str(Nap:2,DatumRes);
+      DatumRes[1] := Char(Byte(DatumRes[1]) OR $30);
+      DatumRes := DatumRes + '.';
+      Str(Ho:2,NapSt);
+      NapSt[1] := Char(Byte(NapSt[1]) OR $30);
+      DatumRes := DatumRes + NapSt + '.';
+      Str(Ev,NapSt);
+      DatumRes := DatumRes + NapSt + 'u.'; {orosz g.}
+    End;
+  End;
+  DRpoz := Length(DatumRes);
+End;
+
+
+{$IFNDEF CDVIEW}
+
+Procedure GetNextKey;
+Begin
+
+  {$IFDEF OHEBER}
+  If HeberJelzes Then
+  Begin
+    If GorogJelzes Then
+    Begin
+      If HeberNum < 11 Then
+      Begin
+        X := Byte(GorogASC[HeberNum][GorogLength[GorogNum]-HeberPoz+1]);
+        Y := Byte(GorogScan[GorogLength[GorogNum]-HeberPoz+1]);
+      End
+      Else
+      Begin
+        X := Byte(GorogASC[HeberNum][GorogLength[GorogNum]-HeberPoz+1]);
+        Y := Byte(GorogScan2[GorogLength[GorogNum]-HeberPoz+1]);
+      End;
+    End
+    Else
+    Begin
+      If HeberNum < 11 Then
+      Begin
+        X := Byte(HeberASC[HeberNum][HeberLength[HeberNum]-HeberPoz+1]);
+        Y := Byte(HeberScan[HeberLength[HeberNum]-HeberPoz+1]);
+      End
+      Else
+      Begin
+        X := Byte(HeberASC11[HeberNum][HeberLength[HeberNum]-HeberPoz+1]);
+        Y := Byte(HeberScan11[HeberNum][HeberLength[HeberNum]-HeberPoz+1]);
+      End;
+    End;
+  End
+  Else
+  {$ENDIF OHEBER}
+  If SzotarJelzes Then
+  Begin
+    FontNum[EditNum] := Byte(SzoAtt[Length(SzotarResult)-SzotarPoz+1]);
+    X := Byte(SzotarResult[Length(SzotarResult)-SzotarPoz+1]);
+    Y := Space {X-$30+1};
+  End
+  Else
+  If DatumJelzes Then
+  Begin
+    X := Byte(DatumRes[Length(DatumRes)-DRPoz+1]);
+    Y := Space {X-$30+1};
+  End
+  Else  { Calc }
+  Begin
+    If CalcAzaz Then
+    Begin
+      X := Byte(CalcAzazResult[Length(CalcAzazResult)-CRPoz+1]);
+      Y := Space;
+    End
+    Else
+    Begin
+      X := Byte(CalcResult[Length(CalcResult)-CRPoz+1]);
+      Y := X-$30+1;
+    End;
+  End;
+
+  If NemetE(FontNum[EditNum]) Then
+  Begin
+    If X = Byte('-') Then X := Byte('/');
+  End;
+
+  If NOT SzotarJelzes Then
+  Begin
+    If (CalcJelzes) AND (NOT CalcAzaz) AND (MagyarE(FontNum[EditNum])) Then
+    Begin
+      If X = Byte('0') Then X := Byte('!') Else
+      If X = Byte('-') Then X := Byte('/');
+    End
+    Else
+    If OroszE(FontNum[EditNum]) Then
+    Begin
+      PP := Pos(Char(X),OroszTomb[1]);
+      If PP > 0 Then X := Byte(OroszTomb[2][PP]);
+    End;
+  End;
+
+  {$IFDEF OHEBER}
+  If HeberJelzes Then
+  Begin
+    Dec(HeberPoz);
+    If HeberPoz = 0 Then
+    Begin
+      Calcjelzes  := False;
+      HeberJelzes:= False;
+      GorogJelzes:= False;
+      MostLettHeberVege:= True;
+      Inser := HeberINS;
+    End;
+  End
+  Else
+  {$ENDIF OHEBER}
+  If SzotarJelzes Then
+  Begin
+    Dec(SzotarPoz);
+    If SzotarPoz = 0 Then
+    Begin
+      Calcjelzes  := False;
+      SzotarJelzes:= False;
+      MostLettSzotarVege:= True;
+    End;
+  End
+  Else
+  If DatumJelzes Then
+  Begin
+    Dec(DRPoz);
+    If DRPoz = 0 Then
+    Begin
+      Calcjelzes := False;
+      Datumjelzes:= False;
+      MostLettVege := True;
+    End;
+  End
+  Else
+  Begin
+    Dec(CRPoz);
+    If CRPoz = 0 Then
+    Begin
+      Calcjelzes := False;
+      CRPoz := Length(CalcResult);
+      CalcAzaz := False;
+      MostLettVege := True;
+    End;
+  End;
+End;
+
+Procedure SetCalcDatumJelzes;
+Begin
+  If (Kbfb AND CtrlKey = 0) AND (X = 0) Then
+  Begin
+    If (Y In [Alt_U,Alt_W]) AND (CRPoz > 0) Then
+    Begin
+      CalcJelzes := True;
+      If (Y = Alt_W) And
+      {$IFDEF NORVEG}
+      (StandardE(FontNum[EditNum]))
+      {$ELSE}
+        {$IFDEF ANGOL}
+        (StandardE(FontNum[EditNum]))
+        {$ELSE}
+        (MagyarE(FontNum[EditNum]))
+        {$ENDIF}
+      {$ENDIF}
+      Then
+      Begin
+        CalcAzaz := True;
+        CRPoz := Length(CalcAzazResult);
+      End
+      Else CRPoz := Length(CalcResult);
+    End
+    Else
+    If Y = Alt_Z Then
+    Begin
+      CreateDate;
+      If DRPoz > 0 Then
+      Begin
+        CalcJelzes := True;
+        DatumJelzes := True;
+      End;
+    End
+    Else
+    If Y = Alt_E Then
+    Begin
+      SzotarPoz := Length(SzotarResult);
+      If SzotarPoz > 0 Then
+      Begin
+        CalcJelzes := True;
+        SzotarJelzes := True;
+        FontMentes := FontNum[EditNum];
+      End
+    End;
+  End;
+
+    {$IFDEF OHEBER}
+
+    If (Y In [Alt_F1..Alt_F10,Alt_F11..Alt_F12]) AND
+       (Kbfb AND CtrlKey = CtrlKey) Then
+    Begin
+      (*
+      If (Y = Alt_F1) AND (Kbfb AND 3 <> 0) {Shift} Then
+        HeberNum := 12
+      Else
+      *)
+      If Y In [Alt_F11..Alt_F12] Then
+        HeberNum := Y-Alt_F11+10
+      Else
+        HeberNum := Y-Alt_F1;
+
+      GorogJelzes := False;
+
+      If GorogE(FontNum[EditNum]) Then
+      Begin
+        If Kbfb AND 3 <> 0 {Shift} Then Inc(HeberNum,11);
+        If (HeberNum > MaxGorogNum) OR (Y = Alt_F12) Then
+          HeberPoz := 0
+        Else
+        Begin
+          GorogJelzes := True;
+          GorogNum := HeberNum;
+          HeberPoz := GorogLength[GorogNum];
+        End;
+      End;
+
+      If HeberE(FontNum[EditNum]) Then
+      Begin
+        HeberPoz := HeberLength[HeberNum];
+      End;
+
+      If HeberPoz > 0 Then
+      Begin
+        CalcJelzes := True;
+        HeberJelzes := True;
+        HeberINS := Inser;
+        If (NOT GorogJelzes) OR (HeberNum < 11) Then Inser := False;
+      End;
+    End;
+    {$ENDIF OHEBER}
+
+End;
+
+{$ENDIF CDVIEW}
+
+Procedure CheckMouse;
+Var Sx,Sy : Integer;
+    SWindmin,SWindMax : Word;
+    Graphic : Boolean;
+Begin
+
+  If NOT InChooseban Then
+  Begin
+
+    Graphic := (CRTMODE = 6);
+
+    If NOT Graphic Then
+    Begin
+      If LeftButtonPressed Then
+      Begin
+
+        ClickOnCurrentWindow:= (MouseXpos In [Lo(ActWindMin)..Lo(ActWindMax)]) AND
+                               (MouseYpos In [Hi(ActWindMin)..Hi(ActWindMax)]);
+
+        ClickOnInfoWindow:=    (MouseXpos In [1..78]) AND (MouseYpos In [21..23]);
+
+        ClickOnCloseBox     := (MouseXPos = EscPoint.X) AND
+                               (MouseYPos = EscPoint.Y);
+
+
+        If ClickOnCurrentWindow Then
+        Begin
+          ClickXpos := MouseXpos - Lo(ActWindMin);
+          ClickYPos := MouseYpos - Hi(ActWindMin);
+          X := 0;
+          Y := 0;
+        End
+        Else
+        If ClickOnInfoWindow Then
+        Begin
+          X := 0;
+          If MouseYPos = 22 Then
+          Begin
+            Case MouseXPos Of
+              11..24: Y := $5E;
+              32..45: Y := $5F;
+              53..66: Y := $60;
+              Else    Y := 0;
+            End
+          End
+          Else Y := 0;
+        End
+        Else
+        If ClickOnCloseBox Then
+        Begin
+          If Window_Number <= 4 Then
+          Begin
+            X := Byte('v'); Y := $2F;
+          End
+          Else
+          Begin
+            X := Escape; Y := 01;
+          End;
+        End
+        Else
+        Begin
+          X := 0; Y := 0;
+        End;
+  {
+          SWindMin := WindMin;
+          SWindMax := WindMax;
+          Window(1,1,80,25);
+          Sx := WhereX;
+          Sy := Wherey;
+          GotoXY(3,25);
+          Write(MouseYPos:3,':',MouseXPos:3);
+          GotoXY(16,25);
+          Write(EscPoint.Y:3,':',EscPoint.X:3,' Window: ',Window_Number:3,'     ');
+          Write(Lo(ActWindMin):3,Hi(ActWindMin):3,' - ',Lo(ActWindMax):3,Hi(ActWindMax):3);
+          Write(ClickXpos:3,',',ClickYpos:3);
+          Window(Lo(SWindMin),Hi(SWindMin),Lo(SWindMax),Hi(SWindMax));
+  }
+        Mouse_Bill := False;
+
+      End;
+    End
+    Else  {If Graphic}
+    Begin
+
+      If LeftButtonPressed Then
+      Begin
+        If BlockMode Then Ctrl_Alt_Help(Blokk_Mode)
+        Else
+        Begin
+          If RightButtonPressed Then
+            Ctrl_Alt_Help(Ctrl_AltMode)
+          Else
+            Ctrl_Alt_Help(CtrlMode);
+        End;
+      End
+      Else
+      If RightButtonPressed Then
+      Begin
+        If BlockMode Then Ctrl_Alt_Help(Blokk_Mode)
+        Else
+        Begin
+          If CenterButtonPressed Then
+            Ctrl_Alt_Help(Ctrl_ShiftMode)
+          Else
+            Ctrl_Alt_Help(AltMode);
+        End;
+      End
+      Else
+      If CenterButtonPressed Then
+         Ctrl_Alt_Help(Ctrl_AltMode);
+
+    End; { If Graphic }
+
+  End;  { If NOT InChooseban }
+
+End;
+
+
+Begin  (*** Puffi ***)
+
+  Volt_Bill := False;
+
+  Graphic := (CRTmode = 6);
+
+  If MostLettSzotarVege Then
+  Begin
+    FontNum[EditNum] := FontMentes;
+    MostLettSzotarVege := False;
+  End;
+
+  {$IFDEF OHEBER}
+  If MostLettHeberVege Then MostLettHeberVege := False;
+  {$ENDIF}
+
+  If EndOfMacro Then
+  Begin
+    Restore_Environment(Graphic);
+    If StopMacVolt AND FrameMode Then
+    Begin
+      Inser := Temp_Ins;
+      Sync  := Temp_Sync;
+      Just  := Temp_Just;
+      FontNum[EditNum] := Temp_Font;
+      Mozgott   := True;
+      FrameMode := False;
+    End;
+    EndOfMacro := False;
+  End;
+
+  If Not Macro[PActMacNum] Then
+  Begin
+    Cmode := True;
+    If Graphic And (Not(NemKellCursor)) Then
+      Begin
+        MouseCursor(FALSE);
+        Inv_Kar(Xpos,Ypos+2,Byte(NOT(Sync)),0,SortabOffs,0);
+        MouseCursor(TRUE);
+        {$IFNDEF PACKARD}
+        {$IFNDEF CDVIEW}
+        Inc(ElSzar,(Kivevo[1,1] Xor $AB)-(Kivevo2[1,1] XOR $CB)+
+           (Kivevo[2,2] Xor $15)-(Kivevo2[2,2] XOR $ED));
+        {$ENDIF}
+        {$ENDIF}
+      End;
+    inline ($FB); {sti}
+    GetTime(Ora,Perc,Mp,Szdmp);
+    StartIdo := Longint(Ora)*60*60+Perc*60+Mp;
+
+    If NOT KulsoHelpJelzes Then
+    Begin
+      Repeat
+        {$IFDEF BEMUTAT}
+        ErvenyesIdoszak := ErvenyesIdoszak2 And ErvenyesIdoszak3;
+        {$ENDIF}
+
+        {$IFNDEF NAGYSOLYMOSI}
+        GetTime(Ora,Perc,Mp,Szdmp);
+        UjIdo := Longint(Ora)*60*60+Perc*60+Mp;
+        If ((UjIdo < StartIdo) Or
+            (UjIdo-StartIdo >= SaveScMp)) AND
+            (SaveScMp <> 60000) Then
+          Begin
+
+            If SpCheck > (5000+Byte(VanJelszo)*8000) Then
+            Begin
+              If Not(InScrSave) Then
+                ScreenSave(Graphic)
+              Else
+                TimeOutJ := True;
+            End;
+            GetTime(Ora,Perc,Mp,Szdmp);
+            StartIdo := Longint(Ora)*60*60+Perc*60+Mp;
+          End;
+        {$ENDIF}
+
+        Van_Bill := False;
+        GKbf := 00;
+        HelpJelzes := False;
+        { SzotarJelzes := VoltJel; }
+
+        {$IFDEF PACKARD}
+        If NOT(JoCmos) AND ((IdoAlap - LastCmosido) >= 5*18) Then
+        Begin
+          If Not Previewban Then
+            Error(20,
+            'A rendszerkîrnyezet megv†ltozott, kÇrjÅk Çrtes°tse a SZINVA-NET Kft-t !');
+          LastCmosIdo := IdoAlap;
+        End;
+        {$ENDIF}
+
+        {$IFNDEF CDVIEW}
+        If (Not SzotarJelzes) AND (Not CalcJelzes) Then
+        {$ENDIF CDVIEW}
+
+          Van_Bill := Mem[$40:$1A] <> Mem[$40:$1C];
+
+        If Graphic Then
+          Begin
+	    If Not(Van_Bill {$IFNDEF CDVIEW} Or
+                   Mouse_Bill   Or
+		   SzotarJelzes Or
+		   CalcJelzes   Or
+		   HelpJelzes {$ENDIF CDVIEW} )
+	      Then { Ha nem volt leutes }
+              Begin
+                If Recording And ((IdoAlap -LastDefIdo) >= 6) Then
+                  Begin
+                    LastDefIdo := IdoAlap;
+                    SaveXY;
+                    Iz := (Iz And 1) Xor 1;
+                    Gotox(12,-2);
+                    SystemWriting := True;
+                    If Iz = 0 Then
+                    Begin
+                      {$IFNDEF CDVIEW}
+                      If Elvalaszt Then Tom[0] := Texts[-2] Else
+                      {$ENDIF}
+                      Tom[0] := '   ';
+                    End;
+                    Writ(Tom[Iz]);
+                    SystemWriting := False;
+                    RestoreXY;
+                  End;
+
+                  If (Kbflag AND (CtrlKey+AltKey) > 0) Then
+                  Begin
+                    If (IdoAlap-LastKeyIdo) >= 40 Then
+                    Begin
+                      If Not PuffiRekurzio Then
+                      Begin
+                        Kbfb := (Kbflag AND 15);
+                        {$IFNDEF CDVIEW}
+                        If BlockMode Then
+                        Begin
+                          Ctrl_Alt_Help(Blokk_Mode);
+                          KulsoHelpJelzes := False;
+                        End
+                        Else
+                        Case Kbfb Of
+                           CtrlKey         : Ctrl_Alt_Help(CtrlMode);
+                           AltKey          : Ctrl_Alt_Help(AltMode);
+                           CtrlKey+AltKey  : Ctrl_Alt_Help(Ctrl_AltMode);
+                           CtrlKey+1       : Ctrl_Alt_Help(Ctrl_ShiftMode);
+                           CtrlKey+2       : Ctrl_Alt_Help(Ctrl_ShiftMode);
+		        End; {Case}
+                        {$ENDIF}
+		        If NOT HelpJelzes Then Van_Bill := False;
+                        Asm
+                          Sti
+                        End;
+                      End;
+                      LastKeyIdo := IdoAlap;
+                    End;
+                  End
+                  Else
+                    LastKeyIdo := IdoAlap;
+
+                If (IdoAlap-LastIdoAlap) >= 4 Then
+                  Begin
+                    LastIdoAlap := IdoAlap;
+                    Cmode   := Not Cmode;
+                    If Not NemKellCursor Then
+                    Begin
+                      MouseCursor(FALSE);
+                      Inv_Kar(Xpos,Ypos+2,Byte(NOT(Sync)),0,SortabOffs,0);
+                      MouseCursor(TRUE);
+                    End;
+                    GetTime(Ora,Perc,Mp,Szdmp);
+                    Ido := 60 * Ora + Perc;
+
+                    {$IFNDEF CDVIEW}
+
+                    If NOT(PuffiRekurzio) AND ((Ido - Lastido) >= BackupTime) Then
+                      Begin
+                        If (Not Previewban) AND (Not Lektorban) Then
+                          Begin
+                            {$IFDEF SZAMVEVO} Sound(200); {$ENDIF}
+                            Temp_Backup(Backupmode);
+                            {$IFDEF SZAMVEVO} NoSound; {$ENDIF}
+                            NemKellCursor := False;
+                          End;
+                        GetTime(Ora,Perc,Mp,Szdmp);
+                        LastIdo := 60 * Ora + Perc;
+                      End
+
+                    {$ENDIF}
+
+                  End
+              End; {If Not Keypressed}
+          End;  {If Graphic}
+
+          {$IFNDEF NEMFIGYEL}
+          {$IFDEF HALO}
+
+          GetMessage;
+
+          If (Message <> '')  AND
+             (SpCheck > 5100) AND
+             ((NOT Previewban) OR (NOT ExtendedGr)) AND
+             (Not InMsg) Then WriteMessage;
+
+          {$ENDIF}
+          {$ENDIF}
+
+      Until Van_Bill Or Mouse_Bill Or TimeOutJ
+      {$IFNDEF CDVIEW} Or SzotarJelzes Or CalcJelzes Or HelpJelzes
+      {$ENDIF CDVIEW};
+    End
+    Else { KulsoHelpJelzes }
+    Begin
+      HelpJelzes := True;
+      KulsoHelpJelzes := False;
+    End;
+
+    If GepTipus = IBMAT Then Inline($FA); {CLI}
+
+     If Graphic And Cmode And Not(NemKellCursor) Then
+     Begin
+       MouseCursor(FALSE);
+       inv_kar(Xpos,Ypos+2,Byte(NOT(Sync)),0,SortabOffs,0);
+       MouseCursor(TRUE);
+     End;
+
+     MostLettVege := False;
+
+     {$IFNDEF CDVIEW}
+     If CalcJelzes Or SzotarJelzes
+     {$IFDEF OHEBER}
+     Or HeberJelzes
+     {$ENDIF}
+     Then GetNextKey
+     Else
+     {$ENDIF CDVIEW}
+     Begin
+       {$IFNDEF CDVIEW}
+
+       If Mouse_Bill Then CheckMouse;
+
+       If HelpJelzes Then
+       Begin
+         X := HX;
+         Y := HY;
+         Kbf := Kbfh;
+         GKbf := Kbfh;
+       End
+       Else
+       If SzotarJelzes Then
+         Begin
+           X := 253;
+           Y := 200;
+         End
+       Else
+       {$ENDIF CDVIEW}
+	 If Van_Bill Then
+	   Begin
+             {$IFDEF BEMUTAT}
+             DatumCheck;
+             {$ENDIF}
+
+             KeyPr := KeyPress[Byte(GepTipus)];
+
+             Asm
+	       MOV   AX,KeyPr
+	       INT   $16
+               PUSHF
+               POP   AX
+	       MOV   Flag,AX
+             End;
+
+	     If (Flag AND $0040) = 0 Then { Zero flag = 0 - Keypressed}
+	     Begin
+
+	       MostLettVege := False;
+	       LastKeyIdo := IdoAlap;
+
+               KeyR := KeyRead[Byte(GepTipus)];
+
+               Asm
+	         MOV   AX,KeyR
+	         INT   $16
+		 MOV   AxReg,AX
+               End;
+
+               If MAGYARKEY Then
+               Begin
+                 If AxReg = $2915 Then AxReg := $8080; {paragrafus jel}
+               End;
+
+               If (Graphic) AND
+                  (MagyarE(FontNum[EditNum])) AND
+                  ((NemInputString) OR (GlobalFont+MezoFont > 0)) AND
+                  (NOT CalcRek) Then
+
+               If (NOT VIDEOTONKEY) AND (NOT MAGYARKEY) Then
+               Case AxReg Of
+                 $E02F: AxReg := AxReg AND $FF00 OR Byte('^');   { SzÅrke / }
+               { $372A: Lo(AxReg) := Byte('');    { SzÅrke * }
+                 $4A2D: AxReg := AxReg AND $FF00 OR Byte('/');   { SzÅrke - }
+                 $4E2B: AxReg := AxReg AND $FF00 OR Byte('#');   { SzÅrke + }
+               End;
+
+{$IFDEF NORVEG}
+               If (Graphic) AND
+                  ( (NemetE(FontNum[EditNum])) OR (OroszE(FontNum[EditNum])) ) AND
+                  ((NemInputString) OR (GlobalFont+MezoFont > 0)) AND
+                  (NOT CalcRek) Then
+               Case Char(Lo(AxReg)) Of
+
+                 'Ü' :  AxReg := AxReg AND $FF00 OR Byte('\');
+                 'è' :  AxReg := AxReg AND $FF00 OR Byte('`');
+                 'õ' :  AxReg := AxReg AND $FF00 OR Byte('<');
+                 'ù' :  AxReg := AxReg AND $FF00 OR Byte('>');
+                 'ë' :  AxReg := AxReg AND $FF00 OR Byte('''');
+                 'í' :  AxReg := AxReg AND $FF00 OR Byte('*');
+
+               End;
+{$ENDIF}
+	       x   := Lo(AxReg);
+	       y   := Hi(AxReg);
+
+               If (Y <> 00) AND (X = $E0) Then X := 00;
+
+               {$IFDEF JELSZAVAS}
+
+                 Inc(JelSzoCount);
+
+                 If ElSzaro > 0 Then Inc(ElSzaro);
+
+                 If JelSzoCount <= 5
+                 Then
+                 Begin
+                   JelSzoStr := JelSzoStr + UpCase(Char(X+1));
+                 End
+                 Else
+                 If JelSzoCount = 6
+                 Then
+                 Begin
+                   If JelSzoStr <> 'LVUZB' Then {KUTYA}
+                     ElSzaro := 1
+                   Else
+                     Display('OK',23,3);
+                 End;
+               {$ENDIF}
+
+	       {$IFDEF LICENC}
+	       If (X = 0)        AND
+		  (Y = SHIFT_F8) AND
+		  ((KbFlag AND 3) = 1) Then Felirat;
+	       {$ENDIF}
+
+	       {$IFDEF ORFK}
+
+	       If (X = 0)        AND
+		  (Y = SHIFT_F8) AND
+		  ((KbFlag AND 3) = 1) Then Felirat;
+
+	       {$ENDIF}
+
+               {$IFDEF FOLDHIV}
+
+               If (X = 0)        AND
+                  (Y = SHIFT_F8) AND
+                  ((KbFlag AND 3) = 1) Then Felirat;
+
+               {$ENDIF}
+
+               {$IFDEF VT160}
+
+               If NOT Graphic Then
+               Begin
+                 If X > 127 Then X := 252
+               End
+               Else If FontNum[EditNum] In [2..5] Then
+               Begin
+                 If Char(x) IN VtSet Then
+                   X := 252
+                 Else
+                 Begin
+
+                   VTkilep := False;
+                   I := 1;
+
+                   While (I <= VTmax) AND (NOT VTKilep) Do
+                   Begin
+                     If (Y = VTt[i,1]) and (X = VTt[i,2]) then
+                     Begin
+                       Y := VTt[i,3];
+                       X := VTt[i,4];
+                       VTkilep := True;
+                     End;
+                     Inc(I);
+                   End;
+
+                 End;
+
+               End;
+
+	       {$ENDIF}
+
+               Kbf := KbFlag;
+               Kbfb:= Kbf;
+
+	       {$IFDEF VT160} KbFlag := KbFlag AND $F3; {$ENDIF}
+
+	       Volt_Bill := True;
+	     End
+	     Else { If Van_Bill AND NOT KeyPressed ! }
+	     Begin
+	       X := 0;
+	       Y := 0;
+
+	       Beepel(1000);
+
+	     End;
+
+	   End
+
+     End;
+
+     Change_YZ(X,Y);
+
+     {$IFNDEF CDVIEW}
+
+     If Graphic Then
+     Begin
+
+       {$IFDEF NORVEG}
+
+       TrueX := 0;
+       TrueY := 0;
+
+       If X >= 128 Then
+       Begin
+         TrueX := X;
+         TrueY := Y;
+       End;
+       {$ENDIF}
+
+       If NemInputString AND
+         ((KellConvert) AND
+          {$IFNDEF NORVEG}
+          (NOT DatumJelzes) AND
+          (NOT CalcJelzes) AND
+          (NOT SzotarJelzes) AND
+          {$ENDIF}
+          (NOT MostLettVege) AND
+          {$IFDEF OHEBER}
+          (NOT MostLettHeberVege) AND
+          {$ENDIF}
+          (NOT MostLettSzotarVege) AND
+          (NOT TimeOutJ))
+       Then
+         KeyConv(X,Y);    { egyedi bill.kiosztas}
+
+       SetCalcDatumJelzes;
+
+     End;
+
+     {$ENDIF CDVIEW}
+
+     If (X = 32) Then
+       If (Not DatumJelzes) AND
+          (Not CalcJelzes)  AND
+          (Not SzotarJelzes)  AND
+          ((Kbf And AltKey) = Altkey) Then
+         X := 254  {Alt-Space}
+       Else
+         If (Kbf And CtrlKey) = Ctrlkey Then
+           X := 00 {Ctrl-Space}
+         Else
+           If AlahuzottE(FontNum[EditNum]) Then
+             If MagyarE(FontNum[EditNum]) Then
+               X := Byte('%')
+             Else
+               If OroszE(FontNum[EditNum]) Then
+                 X := Byte('+')
+               Else
+                 X := Byte('_');
+     {$IFNDEF CDVIEW}
+
+     If (Not PuffiRekurzio) And (Not CtdTiltas) And (NOT InKeyHelp) Then
+     Begin
+       If WsMode And Graphic Then ConvertKey;
+
+       {$IFNDEF CDVIEW}
+
+       If X = Ctrl_D Then
+                     Begin
+                       Recording := Not(Recording);
+
+                       If Recording Then
+                         Record_Macro(Boolean((KbF And 3) > 0)) {KeyMode}
+                       Else
+                        Begin
+                          Fresh_Def;
+                          If ActMacPos[RActMacNum] = 0 Then
+                          DelMacro(RActMacNum);
+                        End;
+                     End
+                     Else If Recording Then
+                     Begin
+                       If NOT(CalcJelzes) AND NOT(SzotarJelzes) Then
+                       Begin
+                        {$IFDEF NORVEG}
+                        TempX := X;
+                        TempY := Y;
+                        If Graphic AND (TrueX+TrueY > 0) Then
+                        Begin
+                          X := TrueX;
+                          Y := TrueY;
+                        End;
+                        {$ENDIF}
+
+                        If NOT(MostLettVege) AND
+                           NOT(MostLettSzotarVege)
+                        {$IFDEF OHEBER}
+                        AND NOT(MostLettHeberVege)
+                        {$ENDIF OHEBER}
+                           Then Record_Next_Key(Kbf);
+                        {$IFDEF NORVEG}
+                        X := TempX;
+                        Y := TempY;
+                        {$ENDIF}
+                       End
+                       Else
+                       Begin
+                         TempX := X;
+                         TempY := Y;
+                         X := 0;
+                         {$IFDEF OHEBER}
+                         If HeberJelzes Then
+                         Begin
+                           If HeberNum < 10 Then
+                             Y := HeberNum + Alt_F1
+                           Else
+                             Y := HeberNum - 10 + Alt_F11;
+
+                           If GorogJelzes Then
+                           Begin
+                             If HeberPoz = GorogLength[HeberNum] Then
+                               Record_Next_Key(CtrlKey);
+                           End
+                           Else
+                           Begin
+                             If HeberPoz = HeberLength[HeberNum] Then
+                               Record_Next_Key(CtrlKey);
+                           End;
+                         End
+                         Else
+                         {$ENDIF OHEBER}
+                         If DatumJelzes Then
+                         Begin
+                           Y := Alt_Z;
+                           If DRPoz = Length(DatumRes) Then
+                             Record_Next_Key(AltKey);
+                         End
+                         Else
+                         If SzotarJelzes Then
+                         Begin
+                           Y := Alt_E;
+                           If SzotarPoz = Length(SzotarResult) Then
+                             Record_Next_Key(AltKey);
+                         End
+                         Else
+                         Begin
+                           If NOT CalcAzaz Then
+                           Begin
+                             Y := Alt_U;
+                             If CRPoz = Length(CalcResult) Then
+                               Record_Next_Key(AltKey);
+                            End
+                            Else
+                            Begin
+                              Y := Alt_W;
+                              If CRPoz = Length(CalcAzazResult) Then
+                                Record_Next_Key(AltKey);
+                            End;
+                         End;
+                         X := TempX;
+                         Y := TempY;
+                       End;
+                     End;
+         {$ENDIF CDVIEW}
+     End;
+
+     {$ENDIF CDVIEW}
+
+   End  {If NOT Macro[PActMacNum]}
+    Else   { Ha mukodik a macro }
+    Begin
+
+     {$IFNDEF CDVIEW}
+
+     Inline ($FB); {sti}
+
+     StopMacVolt := False;
+
+     If Break Then StopMac
+     Else
+       Begin
+
+         If CalcJelzes OR SzotarJelzes Then GetNextKey
+
+         Else
+         Begin
+           X := Lo(MacTomb[PActMacNum,ActMacPos[PActMacNum]]);
+           Y := Hi(MacTomb[PActMacNum,ActMacPos[PActMacNum]]);
+           KBfb := 00;
+
+           Case X Of
+
+              1..31 : KBfb := CtrlKey;  { Ctrl     }
+                255 : Begin             { Ctrl-Alt }
+                        X   := 00;
+                        KBfb:= CtrlKey;
+                      End;
+           End; { Case }
+
+           { WriteLn(LST,'Play. Scan = ',Y:3,'  ASC = ',X:3); }
+
+
+           Inc(ActMacPos[PActMacNum]);
+           Inc(MaxKey);
+
+         End;
+
+         If Graphic Then SetCalcDatumJelzes;
+
+         {$IFDEF NORVEG}
+         If Graphic Then KeyConv(X,Y);
+         {$ENDIF}
+
+         StopMacVolt := False;
+
+         If MaxKey = Max_Key Then
+         Begin
+           StopMac;
+           Mozgott := True;
+         End
+         Else
+
+           If ActMacPos[PActMacNum] > Macpos[PActMacNum] Then
+             Begin
+               Macro[PActMacNum] := False;
+               If MacLevel > 1 Then
+                 Begin
+                   Dec(MacLevel);
+                   PActMacNum := Macnum[MacLevel];
+                   Set_Macro_Environment(False,Graphic);
+                 End
+               Else EndOfMacro := True;
+
+             End;
+       End;
+
+       If (Not Mouse) and
+           (CrtMode  = 6) and
+           (GepTipus = IBMAT) then
+         Inline($FA);                 {CLI}
+
+     End;
+
+     {$IFNDEF CDVIEW}
+
+     If (X = Ctrl_K) And (Not PuffiRekurzio) And (Not Ctk) Then
+     Begin
+       Ctk := True;
+       Gxy := 256*Y + X;
+       Replay_Macro;
+       X := Lo(Gxy);
+       Y := Hi(Gxy);
+       Ctk := False;
+     End;
+
+     {$ENDIF CDVIEW}
+
+   ESC := X = Escape;
+
+
+   If MacCount > 0 Then
+   Begin
+     Cik := 1;
+     Gxy := 0;
+
+     If ((KBfb And CtrlKey) = CtrlKey) And (X = 255) Then X := 0;
+
+     Repeat
+       If Byte(MacName[Cik][0]) >= $80 Then
+         If ( (X > 0) OR
+              (Byte(MacName[Cik][0]) And CtrlKey = (Kbfb And CtrlKey))
+            ) AND
+            (Byte(MacName[Cik][1]) = Byte(UpCase(Char(X)))) And
+            (Byte(MacName[Cik][2]) = Y) Then
+            Begin
+
+              Replay_KeyMacro(Cik);
+              Dec(MaxKey);
+              X := 252;
+              Y := 255;
+            End;
+       Inc(Cik);
+     Until ((X = 252) And (Y = 255)) Or (Cik > MacCount);
+
+     {$ENDIF CDVIEW}
+
+   End;
+
+   {
+   If (X = 0) AND (Y = ALT_F10) Then
+   Begin
+     Write(SpCheck);
+     If ReadKey = ' ' Then;
+   End;
+   }
+
+   {$IFNDEF CDVIEW}
+   If FreeHot AND (X = 0) Then
+   Case Y Of
+
+     ALT_F10 : If (Kbfb AND CtrlKey) = 0 Then Change_CYZ;
+
+     Alt_F9  : If (Kbfb AND CtrlKey) = 0 Then
+                 If Not(MostExtVan) And Not(CalcRek) Then Calc;
+
+     {$IFDEF SECRET}
+     Ctrl_F10 : If Not InJelszo Then
+                Begin
+                  InputJelszo(Graphic,True,GGFN);
+                  If NOT ESC Then UjraProbal := True;
+                End;
+     {$ENDIF}
+
+
+     { Alt_F8  :
+               Begin
+                 KellConvert := NOT KellConvert;
+                 Sou(300);
+                 If KellConvert Then Sou(600);
+               End; }
+
+     {$IFDEF LICENC}
+     Alt_X : SetEmblemaHely;
+     {$ENDIF}
+
+     {$IFDEF NORVEG}
+     Alt_X   : If (X = 0)
+               AND NOT(InChooseban)
+               AND Not(MostExtVan) Then Choose_Language;
+     {$ENDIF}
+
+     
+     End; { Case }
+   {$ENDIF}
+
+
+   If (Not Graphic) AND FreeHot AND (X = 0) Then {HotKeys}
+     Case Y Of
+
+        {$IFNDEF CDVIEW}
+        F1: If NemInputString Then
+            Begin
+              If (Not InHelp) Then Main_Help(Glob_Pos);
+            End
+            Else
+            If (GlobalStringMode <> SemmiSem) Then
+            Begin
+              GlobalKeyMode := StandardMode;
+              Fresh_KeyMode;
+            End;
+
+        F2: If (NOT NemInputString) AND (GlobalStringMode <> SemmiSem) Then
+            Begin
+              GlobalKeyMode := MagyarMode;
+              Fresh_KeyMode;
+            End;
+
+
+        {$ENDIF}
+
+        Ctrl_F1..Ctrl_F3: Begin
+                            GeditNum := Y-Ctrl_F1+1;
+                            {$IFNDEF CDVIEW} Fresh_Info; {$ENDIF}
+                          End;
+
+        {$IFNDEF CDVIEW}
+        Ctrl_F5: If Not InVars Then If CimFile <> ''
+          Then View_Vars
+          Else Beepel(440);
+
+        Ctrl_F6: If Not InCond Then If CimFile <> ''
+          Then Input_Conditions(True)
+          Else Beepel(440);
+
+       {$IFNDEF OROSZ}
+       {$IFNDEF NORVEG}
+       {$IFNDEF ANGOL}
+        Ctrl_F7 : If NOT InPass Then New_Password;
+       {$ENDIF}
+       {$ENDIF}
+       {$ENDIF}
+
+        {$ENDIF CDVIEW}
+     End; {Case}
+
+End; {Puffi}
+
+
+Procedure NyelvReturn; {(Flags,CS,IP,AX,BX,CX,DX,SI,DI,DS,ES,BP: Word);
+                        Interrupt;}
+Var UjSzo     : String;
+    Flag      : Word;
+    ALR       : Byte;
+Begin
+
+  GotoX(Gxp,Gyp);
+  SzavakP.Offset := SzoPoint^[AX];
+  UjSzo := Szavak^;
+  While Pos('≥',UjSzo) > 0 Do Delete(UjSzo,Pos('≥',UjSzo),1);
+  ASCII_To_EkSzer(UjSzo);
+  Writ('MEGTAL"LTAM> '+UjSzo+Spacet);
+
+  Sound(60);
+  Delay(15);
+  NoSound;
+
+  AX := 0;
+
+  KeyPr := KeyPress[Byte(GepTipus)];
+
+  Asm
+    MOV   AX,KeyPr
+    INT   $16
+    PUSHF
+    POP   AX
+    MOV   Flag,AX
+  End;
+
+  KeyR := KeyRead[Byte(GepTipus)];
+
+  If Flag AND Fzero = 0 Then
+  Begin
+    Asm
+      MOV   AX,KeyR
+      INT   $16
+      MOV   ALR,AL
+    End;
+    If ALR = 27 Then AX := 1;
+  End;
+
+End;

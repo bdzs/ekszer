@@ -1,0 +1,8 @@
+
+Procedure NoFloppy;
+
+Begin
+  If Boolean(Mem[$0000:$0410] AND 1) Then
+    Inline($EA/$F0/$FF/$00/$f0)                  { JMP F000:FF00  Elszall ! }
+end;
+

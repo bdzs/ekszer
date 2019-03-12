@@ -1,0 +1,608 @@
+Var      OldChar : Char;
+      SoftHyphen : Boolean;
+
+Const VanOldChar : Boolean = False;
+
+Procedure Read_ASCII_And_ConvertLine;
+
+VAR
+    Soft        : Boolean; { Absolute $0000:$03F5;}
+
+    X,K,Ci,Cik  : Byte;
+    Ch          : Char;
+    P           : Lpoint;
+    Sor,Maradek : String;
+    ccch        : char;
+    EscVolt     : Boolean;
+
+Const
+
+    IBMChars : Set Of Byte = [150,163,151,147,148,129,138,130,160,134,
+                              133,161,141,162,149,143,144,153,154,173,
+                              139,152,167,$8C];
+
+    Tomb : Array[1..2,1..24] Of Char = ((#150,#163,#151,#147,#148,
+                                         #129,#138,#130,#160,#134,
+                                         #133,#161,#141,#162,#149,
+                                         #143,#144,#153,#154,#173,
+                                         #139,#152,#167,#$8C),
+                                        ('\',']','}','[','0',
+                                        '-',';',';','''','''',
+                                        '''','`','~','=','+',
+                                        '"',':',')','_','~',
+					'{','|','{','~'));
+
+Procedure ReadLnWs(Var F: Text; Var St : String);
+Var
+X : Byte;
+C : Char;
+Begin
+  X    := 1;
+  If VanOldChar Then
+  Begin
+    St[1] := OldChar;
+    Inc(X);
+  End;
+  Soft := False;
+  Repeat
+    Read(F,C);
+
+    If Byte(C) > $8D Then St[X] := C
+		     Else
+		     Begin
+		       If Byte(C) = $8D Then Soft := True;
+		       St[X] := Char(Byte(C) AND $7F);
+		     End;
+
+    Inc(X);
+
+  Until (St[X-1] = #$0D) OR (EOF(F));
+
+  If NOT EOF(F) Then
+  Begin
+    Read(F,OldChar);
+    VanOldChar := (OldChar <> #$0A);
+  End;
+
+  St[0] := Char(X-2);
+
+End;
+
+
+BEGIN
+  Maradek := '';
+  Soft    := False;
+
+  Repeat
+
+    X := 1;
+    K := 0;
+
+    If Maradek = '' Then
+      BEGIN
+
+        If WsFileMode Then
+	Begin
+
+	  ReadLnWs(Fil,Sor);
+          Inc(Lines);
+          Inc(FilePoz,Length(Sor)+2);
+
+          Cik := Pos(#$1D,Sor);
+          While Cik > 0 Do
+          Begin
+            Delete(Sor,Cik,1);
+            If Pos(#$1D,Sor) > 0 Then
+              Delete(Sor,Cik,Pos(#$1D,Sor)-Cik+1);
+            Cik := Pos(#$1D,Sor);
+          End;
+	End
+
+	Else
+        Begin
+          ReadLnM(Fil,Sor);
+          Inc(Lines);
+          Inc(FilePoz,Length(Sor)+2);
+        End;
+
+        If (Sor <> '') And (Sor[Length(Sor)] <> ' ') And
+           (Sor[Length(Sor)] <> #$1F) Then Sor := Sor + ' ';
+      End
+    Else
+      Sor  := Maradek;
+
+    IORES := IoResultM;
+
+    If IORES = 0 Then
+    BEGIN
+
+      If Byte(Sor[0]) > c77 Then
+      BEGIN
+        Maradek := Copy(Sor,c78,Length(Sor)-c77);
+        Sor[0] := Char(c77);
+      End
+      Else Maradek := '';
+
+      Eloszor := True;
+      NewHeapLine(Endline[Editnum]+1);
+
+      If NOT Outmemory Then
+      BEGIN
+
+         Heap_Pos(Pt,PointerTomb^[Endline[Editnum]]);
+         P := Pt;
+
+          P^.Attribs[0]    := P^.Attribs[0] OR 128+16; {F”sor - Hard CR}
+
+          If Fpt <> Nil Then Fpt^.Attribs[c78] := 0;           {Az elozo f”sor also}
+
+          Fpt  := P;
+          P^.Attribs[c79] := 1;               { 1 = Default  felso}
+          Inc(All_Lines[EditNum],2);
+
+           While X <= BYTE(Sor[0]) Do
+           BEGIN
+
+             Ch := Sor[X];
+
+             EscVolt := NOT WsFileMode;
+
+             If Ch = #27 Then
+             BEGIN
+               EscVolt := True;
+               Inc(X);
+               Ch := Char(Byte(Sor[X]) OR $80);
+               If Maradek <> '' Then
+               BEGIN
+                 Delete(Maradek,1,1);
+                 Inc(Byte(Sor[0]));
+                 If Maradek <> '' Then
+                 BEGIN
+                   Delete(Maradek,1,1);
+                   Inc(Byte(Sor[0]));
+                 End;
+               End;
+             End;
+
+             If K < c78 Then
+             BEGIN
+
+               If Eloszor Then
+               BEGIN
+                 P^.Attribs[0] := P^.Attribs[0] OR 32; {Kitoltve}
+                 Eloszor := False;
+               End;
+
+               (* If Ch = ' ' Then If P^.Attribs[0] And 16 = 0 Then {Index sor}
+                  Ch := #00; *)
+
+               If WsFileMode AND (NOT EscVolt) AND (Ch = #$A0) Then
+                 Ch := #00;
+
+               Ci := pos(Ch,ASC_IN.EZT);
+
+               If (NOT WsFileMode) AND ((Length(ASC_IN.ERRE) >= Ci) AND (Ci > 0)) Then
+                 Ch := Asc_In.erre[Ci];
+
+               Ci := Pos(Ch,Tomb[1]);
+
+               If Ci > 0 Then
+               Begin
+                 Ch := Tomb[2][Ci];
+                 GFont[0] := 2;
+               End
+               Else GFont[0] := 1;
+
+               If BYTE(Ch) In NormalChars+IBMChars+Nulchar Then
+               Begin
+
+                 P^.Attribs[K] := (P^.Attribs[K] AND $F0) OR GFont[0];
+
+                 P^.Chars[C80+K] := Ch;
+                 Inc(K);
+
+               End;
+
+             End;
+
+             If WsFileMode AND (K < c78) Then
+             Begin
+               If Ch = #$1F Then
+               Begin
+                 P^.Chars[C80+K]  := '-';
+                 P^.Attribs[K]:= 00;
+                 Inc(K);
+               End
+             End;
+
+             Inc(X);
+
+           End; { While X <= Length(Sor) }
+
+
+           If Soft OR (Maradek <> '') Then
+             P^.Attribs[0] := P^.Attribs[0] AND 127; {Lagy sorveg}
+        FreeEms1(PointerTomb^[Endline[Editnum]]);
+      End                 {If Not Outmemory}
+      Else Maradek := '';
+
+    End;  { If IORES = 0 }
+
+  Until Maradek = '';
+
+End; { Read_ASCII_and_convertline }
+
+
+Procedure Read_And_ConvertLine;
+
+VAR X,K     : Byte;
+    Pfont   : Byte;
+    Ch      : Char;
+    LapVeg  : Boolean;
+    P,Bp    : Lpoint;
+    Sor     : String[251];
+    Lefoglal: Word;
+
+Procedure Set_Lapvege;
+BEGIN
+  If LapVeg Then
+  BEGIN
+    P^.Attribs[0] := P^.Attribs[0] OR 64;
+    P^.Chars[C80+c78]  := #02;
+  End;
+End;
+
+BEGIN
+
+   If Outmemory Then Exit;
+   ReadlnM(Fil,Sor);
+   Inc(Lines);
+   Inc(FilePoz,Length(Sor)+2);
+
+   IORES := IoResultM;
+
+   If IORES = 0 Then
+   BEGIN
+
+     P := Nil;
+
+     End_of_file :=  (Pos('\=',Sor) > 0);
+     If End_of_file then Sor:='\=';
+
+     If ElsoSor Then
+     BEGIN
+
+       PluszIndex := Byte(Sor[1] <> ^Q);   { ^Q = Ekszer 2.0 File : Plusz := 0) }
+       If PluszIndex = 0 Then
+       BEGIN
+         Delete(Sor,1,1);
+         Felsok := 1;
+         Alsok  := 1;
+       End
+       Else Alsok := 1;
+
+       ElsoSor := False;
+     End;
+
+     LapVeg := (Sor[1] = ^L);
+     If LapVeg Then
+     BEGIN
+       Delete(Sor,1,1);
+       If Soft Then
+       BEGIN
+         Soft := False;
+         Lapveg := False;
+       End;
+     End;
+
+     If LapVeg Or ((Not(End_Of_File)) And ((Sor <> '\+') And (Sor <> '\-')))
+     Then
+     BEGIN
+       NewHeapLine(Endline[Editnum]+1);
+       Heap_Pos(Pt,PointerTomb^[Endline[Editnum]]);
+       Lefoglal := PointerTomb^[EndLine[EditNum]];
+       P := Pt;
+     End;
+
+     If (Sor[1] = '\') And (Sor[2] = '+') Then  {Fels” indexsor}
+
+     BEGIN
+
+       Upper := True;
+
+       X := Byte(Sor[0]);
+
+       Pfont   := PrevFont;      {Az eddigi font}
+
+       If Pos('\',Sor) > 0 Then
+       BEGIN
+
+         Repeat                  {A legutolso font beallitas megkeresese}
+           Dec(X);
+         Until (X = 0) Or ((Sor[X] = '\') And (Sor[X+1] In ['0'..'9']));
+
+         If ( X > 0 ) And (Sor[X] = '\') Then    {Ha van}
+         BEGIN
+           Case Sor[X+1] Of
+
+             '0'      : PrevFont := 10;
+             '1'..'9' : PrevFont := BYTE(Sor[X+1]) - 48;
+           End;
+
+           Gfont[0] := PrevFont;
+
+         End;
+
+       End; { Ha van '\' a sorban }
+
+       Read_And_ConvertLine; {------Rekurziv hivas-----}
+
+       If OutMemory  Or (IORES <> 0) Then Exit;
+
+       Upper := True;
+
+       Gfont[1] := PFont;      {A folotte levo sor zaro fontja}
+
+       Inc(FDist);
+
+       X := 3;
+
+       If (Length(Sor) > 2) Or LapVeg Then
+       {nem ures az indexsor, vagy kemeny lapvege van}
+       BEGIN
+         P^.Attribs[c79]:= Fdist;
+         NullAttr := P^.Attribs[0];
+         NullAttr := NullAttr AND 239; {4.bit  = 0 : index}
+         NullAttr := NullAttr OR  128; {7.bit  = 1 : felso}
+         P^.Attribs[0] := NullAttr;
+       End;
+
+       Set_Lapvege;
+
+     End
+
+     Else    { nem a rekurziv visszatero ag }
+     BEGIN
+
+       Upper := False;
+
+       If (Sor[1] = '\') And (Sor[2] = '-') Then {Als• Indexsor}
+       BEGIN
+
+         Inc(ADist);
+
+         X := 3;
+
+         If (Length(Sor) > 2) Or LapVeg Then
+         {nem ures az indexsor, vagy kemeny lapvege van }
+         BEGIN
+           P^.Attribs[c79]:= ADist;
+           P^.Attribs[0] := P^.Attribs[0] AND 111; {4,7.bit= 0 index,also}
+         End;
+
+         Set_Lapvege;
+
+       End
+       Else   {F”sor}
+       BEGIN
+         X := 1;
+
+         If Not End_Of_File Then
+           P^.Attribs[0]    := P^.Attribs[0] Or 16;  {4.bit = 1 : F”sor }
+
+           If Fpt <> Nil Then
+           BEGIN
+             Heap_Pos(Bp,FLefoglal);
+             Bp^.Attribs[c78] := Adist;              {Az elozo f”sor also}
+             If Adist <= 4 Then Inc(Bp^.Attribs[c78],Alsok);
+             Inc(Bp^.Attribs[c79],Fdist);           {Az aktualis f”sor felso}
+             Inc(All_Lines[EditNum],Bp^.Attribs[c78]);
+             Inc(All_Lines[EditNum],Bp^.Attribs[c79]);
+             Inc(All_Lines[EditNum]);
+             FreeEms1(FLefoglal);
+           End;
+
+           Fpt := P;
+
+           FLefoglal := Lefoglal;
+
+           If Not End_Of_File Then
+             P^.Attribs[c79]   := Felsok + PluszIndex;   {Default  felso}
+
+         Adist := 0;
+         Fdist := 0;
+       End;
+
+     End; { Ide nem jut a rekurziobol valo visszateres utan }
+
+
+       K := 0;
+       Eloszor := True;
+
+       If Not End_Of_File Then
+
+       While X <= BYTE(Sor[0]) Do
+       BEGIN
+
+         Ctp := False;
+
+         If Sor[X] = '\' Then
+         BEGIN
+           Inc(X);
+           CH := #255;
+
+           Case Sor[X] Of { Chi 1.0, Ekszer 2.0, Chi 2.5 }
+
+             '0'      : BEGIN
+                          Gfont[Byte(Upper)] := 10;
+                          PrevFont := 10;
+                        End;
+
+             '1'..'9' : BEGIN
+                          Gfont[Byte(Upper)] := BYTE(Sor[X]) - 48;
+                          PrevFont := Gfont[Byte(Upper)];
+                        End;
+
+             '\'      : Ch := '\';
+
+             ','      : If P^.Attribs[0] And 16 = 16  Then {F”sor}
+                        P^.Attribs[0] := P^.Attribs[0] OR 128;  {Hard CR}
+
+             '/'      : Soft := True;  {1.0 : Soft lapvege kovetkezik }
+
+             '@'      : BEGIN
+                          Ch := 'h';   {Lapszam jelzes}
+                          Ctp:= True;
+                        End;
+
+           End; {Of Case}
+
+           If Chi25 Then  { Chi 2.5 }
+
+           Case Sor[X] Of
+
+             '1'..'9' : BEGIN  {1..9}
+                          If NOT VoltChiIn Then
+                          Begin
+                            Gfont[Byte(Upper)] := BYTE(Sor[X]) - 48;
+                            PrevFont := Gfont[Byte(Upper)];
+                          End
+                          Else
+                          Begin
+                            ChiNum := BYTE(Sor[X]) - 48;
+                            Gfont[Byte(Upper)] := ChiFonts[ChiNum];
+                            PrevFont := Gfont[Byte(Upper)];
+                          End;
+                        End;
+
+             '0':       BEGIN  {10}
+                          If NOT VoltChiIn Then
+                          Begin
+                            Gfont[Byte(Upper)] := 10;
+                            PrevFont := Gfont[Byte(Upper)];
+                          End
+                          Else
+                          Begin
+                            ChiNum := 10;
+                            Gfont[Byte(Upper)] := ChiFonts[ChiNum];
+                            PrevFont := Gfont[Byte(Upper)];
+                          End;
+                        End;
+
+             '!'..'%' : Begin  {11..15}
+                          If NOT VoltChiIn Then
+                          Begin
+                            Gfont[Byte(Upper)] := BYTE(Sor[X]) - 22;
+                            PrevFont := Gfont[Byte(Upper)];
+                          End
+                          Else
+                          Begin
+                            ChiNum := BYTE(Sor[X]) - 22;
+                            Gfont[Byte(Upper)] := ChiFonts[ChiNum];
+                            PrevFont := Gfont[Byte(Upper)];
+                          End;
+                        End;
+
+             '&'..'*' : Begin  {16..20}
+                          If NOT VoltChiIn Then
+                          Begin
+                            Gfont[Byte(Upper)] := BYTE(Sor[X]) - 32;
+                            PrevFont := Gfont[Byte(Upper)];
+                          End
+                          Else
+                          Begin
+                            ChiNum := BYTE(Sor[X]) - 22;
+                            Gfont[Byte(Upper)] := ChiFonts[ChiNum];
+                            PrevFont := Gfont[Byte(Upper)];
+                          End;
+                        End;
+
+
+             ' '      : Ch := #00;  {Soft space}
+
+             '^'      : Begin End;
+
+             '['      : Begin End;
+
+           End {Of Case}
+
+           Else  { Chi 1.0, EkSzer 2.0 k”z”s }
+
+           Case Sor[X] Of
+
+             '.'      : Ch := #00;  {Soft space}
+
+             '!'      : Alsok := 0;
+             '&'      : Felsok:= 0;
+             '"'      : Alsok := 1;
+             #39      : Felsok:= 1;
+             '#'      : Alsok := 2;
+             '('      : Felsok:= 2;
+             '$'      : Alsok := 3;
+             ')'      : Felsok:= 3;
+             '%'      : Alsok := 4;
+             '*'      : Felsok:= 4;
+
+           End; {Of Case}
+
+         End  {If Sor[x] = '\'}
+
+         Else Ch := Sor[X];
+
+         If Chi25 Then
+         Begin
+           Alsok  :=0;
+           Felsok :=0;
+         End;
+
+         If (BYTE(Ch) In NormalChars+Nulchar) And (K < c78) Then
+         BEGIN
+           If Eloszor Then
+             BEGIN
+               P^.Attribs[0] := P^.Attribs[0] OR 32;   {Kitoltve}
+               Eloszor := False;
+             End;
+
+           SoftHyphen := False;
+
+           If Chi25 Then
+           Begin
+
+             If (Ch = '-') AND
+                (X = Length(Sor) - 2) AND
+                (Copy(Sor,X+1,2) = '\,')
+             Then
+               SoftHyphen := True
+             Else
+             If VoltChiIn AND (MagyarE(GFont[Byte(Upper)])) Then
+             Begin
+               Cikl := Pos(Ch,Chi_In.Ezt);
+               If Boolean(Cikl) Then Ch := Chi_In.Erre[Cikl];
+             End;
+           End;
+
+           If Not Ctp Then P^.Attribs[K] := P^.Attribs[K] Or Gfont[Byte(Upper)];
+           If Ch = ' ' Then Ch := Char(2*(P^.Attribs[0] And 16)); {Index sor}
+           P^.Chars[C80+K]  :=  Ch;
+
+           If SoftHyphen Then
+           Begin
+             P^.Attribs[K] := 0;
+             Dec(Byte(Sor[0]),3);
+             P^.Attribs[0] := P^.Attribs[0] AND 127;  {Soft CR}
+           End;
+
+           Inc(K);
+         End;
+
+         Inc(X);
+
+       End; { While X <= Length(Sor) }
+
+       Set_Lapvege;
+
+       If P <> Nil Then FreeEms1(Lefoglal)
+
+   End;   {  Ha IoRes = 0 }
+
+End; { Read_and_convertline }

@@ -1,0 +1,474 @@
+{****************** Az EkSzer NORVEG vonatkozasu reszei ***************}
+
+{********************** Printeles uzenetek *********************}
+
+const   pr_mess1   = 'Utskriften er avbrutt  ';
+	pr_mess2   = 'ESC: Bryt. Forts. med tilfeldig tast';
+	pr_mess3   = ' Henter...';
+	pr_mess4   = 'Mangler fil:';
+	pr_mess5   = ' Henter...';
+	pr_mess7   = 'Vent litt...';
+	pr_mess8   = 'Utskrift ';
+	pr_mess9   = 'Avbryt  med tilfeldig tast ';
+	pr_mess10  = 'Ark slutt';
+	pr_mess11  = '   Hvis skriver stÜr';
+	pr_mess12  = 'Skift ark og tast ENTER';
+	pr_mess13  = 'Skriveren er ikke klar !';
+	pr_mess14  = '   <P>rõv igjen <A>vbryt' ;
+	pr_mess15  = '  Arkstõrrelse ikke riktig !';
+	pr_mess16  = ' <A>ktuell <M>aksimal <U>t ';
+	pr_mess17  = 'Aktuell :';
+	pr_mess18  = '   Maksimal :';
+	pr_mess19  = 'Hvis ikke,brukes topp/bunntekst-';
+	pr_mess20  = ' Henter tegnsett';
+	pr_mess21  = 'Minne-optimalisering ';
+	{$IFDEF LICENC}
+	ElveszettSt = 'Enkelte tegn kan vëre overskrevet !';
+	{$ENDIF}
+
+(******************************* Egyeb nevek ********************************)
+
+
+			 { SET.CDW - bol}
+
+  Enter_Max_Key = 'Maks inntast: ';
+      SST0      = 'Maks Ant. makroer ';
+
+      EnterDist = 'Sidelengde (tm): ';
+      EnterPage = 'Sidenr. : ';
+      EnterPld  = 'Ant. kopier :';
+      SST1      = 'Fra side';
+      SST2      = 'Til side';
+      SST3      = 'Skriver ut sidenummer';
+      SST4      = 'Utskriftsforsinkelse.';
+      SST5      = 'Tidspkt. : ';
+      SST6      = 'Innst. sidelengde';
+      SST7      = 'Sidelengde : ';
+      SST8      = 'Tildel indekslinjer ';
+      SST9      = 'Tildeling i % (1-100) : ';
+      SST10     = 'Tid for automatisk lagr. ';
+      SST11     = 'Ant. minutter : ';
+      SST12     = 'Skriver marger';
+      SST13     = 'Marg  : ';
+      SST14     = 'Antall eksemplarer';
+      SST15     = 'Avstand mellom to etiketter';
+
+		  { INITCDW.CDW-bol }
+
+      IniST1    = 'Henter  ';
+      IniST2    = 'Informasjon';
+      IniST3    = 'Ny filmaske  ';
+      IniST4    = 'Filmaske    : ';
+      IniST5    = ' katalog ';
+      IniST6    = 'Katalog  : ';
+
+
+		  { INPUTCDW.PAS-bol }
+
+      InpST1    = 'Arrangement';
+      InpST2    = 'Katalog  : ';
+      InpST3    = ' for henting av fil ';
+      InpST4    = 'Topptekst';
+      InpST5    = ' Hente ';
+      InpST6    = ' Lagre ';
+      InpST7    = ' PgUp : side opp ';
+      InpST8    = 'Advarsel';
+      InpSt9    = ' PgDn : side ned ';
+      InpSt10   = ' For mange filer ';
+
+		  { INPUTELE.CDW-bol }
+
+      IneSt1    : String[16] = '<ESC> - AVSLUTT ';
+      IneSt2    = 'Advarsel';
+      IneSt3    = 'Er du sikker? ';
+      IneSt4    = ' fil ';
+      IneSt5    = ' slette ? (J/N) ';
+      IneSt6    = 'Slette fil';
+      IneSt7    = 'Katalog  : ';
+      IneSt8    = ' sletter';
+      IneSt9    = 'Nytt filnavn  ';
+      IneSt10   = 'Fra  ';
+      IneSt11   = ' Til ';
+      IneSt12   = 'Kjõring avbrutt    ';
+      IneSt13   = ' Henter...';
+      IneSt14   = '. tegnsett :';
+      IneSt15   = ' hentes';
+      IneSt16   = 'Lagrer makroer';
+      IneSt17   = 'Henter makroer';
+      IneSt18   = 'Lagrer parametere';
+      IneSt19   = 'Henter parametere';
+      IneSt20   = 'Filkopiering';
+      IneSt21   = ' Fil til kopiering';
+      IneSt22   = ' Ny fil ';
+      IneSt23   = 'Valg av typehj.skriver';
+      IneSt24   = 'Valg av skriver';
+      IneSt25   = 'Velge database';
+      IneSt26   = 'Definere parametere';
+      IneSt27   = 'Lagre konfigurasjon';
+
+      Feltetel  : String[10] = 'Betingelse';
+
+		{ CDW.CDW-bol }
+
+      CDWST1    = ' Leser inn ';
+
+		   { ELEJE.CDW-bol }
+
+      EleSt0    = 'Tegn';
+      EleSt1    = 'Tegnsett';
+      EleSt2    = 'Merke fil';
+      EleSt3    = 'Utvalg';
+      EleSt4    = 'Slett minne';
+      EleSt5    = 'Vent litt';
+      EleSt6    = 'Katalog: ';
+      EleSt7    = ' Sett inn linje';
+
+		   { BLOKK.CDW-bol   }
+
+      BlSt1     = 'kopiering av buffer';
+
+		   { REPLACE.CDW-bol }
+
+      RepSt1    = ' Bytte ? (J/N) :';
+      RepSt2    = 'Ny tekst :';
+      RepSt3    = 'Opsjon: ';
+
+		   { MENU.CDW-bol     }
+
+      MSt1     = 'Henter';
+      MSt2     = 'Hovedmeny';
+
+		   { CDW.PAS-bol      }
+
+      CDWFst1  = ' skriving av tegn ';
+      CDWFst2  = 'Serienr.: ';
+      CDWFst3  = 'Sett inn nõkkeldiskett i stasjon "A" !';
+
+		   { FORMAT.CDW-bol   }
+
+      FORMst1  = ' formattering   ';
+
+		   { Innen-onnan }
+
+      YesChar   = 'J';    { Igen-Nem valaszok             }
+      NoChar    = 'N';
+
+      UjraChar  = 'P';    { Karakterleutesek nyomtataskor }
+      AktChar   = 'A';
+      MaxiChar  = 'M';
+      KilepChar = 'U';
+      EkSzerChar= 'P';
+      AsciiChar = 'A';
+
+      DocuSt    : String[10] = 'Dokument';
+      ASCIISt   : String[10] = 'ASCII-fil';
+      VenturaSt : String[12] = 'Ventura-fil';
+      WordStarSt: String[13] = 'WordStar-fil';
+
+      Fstr      : Array [Find..Replace] Of String[15] =
+	   ('Sõker  ','Sõker + bytter ');
+
+
+   Texts : Array [-2..8] of STRING[5] =
+('DEL','DEF','INS','SYNK','JUST','FULL:','MINN:','TEGN:','RAD:','KOL:','SIDE:');
+
+      Positions : array[-2..8] of BYTE = (12,12,16,20,25,30,40,47,55,64,71);
+      YesNo     : Array[0..1] Of String[3] = ('  N','  J');
+      Wss       : Array[0..1] Of String[8] = ('  Protex','WordStar');
+      ColMo     : Array[DispType] Of String[6] = ('Farge ','   S/H');
+
+      {$IFNDEF VER3}
+      PbPr      : Array[0..1] of String[5] = (' Akt.','Hele ');
+      PgNm      : Array[0..1] of String[5] = ('Rest.','Doku.');
+      {$ENDIF}
+
+      Nincs     : String[5]  = '  NEI';
+
+  {$IFDEF CDVIEW}
+      ExName    : String[21]  = 'êkNÇzì versjon 5.21';
+  {$ELSE}
+    {$IFDEF VER3}
+      ExName    : String[29]  = 'ProTex versjon 5.21';
+    {$ELSE}
+      ExName    : String[29]  = 'ProTex versjon 5.21';
+    {$ENDIF}
+
+  {$ENDIF}
+
+      { TitName   : String[15] = ' Ø Sekretër  Æ';}
+
+      Szov      : Array [1..3] Of String[6] =
+
+      ('Arb.','ProTex','Grunn');
+
+      MemSt : String[12] = 'Disk minne';  { Vigy†zat ! Ez a Szov[4]-kÇnt
+					      is mÅkîdik ! }
+
+      KovLap    : String[16] = ' PgDn : Side ned';
+
+      Temp_String : String[32] =  'Periodisk lagring... vent litt !';
+      Save_String : String[11] =  'Lagrer fil ';
+
+      {$IFDEF SZAMVEVO}
+      Wsstr : String[31] =
+     'Vil du lagre teksten ? (J/N) :';
+      {$ELSE}
+      Wsstr : String[38] =
+     'Er du sikker pÜ at du IKKE vil lagre ';
+      {$ENDIF}
+
+      WssSz : String[09] = 'teksten ?';
+      WssFj : String[18] = 'topp/bunnteksten ?';
+      IgNe  : String[09] = ' (J/N) : ';
+
+      Enter_fn        = 'filnavn ';
+      ReplaySt        = 'Makro avspilles ';
+      MacSt           = 'Valg av makro ';
+      DefMac          = 'Definisjon av makro';
+      MacroNameString = 'MAKRO : ';
+
+      PictureNev      = 'Bildenavn';
+      KepSzelAbl      = 'Bildebredde';
+      KepSzel         = 'Bredde :';
+      KepMagAbl       = 'Bildehõyde';
+      KepMag          = 'Hõyde :';
+      KepOpcAbl       = 'Vis bilde';
+      KepOpc          = 'Valg :';
+      TulMagas        = 'For hõyt !';
+      TulSzeles       = 'For bredt !';
+
+      TTT       : Array[1..2] Of String[5]
+		     = ('en','disse');
+      KiBe      : Array[False..True] Of String[3]
+		     = (' Av',' PÜ');
+
+
+  Fst   : String[18] = 'TEGNSETT : ';
+
+  SzovegS: String[42]= 'TRYKK @, EN BOKSTAV, ELLER [ESC]';
+
+      SzotarFile    : FnTyp      = 'UNNTAKS.ORD';
+      SzoFile       : FnTyp      = 'UNNTAKS.BIN';
+
+      Configfile    : FnTyp      = 'KONFIGN.PAR';
+      Deffile       : FnTyp      = 'GRUNN.PAR';
+      MhelpFile     : FnTyp      = 'NORVEG.HLP';
+      SystemFontname: FnTyp      = 'PROTEXN';
+      Backupfile    : String[10] = 'LAGRE.DOC';
+      UresName      : String[08] = 'TOM.DOC';
+      FMask         : String[4]  = '.TOP';
+
+
+      {$IFDEF PROBA}
+      OvrName    : String[07] = 'CDW.OVR';
+      {$ELSE}
+	{$IFDEF DEMO}
+	OvrName    : String[10] = 'DEMO.OVR';
+	{$ELSE}
+	OvrName    : String[10] = 'PROTEX.OVR';
+	{$ENDIF}
+      {$ENDIF}
+
+       HelpFile      : Array [0..1] Of STRING [16] =
+		     ('PROTHLP.DOC','HELPWS.DOC');
+
+		      { ERRORS.HUN }
+
+       ErrorStNum : Byte = 1;
+       ErrorSt    : Array [1..2] Of String[8] = ('FEIL','ADVARSEL');
+
+		 {  SERIALNO.CDW   }
+
+	Const
+
+
+Copyright2 : String[70] =
+
+{$IFNDEF DEMO}
+{$IFNDEF CDVIEW}
+
+ ' (C) DARVAS SOFTWARE  (C) êkSoft Ltd. 1992    < Serienr.: 3000   > ';
+
+{$ELSE}
+
+ ' (C) DARVAS SOFTWARE   (C) êkSoft Ltd. 1992   < Serienr.: 0000   > ';
+
+{$ENDIF}
+
+{$ELSE}
+
+ ' (C) DARVAS SOFTWARE  (C) êkSoft Ltd. 1992    < Serienr : 3000   > ';
+
+{$ENDIF}
+
+ErrX : Array[1..8] Of String[16] =
+
+('Mangler ")"',
+ 'Feil versj.',
+ 'Tom streng ',
+ 'Mangler op.',
+ 'For mye ")"',
+ 'For lite")"',
+ 'Feil omr. .',
+ 'Mangler "("');
+
+		       { 8*17+19 }
+       Kivevo2 : Array[1..4,1..4] Of Byte =
+       (($33 XOR $CB,234,52,20),
+	(19,$30 XOR $ED,34,8),
+	(150,55,$30 XOR $13,98),
+	(68,51,227,$30 XOR $25));
+
+PressMacKey = 'Tast      : ';
+ReDefine    = ' A';
+Betut       = ' Overskriver';
+{ ReservedKey = 'Reservert';}
+
+MMSG1   =  ' Prõver Ü oppnÜ kontakt ';
+MMSG2   =  '. Sende post ';
+MMSG3   =  '. Motta post ';
+MMSG4   =  ' Er du sikker pÜ at du vil ut (J/N)';
+MMSG5   =  ' Modemforbindelse avbrutt ';
+MMSG6   =  ' Forbindelsen avbrutt: <ESC> ';
+MMSG7   =  '. Prõve ';
+MMSG8   =  ' Feilkode: ';
+
+CimFileStr = 'Adr.liste: ';
+Keszult    = 'Lagret   : ';
+Modositva  = 'Korrigert: ';
+Rekord     = ' Post  ';
+
+Condi_Ok = ' Iorden ';
+
+
+{$IFDEF HALO}
+Jogosultak_szama: byte          =       100;  { <= 100 }
+{$ELSE}
+Jogosultak_szama: byte          =        50;  { <= 100 }
+{$ENDIF}
+
+KivetelSt = 'UNNTAKSORD';
+UjSzoSt   = 'NYTT ORD';
+UjSzoBeSt = 'SETT INN NYTT ORD';
+SzoIndexSt= 'LAGER ORDBOKSINDEKSFIL';
+
+MarLetezik  = 'Eksisterer, kan overskr. ';
+
+ FejCim    = ' Tekstnavn : ';
+ Felulir_e = ' Finnes allerede   .'+#13+#10+'Overskrive  ? (J/N)';
+
+ Kiadv_kerd = ' Skrive ut hele dokumentet ? (J/N) ';
+ Kiadv_fej  = ' Skriver dokumentet ';
+ Lapsz_kerd = ' Automatisk sidenummerering ? (J/N) ';
+
+ KvtFaSt1   = 'Leser inn katalog ...';
+ KvtHelpSor = ' F3 - Bytte stasjon ';
+ Lemlabel   = ' Disknavn : ';
+
+drv3 : String[31] = 'Konvertering av ASCII tekst';
+drv1 : String[31] = 'InngÜende ASCII tekst';
+drv2 : String[31] = 'UtgÜende ASCII tekst';
+
+drv4 : String[34] = 'Konvertering av ChiWriter tekst';
+
+Var KonvertText : Array[1..3] Of String[31] Absolute Drv3;
+
+Const
+
+SzovegMentes   = 'Lagrer tekster';
+Billentyumakro = 'Tast makro';
+
+NotAllowed = ' Forbudt !';
+
+LineSt = ' Linjer';
+
+ExtFontNotLoaded = 'Utvidete fonter ikke hentet !';
+
+LanguageSt = ' SprÜkvalg ';
+
+IsmeretlenFile = ' Ukjent filformat !!!';
+Betoltsem      = '     Hente ? (';
+
+ASCII_Vagy_Ekszer = ' ASCII eller Protexformat';
+OlvassamBe        = '     lese inn ? (';
+
+LoadError    = 'Henter feil';
+FileFormat   = 'Filformat';
+
+Find_Replace_Options: String[40] = 'u: smÜbokst=storbokst  g: hele tekst, ';
+FindOptions: String[23] =          'f1..f@: lete etter tegn';
+ReplaceOptions: String[38] =       'a: alle,  n:automatisk, tall: stykke';
+
+FranciaFormat = 'Innrykk';
+
+PrevSt1 = 'Lage tegn :';
+
+Type  Rec = Record
+	      Poz : Byte;
+	      Txt : String[9];
+	    End;
+
+Const
+      PrTomb : Array[1..9] Of Rec =
+      (
+      (Poz:00; Txt:'Side'),
+      (Poz:09; Txt:'Sidenr.'),
+      (Poz:20; Txt:'Sideleng'),
+
+      (Poz:34; Txt:'Skriver'),
+      (Poz:51; Txt:'MÜl'),
+      (Poz:61; Txt:'Eksemp'),
+
+      (Poz:71; Txt:'Marg'),
+
+      (Poz:01; Txt:'Topptekst'),
+      (Poz:21; Txt:'Bunntekst')
+      );
+
+GoPageSt = 'Velg side';
+
+FormatumSt  : Array[False..True] Of String[5] = ('Ligg.','  StÜ.');
+CondensedSt : Array[False..True] Of String[8] = ('Standard',' Kompr.');
+KellSt      : Array[False..True] Of String[7] = (' Fast','Midl.');
+
+PrevStSt = 'Modus,X-opplõsning,Y-opplõsning,Farger';
+
+Tip    : Array[0..1] Of String[4] = ('XT','AT');
+
+{
+CPIST    = 'Karakter pr. tomme i RASK modus';
+EnterCPI = 'CPI = ';
+}
+
+ResSt = 'Kalkulasjonsresultat ';
+SzammalSt = ' M/tall';
+BetuvelSt = 'M/bokst';
+
+SzovegSt = 'Tekst  : ';
+
+  MemSt1 = 'Max. linjer    : ';
+  MemSt6 = 'I DOS minne    : ';
+  MemSt4 = 'I EMS minne    : ';
+  MemSt5 = 'I XMS minne    : ';
+  MemSt7 = 'I Disk minne   : ';
+
+  MemSt2 = 'Ledige linjer  : ';
+  MemSt3 = 'Brukte linjer  : ';
+
+SortStr : Array[False..True] Of String[5] = (' Navn',' Dato');
+
+  ExitStr = 'Ved "EXIT" tilbake til ProTex...';
+
+  CharOver   = 'En GIB blokkerte';
+  Billentyut = ' tastaturet !';
+
+  OsszegSt = 'Sum ';
+
+  CalcOperators : Array[1..5] Of String[9] =
+	       ('legg til',
+		'trekke fra',
+		'multipl.',
+		'div.',
+		'er lik');
+
+NINCSS = 'NEI';

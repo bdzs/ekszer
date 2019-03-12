@@ -1,0 +1,2865 @@
+const
+    FirstLine      = 0;
+    MLastLine      = 57;
+    LastLine       : Integer = 37;
+
+    VIDEOTONKEY : Boolean = False;
+    MAGYARKEY   : Boolean = False;
+
+Type  ComType = Array[1..5] Of Word;
+
+{$IFDEF HALO}
+
+Const MsgBufferSize = 300;
+
+Type  BufType =    Array[0..MsgBufferSize+2] Of Byte;
+
+     ModeType = (SendBMsg,
+                 GetBMsg,
+                 DisableBMsg,
+                 EnableBMsg,
+                 SendPMsg,
+                 GetPMsg,
+                 OpenMsgPipe,
+                 CloseMsgPipe,
+                 CheckPipeStat,
+                 SendBMsgToCon);
+
+Const
+    InMsg        : Boolean = False;
+    Message      : String[80] = '';
+
+    MsgMode      : ModeType = SendBMsg;
+    GlobalError  : Byte = 0;
+    GlobalMsgMode: Byte = 0;
+    ModeB        : Byte = 0;
+    ReqBuf       : BufType = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0);
+
+    RepBuf       : BufType = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                              0,0,0);
+
+    PipeStatus   : Byte = 0;
+    Stations     : Byte = 0;
+    MsgOra       : Word = 0;
+    MsgPerc      : Word = 0;
+    MsgMp        : Word = 0;
+    MsgMpPer100  : Word = 0;
+
+Var
+    ReqBuf0  : Word Absolute ReqBuf;
+    RepBuf0  : Word Absolute RepBuf;
+
+Const NetError : Boolean = False;
+
+{$ENDIF HALO}
+
+Type
+    POINTER_REC  = RECORD
+                     OFFSET  : Word;
+                     SEGMENT : Word;
+                   END;
+
+    GrTip     = (AutoMode,CgaMode,EgaMode,HerMode,VGAMode);
+    ScTip     = array[1..25,1..80,1..2] of byte;
+    GSctip    = Array[1..$9600] Of Byte;
+
+    ScPoint   = ^ScTip;
+    GScPoint  = ^GscTip;
+    SorTabT = Array[0..MLastLine+2] Of Word;
+
+Const
+       CgaSorTab : SorTabT = (
+              0, 8352,   400, 8752,   800, 9152,  1200, 9552, 1600,
+           9952, 2000, 10352, 2400, 10752, 2800, 11152, 3200,
+          11552, 3600, 11952, 4000, 12352, 4400, 12752, 4800,
+          13152, 5200, 13552, 5600, 13952, 6000, 14352, 6400,
+          14752, 6800, 15152, 7200, 15552, 7600, 15952,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);   { 20 db }
+
+         (*
+       EgaSortab: SorTabT =
+           (0, 640, 1280, 1920, 2560, 3200, 3840, 4480, 5120, 5760, 6400,
+           7040, 7680, 8320, 8960, 9600, 10240, 10880, 11520, 12160, 12800,
+           13440, 14080, 14720, 15360, 16000, 16640, 17280, 17920, 18560, 19200,
+           19840, 20480, 21120, 21760, 22400, 23040, 23680, 24320, 24960,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);   { 20 db }
+           *)
+       VgaSortab: SorTabT =
+           (0, 640,  1280,  1920,  2560,  3200,  3840,   4480,   5120,   5760,
+           6400,  7040,  7680,  8320,   8960,   9600,  10240,  10880,  11520,
+           12160, 12800, 13440, 14080, 14720,  15360,  16000,  16640,  17280,
+           17920, 18560, 19200, 19840, 20480,  21120,  21760,  22400,  23040,
+           23680, 24320, 24960, 25600, 26240,  26880,  27520,  28160,  28800,
+           29440, 30080, 30720, 31360, 32000,  32640,  33280,  33920,  34560,
+           35200, 35840, 36480, 37120, 37760);
+
+       HerSorTab: SorTabT =(
+         5, 185, 365, 545, 725, 905,
+      1085, 1265, 1445, 1625, 1805,
+      1985, 2165, 2345, 2525, 2705, 2885, 3065, 3245, 3425, 3605,
+      3785, 3965, 4145, 4325, 4505, 4685, 4865, 5045, 5225, 5405,
+      5585, 5765, 5945, 6125, 6305, 6485, 6665, 6845, 7025,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);   { 20 db }
+
+
+Const
+
+    Spc     : String[36] = #0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0;
+{
+    FelGr     = 9;
+    SorTx     = 5;
+    MaxSzelTx = 9;
+    MaxSzelGr = 9;
+
+    Hossz   : Array[1..SorTx]     Of Byte = (3,7,9,7,3);
+    HosszG  : Array[1..FelGr] Of Byte = (3,7,7,9,9,9,7,7,3);
+ }
+    FelGr     = 15;
+    SorTx     = 7;
+    MaxSzelTx = 15;
+    MaxSzelGr = 15;
+
+    Hossz   : Array[1..SorTx]     Of Byte = (7,11,15,15,15,11,7);
+    HosszG  : Array[1..FelGr] Of Byte = (3,7,9,11,13,13,15,15,15,13,13,11,9,7,3);
+
+
+
+    ScrMem  : Array[GrTip] Of GScPoint=(NIL,NIL,NIL,NIL,NIL);
+    ScrMemT : Array[GrTip] Of ScPoint=(NIL,NIL,NIL,NIL,NIL);
+    OldVec  : Pointer = NIL;
+    VanKey  : Boolean = False;
+    MouseMoved: Boolean = False;
+    AtadCim : Word = $AB*4;  { INT AB }
+    SaveScMp: Word = 90;
+    InScrSave  : Boolean = False;
+    TimeOutJ   : Boolean = False;
+    Ujraprobal : Boolean = False;
+    FirstGrMode : GrTip = AutoMode;
+    GrMode      : GrTip = AutoMode;
+
+
+Const
+  MostExtVan  : Boolean = False;
+  Previewban  : Boolean = False;
+  Lektorban   : Boolean = False;
+
+Const ComPort    : Byte = 1;  { Innentol irhatja felul a screensaver }
+      KellConvert: Boolean = True;
+
+      TotalLines : Word = 0;
+      Lines      : Word = 0;
+      FSize      : LongInt = 0;
+      FilePoz    : LongInt = 0;
+      LehetMar   : Boolean = False;
+
+Var   Percent    : Real;
+      EEN        : Byte;
+      SetInitP,
+      SetIni2    : Pointer;
+
+Type  IntPoint = Array[0..7] Of Byte;
+      MtombM   = Array[1..30] Of Word;
+
+Var   NyelvEszPoint : Pointer;
+      NyelvEszPoint1: ^IntPoint Absolute NyelvEszPoint;
+
+      GlobalCount : Byte;
+      OldNyelvEszInt2 : Pointer;
+
+      KivetelVolt   : Boolean;
+      OsszetettVolt : Boolean;
+
+      Gxp,Gyp     : Byte;
+
+
+Const VanNyelvEsz   : Boolean = False;
+      VanNyelvEszEMS: Boolean = False;
+      VanFontSwap   :Boolean = False;
+{$IFDEF BEMUTAT}
+   ErvenyesIdoszak3 : Boolean = False;
+{$ENDIF}
+
+{$IFDEF SOR240}
+      MaxMaxChars  = 240;
+{$ELSE}
+      MaxMaxChars  = 160;
+{$ENDIF}
+
+Type
+      Str160       = String[MaxMaxChars];
+Const
+      MaxByteHossz = MaxMaxChars*2;
+
+      C80    : Word =  80;
+      C79    : Word =  80-1;
+      C78    : Word =  80-2;
+      C77    : Word =  80-3;
+      C76    : Word =  80-4;
+      C160   : Word =  80*2;
+      SperLap: Word = 16384 Div 160;
+      Cp16   : Word = 160  Div 16;
+
+      C78Save: Word = 0;
+
+      NySkip = $01;
+      NyHyph = $02;
+      NyEdit = 1 SHL 2;
+      NyComp = 4 SHL 4;
+
+      NyelvEszInt1         = $B0;
+      NyelvEszInt2         = $B1;
+
+Var
+      Mutato,Mutato_1 : ^MtombM;
+
+Type  SzoPointType = Array[0..50] Of Word;
+
+Var   Szavak : ^String;
+      SzavakP: Pointer_Rec Absolute Szavak;
+
+      SzoPoint : ^SzoPointType;
+      SzoPointP: Pointer_Rec Absolute SzoPoint;
+
+      SzoDbPoint: ^Byte;
+
+Const
+
+{$IFDEF BEMUTAT}
+   ErvenyesIdoszak2 : Boolean = False;
+{$ENDIF}
+
+      MasNev      : Boolean = True;
+      MasNemUres  : Boolean = False;
+      GraphicMenu : Boolean = False;
+
+      ComDat    : Array [1..4] Of ComType =
+		  (($03f8,$03f9,$03fc,$03fd,$100C),
+		   ($02f8,$02f9,$02fc,$02fd,$080B),
+		   ($02e8,$02e9,$02ec,$02ed,$100C),
+		   ($02e0,$02e1,$02e4,$02e5,$080B));
+var
+      ComPoint : ^ComType;
+      IntFFVec : Pointer;
+
+Type  SureTip = (Single,Each);
+
+const MABC : array[0..36] of char = #36'a†bcdeÇfghi°jklmno¢îìpqrs$tu£Åñvxyzw';
+
+      Enabled   : Array[1..10] Of Boolean =
+                  (False,False,False,False,False,
+                   False,False,False,False,False);
+
+      upctable1 : array[1..9] of char = '†Ç°¢£îìÅñ';
+      upctable2 : array[1..9] of char = 'èêçïóôßöò';  {innen 14 db maganhang}
+      simamagan : array[1..5] of char = 'AEIOU';
+
+      {$IFDEF ROMAN}
+      R_upctable1 : array[1..3] of char = '-=[';
+      R_upctable2 : array[1..3] of char = '_+{';  {innen 8 maganhang}
+      R_simamagan : array[1..5] of char = 'AEIOU';
+      {$ENDIF}
+
+      Elvalaszt : Boolean = True;
+      ElvVolt   : Boolean = False;
+      SmoothScroll : Boolean = True;
+
+var   MABC_STRING  : String[36] Absolute MABC;
+
+      maganhangzok : array[1..14] of char absolute upctable2;
+      {$IFDEF ROMAN}
+      maganhangzokR : array[1..8] of char absolute R_upctable2;
+      {$ENDIF}
+
+      LaserFont_Kikuldve : Boolean;
+
+      {$IFDEF NORVEG}
+const igekotok_szama = 13;
+      igekotok : array [1..igekotok_szama] of string[4] =
+      ('MEG','LE','FEL','FôL','ELß','EL','BE','KI','èT','Rè','FENN','FENT','QQQ');
+
+      cikisek_szama = 15;
+      ypsilonosok_szama = 9;
+      cikisek : array [1..cikisek_szama] of string[3] =
+      ('ZS','SZ','CS','ZZS','SSZ','CCS',
+       'TY','NY','GY','LY','LLY','TTY','NNY','GGY','QQQ');
+
+var   ypsilonosok : array[-5..ypsilonosok_szama] of string[3]
+		     absolute cikisek;
+      {$ELSE}
+const igekotok_szama = 13;
+      igekotok : array [1..igekotok_szama] of string[4] =
+      ('MEG','LE','FEL','FôL','ELß','EL','BE','KI','èT','Rè','FENN','FENT','QQQ');
+
+      cikisek_szama = 15;
+      ypsilonosok_szama = 9;
+      cikisek : array [1..cikisek_szama] of string[3] =
+      ('ZS','SZ','CS','ZZS','SSZ','CCS',
+       'TY','NY','GY','LY','LLY','TTY','NNY','GGY','QQQ');
+
+var   ypsilonosok : array[-5..ypsilonosok_szama] of string[3]
+		     absolute cikisek;
+      {$IFDEF ROMAN}
+const igekotok_szamaR = 2;
+      igekotokR : array [1..igekotok_szamaR] of string[4] =
+      ('SUB','QQQQ');
+
+      cikisek_szamaR = 9;
+      ypsilonosok_szamaR = 1;
+      cikisekR : array [1..cikisek_szamaR] of string[3] =
+      ('CE','CI','GE','GI','CHE','CHI','GHE','GHI','QQQ');
+       ypsilonosokR : array[1..ypsilonosok_szamaR] of string[3] =('QQQ');
+      {$ENDIF}
+
+      {$ENDIF}
+
+Const
+      Mac3_15 : Boolean = True;
+
+Type  KotoJelType = array[1..160] of byte;
+Var
+    szotagok: byte;
+    kotojel : KotoJelType;
+
+Const ErrorDelay      : Word = 100;
+      ErrorDelayCount : Word =  128;
+
+   FnSize   = 76;
+
+   MaxModem = 10;
+
+   BRS : Array[1..MaxModem] Of Word =
+
+   (110,150,300,600,1200,2400,4800,9600,19200,38400);
+
+   HiSpeed = '115200';
+   AP_S   = 'AP ';
+   MBR_S  = 'MBR ';
+   GR_S   = 'GR ';
+   KB_S   = 'KB ';
+   COM_S  = 'COM=';
+   OV_S   = 'OVR=';
+   PV_S   = 'PRV=';
+   SOR_S  = 'SOR';
+   IND_S  = 'IND';
+   EMS_S  = 'EMS';
+   XMS_S  = 'XMS';
+   SCR_S  = 'SCR';
+   SCS_S  = 'SCS';
+   LET_S  = 'LET';
+   DSK_S  = 'DSK';
+   DP_S   = 'DP ';
+
+   UZ_S   = 'MSG';
+
+   KEY_S  = 'KEY';
+   ASI_S  = 'ASI';
+   ASO_S  = 'ASO';
+   VOL_S  = 'VOL';
+   CRD_S  = 'CRD';
+
+
+   NoEMSKb : Word = 0;
+   NoXMSKb : Word = 0;
+   PRVS    : String[80] = '';
+
+   ModC80  : Byte = 80;
+
+{$IFDEF BEMUTAT}
+   ErvenyesIdoszak : Boolean = False;
+{$ENDIF}
+
+CONST
+
+   MagyUpcSt : Array[0..1] Of String[10] =
+
+      (';''[]=\`0-',  { Magyar UpCase }
+       ':"{}+|~)_');
+
+   CWIConvSt: Array[0..1] Of String[39] =
+
+     ('!@#$^&*(<>/'+#39+'`0-=\[];"~)_+|{}:'+#39+#39+#39+#39+';;;``"',
+      '0"+!/=();:-'+'†'+'°îÅ¢ñì£Çèçôöïòßóê'+'É'+'Ñ'+'Ö'+'Ü'+'àâäãåé');
+
+   MaxNorveg  = 9;
+   MaxSami    = 19;
+   MaxGorog   = 9;
+
+   {$IFDEF NORVEG}
+
+   NConv1 : String[MaxNorveg] = 'ÜèõùëíúØ'#21;
+   NConv2 : String[3*MaxNorveg]= 'dDgGaA$!''eEhHbB%"(fFiIcC&#)';
+
+   SConv1 : String[MaxSami] = '<>xXqQwWÜèõù''*ëíúØ'#21;
+   SConv2 : String[3*MaxSami] = 'mMpPsSvVdDgGjJaA$!''nNqQtTwWeEhHkKbB%"(oOrRuUxXfFiIlLcC&#)';
+   {$ENDIF}
+
+   {$IFDEF GOROG}
+
+   GConv1 : String[MaxGorog] = 'aehioyviy';
+   GConv2 : String[3*MaxGorog]= '$*06<BHNT%+17=CIOU&,28>DJPV';
+
+   {$ENDIF}
+
+TYPE
+
+    ST12     = STRING[12];
+    ST16     = STRING[16];
+    ST20     = String[20];
+    ST40     = STRING[40];
+    ST50     = STRING[50];
+    ST80     = STRING[80];
+    ST160    = STRING[160];
+    FnTyp    = String[FnSize];
+
+
+    Szoveg   = Text;
+
+    CaseType   = (BlockUp,BlockLow,BlockInv);
+
+    {ASCII_Type = (Ir,Beszel);}
+    Filetype   = (Document,ASCII,Ventura);
+    { SaveType   = (Normalmode,BackupMode,AutoSaveMode,AllSaveMode); }
+    SaveType   = (Normalmode,AllSaveMode,BackupMode,AutoSaveMode);
+    LoadType   = (OneFileMode,AllHeaderMode,NoWriteMode,NoWriteAllHeaderMode);
+    FindType   = (Find,Replace);
+    Age        = (Uj_Szerk,Regi_Szerk,Uj_Header);
+
+    ItemRec = Record
+
+      Xcoor : Byte;
+      YCoor : Byte;
+      Len   : Byte;
+      Point : Byte;
+
+    End;
+
+    DateTip = Record
+
+     Ev    : Word;
+     Honap : Byte;
+     Nap   : Byte;
+
+    End;
+
+    HelpRec = Record
+
+      Szoveg : Array[1..8] Of St50;
+      Items  : Byte;
+      SeeAlso: Array[1..8] Of ItemRec;
+
+    End;
+    GraphSor = Array[1..8,1..80] Of Byte;
+    LINETYPE = RECORD
+                 Case Byte Of
+                 1 : (Attribs : ARRAY [0..MaxByteHossz-1] OF BYTE);
+                 2 : (Chars   : ARRAY [0..MaxByteHossz-1] OF CHAR);
+               END;
+
+    LPoint = ^LineType;
+
+
+    DispType  = (Colour,BW);
+    FileTipus = (NormalFile,HeaderFile);
+    ElszMut   = Array[0..4] Of Byte;
+
+Var
+       HEAP,HeapLine               : LPOINT;
+       HeapRec                     : Pointer_Rec Absolute Heap;
+       HeapWord                    : ^Word absolute Heap;
+       Ureske                      : Word;
+       StartPseg                   : Word;
+       StartPoint                  : Pointer Absolute Ureske;
+       PointSize                   : Word;
+       CimDate,CimDateM            : DateTip;
+       SegHeap                     : Word;
+CONST
+       Kivevo                      : Array[1..4,1..4] Of Byte =
+       ((13,234,52,20),(19,102,34,8),(150,55,217,98),(68,51,227,5));
+
+       GlobalMode : LoadType = OneFileMode;
+
+       ECB1   = $4E;
+       ECB2   = $48;
+       CLin1  = 10;
+       CLin2  = 16;
+       Tom    : Array [0..1] Of String[3] = ('   ','DEF');
+
+       Blocks : Array[GrTip] Of Word = (00,10,14,14,14);
+       CLines : Array[GrTip] Of Byte = (00,CLin1,CLin2,CLin2,Clin2);
+       ECB    : Array[GrTip] Of Byte = (00,ECB1,ECB2,ECB2,ECB2);
+
+
+       FExt   : Array[GrTip] Of String[4] = ('  ','.SFT','.EFT','.EFT','.EFT');
+
+       MaxMac = 16;    { Max 16 Macro   @@@}
+       MacLen = 80;    { Mindegyik 80 hosszu (Max 255 !)}
+
+
+  OnlyMain      : Boolean = False;
+  Puffirekurzio : Boolean = False;
+  CtdTiltas     : Boolean = False;
+  WsMode        : Boolean = False;
+  Outmemory     : Boolean = False;
+  InHelp        : Boolean = False;
+  InVars        : Boolean = False;
+  InPass        : Boolean = False;
+  InCond        : Boolean = False;
+  Eloszar       : Boolean = True;
+  CalcRek       : Boolean = False;
+  WsFileMode    : Boolean = False;
+
+  Elsz1         : LongInt =0;   { Ezeknek egymas mellet kell lenniuk }
+  ElSzar        : Byte = 0;
+
+
+  Searchst      : String[60] = '';
+  ReplaceSt     : String[60] = '';
+  HeaderID      : String[2]  = 'SY';
+
+  Ctk           : Boolean = False;
+
+  GEditNum      : Integer = 1;
+
+  HeaderName    : FnTyp      = '';
+  FooterName    : FnTyp      = '';
+  Path          : FnTyp      = '';
+  Eredeti_Path  : FnTyp      = '';
+  FontPath      : FnTyp      = '';
+  AlapPath      : FnTyp      = '';
+  ExePath       : FnTyp      = '';
+
+  Dmask         : String[3] = 'DOC';
+  ASCIImask     : String[3] = 'ASC';
+  VentMask      : String[3] = 'TXT';
+  PublMask      : String[3] = 'PUB';
+  ElSzarr       : ^ElszMut  = NIL;
+
+  Editorcim     : FnTyp      = '';
+
+  Serial_Device   : Integer   = 0;
+  Paralell_Device : Integer   = 0;
+
+  Font_Kiiras     : Boolean   = True;
+
+{  Mouse variables  }
+
+  Mouse           : Boolean = False;
+  Mouse_Bill      : Boolean = False;
+
+{**********************************************}
+
+
+CONST
+
+       OFF            = 0;
+       ON             = 1;
+       Yes            = True;
+       No             = False;
+
+       MaxMemLine     = 2600;  { 416 Kbyte }
+       MaxLine        = 32500; { 5.078 Mbyte }
+
+       MaxIndexN      =  255;
+       MaxAIndexN     = -255;
+       MaxIndexE      =  37;    { csak ennyi fer az ems-re }
+       MaxAIndexE     = -37;
+       MMAXE          =  37;
+
+       MaxIndexEv     : Integer = MaxIndexE;    { csak ennyi fer az ems-re }
+       MaxAIndexEv    : Integer = MaxAIndexE;
+       UjIndS         : Integer = 0;
+
+       MaxIndex       : Integer = MaxIndexN;
+       MaxAIndex      : Integer = MaxAIndexN;
+
+       BufferNum      = 28;
+       MaxEditor      = 29;   {Document     [01..03]
+                               12 Header    [04..15]
+                               12 Footer    [16..27]
+                               Buffer       [28]
+                               Help         [29]     }
+
+Type
+  PointerTombT  = Array[1..MaxLine] of Word;
+  LapVegTombT   = Array[1..MaxLine] of Byte;
+  JustArray     = Array[MaxAIndexN..MaxIndexN] Of
+                    Record
+                      X   : Lpoint;
+                      Sor : Word
+                    End;
+
+                                 {  Ez a lapveg hanyadik sor a lapon}
+
+
+Const
+       JobbraIgazitas: Boolean = False;
+       BalraIgazitas : Boolean = False;
+       SystemWriting : Boolean = False;
+       LegyenJust    : Boolean = True;
+       BlockMode     : Boolean = False;
+       InKeyHelp     : Boolean = False;
+       ElsoFutas     : Boolean = True;
+
+       VideoMod : Array[0..4] Of String[4] =
+
+       ('AUTO','CGA','EGA','HERC','VGA');
+
+       MaxParameters = 63;
+
+       Param_tomb  : array[1..MaxParameters] of string[2] =
+
+       ('F1','F2','F3','F4','F5','F6','F7','F8','F9','F0',
+        'X1','X2','X3','X4','X5','X6',
+
+        'PL','RM','PM','IN','JU','SY','ST','SP','MI','WD','TA',
+
+        'LM','FP','LP','SA','PN','CO','WS','FN','FD','MO','DM',  { Sajat }
+        'PD','SD','CD','HN','BG','FO','YZ','MA','LE','CC','CM',
+        'EL','KL','PP','LN','CT','EM',
+
+        {Innen 5.0}
+
+        'TI','KF','SZ','BE',  'PF','CP', 'GY','FR');
+
+
+       CimFile       : FnTyp = '';
+       MacFile       : FnTyp = '';
+       HeadFootName  : FnTyp = '';
+       StartColor    = BW;
+
+       DispMode      : DispType = StartColor;
+       NewDisp       : DispType = StartColor;
+
+       MaxColors     = 27;
+
+       CA            : Array[DispType,1..MaxColors] Of Byte =
+
+
+{  1,   2,   3,   4,   5,   6,  7,   8,   9, 10,  11,  12 }
+
+( { Szines }
+( 15, { 1. Norm†l keret (menÅ Çs help) }
+  30, { 2. Norm†l szîveg }
+  31, { 3. Norm†l szîveg }
+  78, { 4. Hiba }
+  79, { 5. Hiba }
+  63, { 6. KezdìbetÅ }
+  14, { 7. Makr¢ ablak kerete }
+  126,{ 8. Norm†l szîveg }
+  158,{ 9. Norm†l szîveg }
+  23, {10. }
+  123,{11. Kiemelt szîveg }
+  27, {12. MenÅ kurzor }
+
+  { Input : }
+
+  31, {13. Norm†l szîveg }
+  126,{14. Kiemelt szîveg }
+  63, {15. Kiemelt szîveg }
+
+  { Choose : }
+
+  031, { 16. Normal attributum   }
+  078, { 17. Kivalasztott attributum}
+  127, { 18. Aktualis attributum }
+  047, { 19. Aktualis kivalasztott }
+  063, { 20. Belso attributum }
+
+  23,  { 21. Kiemelt szîveg }
+  63,  { 22. KarakterkÇszlet v†laszt†s kurzor }
+
+  { Choose folytat†s : }
+
+  028,     { 23. Dir attributum }
+  124,     { 24. Akttualis dir attrib }
+  026,     { 25. ReadOnly file }
+
+  { Input folytat†s : }
+
+   47,  { A bejelentkezo szin }
+   79   { A tovabbmutato karakterek szine}
+
+  ),                  { Menu   }
+
+  { Innen Monochrome }
+
+(  7,
+   7,
+   112,
+   127,
+   127,
+   7,
+   7,
+   15,
+   143,
+   7,
+   7,
+   120,  
+
+   7,
+   120,
+   127,              { Input  }
+
+   { Choose : }
+
+   007, { Normal attributum   }
+   007, { Kivalasztott attributum}
+   127, { Aktualis attributum }
+   127, { Aktualis kivalasztott }
+   120, { Belso attributum }
+
+   7,
+   112,
+
+     { Choose folytat†s : }
+
+   015, { Dir attributum }
+   127, { Akttualis dir attrib }
+   015, { ReadOnly file }
+
+     { Input folytat†s : }
+
+   143,  { A bejelentkezo szin }
+   15    { A tovabbmutato karakterek szine}
+
+   ));                 { Menu   }
+
+
+(************************ Input rutinok szin konstansai *********************)
+
+ Attr_1  : Array[DispType] Of Byte = ( 31, 07); { A kiirando prompt string szine}
+ Attr_2  : Array[DispType] Of Byte = (126,120); { A hatarjelzo karakter szine   }
+ Attr_3  : Array[DispType] Of Byte = ( 63,127); { Az input mezo szine           }
+ Attr_4  : Array[DispType] Of Byte = ( 47,143); { A bejelentkezo szin }
+ Attr_5  : Array[DispType] Of Byte = ( 79, 15); { A tovabbmutato karakterek szine}
+
+(************************ Choose rutin szin konstansai *********************)
+
+CAttr_1: Array[DispType] Of Byte = ( 31, 07); { Normal attributum   }
+CAttr_2: Array[DispType] Of Byte = ( 78, 07); { Kivalasztott attributum}
+CAttr_3: Array[DispType] Of Byte = (127,127); { Aktualis attributum }
+CAttr_4: Array[DispType] Of Byte = ( 47,127); { Aktualis kivalasztott }
+CAttr_5: Array[DispType] Of Byte = ( 63,120); { Belso attributum }
+CAttr_6: Array[DispType] Of Byte = ( 28,  1); { Dir attributum }
+CAttr_7: Array[DispType] Of Byte = (124,  9); { Akttualis dir attrib }
+CAttr_8: Array[dispType] Of Byte = ( 26,129); { ReadOnly file }
+
+
+Type      SetCh = Set Of Char;
+Const     LChars : SetCh = [#0,' ', '.' , ',' , '(' , ')'];
+
+(********************** Key code values ************************)
+
+Const
+
+{$IFNDEF ANGOL}
+
+AzBetuk   : Set Of Char =
+
+            ['A','E','F','I','L','M','N','O','R','S','U','X','Y'];
+
+{$ENDIF}
+
+SpecScans : Set Of Byte = [$01,$0E,$0F,$1C];
+
+KeyNames : Array[1..4] Of String[5] = ('ESC','BS','TAB','ENTER');
+
+KeyChars : Array [1..$35] Of Char =
+
+(
+'1',                       { 01/1B }  { ESC }
+'1',                       { 02/31 }
+'2',                       { 03/32 }
+'3',                       { 04/33 }
+'4',                       { 05/34 }
+'5',                       { 06/35 }
+'6',                       { 07/36 }
+'7',                       { 08/37 }
+'8',                       { 09/38 }
+'9',                       { 0A/39 }
+'0',                       { 0B/30 }
+'-',                       { 0C/2D }
+'=',                       { 0D/3D }
+'2',                       { 0E/08 }  { BackSpace }
+'3',                       { 0F/09 }  { Tab }
+'q',                       { 10/71 }
+'w',                       { 11/77 }
+'e',                       { 12/65 }
+'r',                       { 13/72 }
+'t',                       { 14/74 }
+'y',                       { 15/79 }
+'u',                       { 16/75 }
+'i',                       { 17/69 }
+'o',                       { 18/6F }
+'p',                       { 19/70 }
+'[',                       { 1A/5B }
+']',                       { 1B/5D }
+'4',                       { 1C/0D }  { Enter }
+'€',                       {       }
+'a',                       { 1E/61 }
+'s',                       { 1F/73 }
+'d',                       { 20/64 }
+'f',                       { 21/66 }
+'g',                       { 22/67 }
+'h',                       { 23/68 }
+'j',                       { 24/6A }
+'k',                       { 25/6B }
+'l',                       { 26/6C }
+';',                       { 27/3B }
+'''',                      { 28/27 }
+'`',                       { 29/60 }
+'€',                       {       }
+'\',                       { 2B/5C }
+'z',                       { 2C/7A }
+'x',                       { 2D/78 }
+'c',                       { 2E/63 }
+'v',                       { 2F/76 }
+'b',                       { 30/62 }
+'n',                       { 31/6E }
+'m',                       { 32/6D }
+',',                       { 33/2C }
+'.',                       { 34/2E }
+'/'                        { 35/2F }
+);
+
+FirstKeyStrings : Array [$37..$39] Of String[5] =
+
+(
+'PrtSc',                   { 37/2A }
+'€',                       {       }
+'Space');                  { 39/20 }
+
+ShortKeyStrings : Array [$47..$53] Of String[5] =
+
+{$IFDEF ANGOL}
+(
+'Home',                    { 47/00 }
+'Up ',                     { 48/00 }
+'PgUp ',                   { 49/00 }
+'Minus',                   { 4A/2D }
+' <-  ',                   { 4B/00 }
+'€',                       {       }
+' ->  ',                   { 4D/00 }
+'Plus',                    { 4E/2B }
+'End',                     { 4F/00 }
+'Down',                    { 50/00 }
+'PgDn ',                   { 51/00 }
+'Ins',                     { 52/00 }
+'Del'                      { 53/00 }
+);
+{$ELSE}
+  {$IFDEF NORVEG}
+  (
+  'Home',                    { 47/00 }
+  'Up',                      { 48/00 }
+  'PgUp ',                   { 49/00 }
+  'Minus',                     { 4A/2D }
+  ' <-  ',                   { 4B/00 }
+  '€',                       {       }
+  ' ->  ',                   { 4D/00 }
+  'Plus',                    { 4E/2B }
+  'End',                     { 4F/00 }
+  'Down',                    { 50/00 }
+  'PgDn ',                   { 51/00 }
+  'Ins',                     { 52/00 }
+  'Del'                      { 53/00 }
+  );
+  {$ELSE}
+  (
+  'Home',                    { 47/00 }
+  'Fel',                     { 48/00 }
+  'PgUp ',                   { 49/00 }
+  'Minus',                     { 4A/2D }
+  'Bal  ',                   { 4B/00 }
+  '€',                       {       }
+  'Jobb ',                   { 4D/00 }
+  'Plus',                    { 4E/2B }
+  'End',                     { 4F/00 }
+  'Le',                      { 50/00 }
+  'PgDn ',                   { 51/00 }
+  'Ins',                     { 52/00 }
+  'Del'                      { 53/00 }
+  );
+  {$ENDIF}
+
+{$ENDIF}
+
+KeyStrings : Array [$72..$77] Of String[5] =
+
+{$IFDEF ANGOL}
+  (
+  'PrtSc',               { 72/00 }
+  ' <-  ',               { 73/00 }
+  ' ->  ',               { 74/00 }
+  'End  ',               { 75/00 }
+  'PgDn ',               { 76/00 }
+  'Home ');              { 77/00 }
+{$ELSE}
+  {$IFDEF NORVEG}
+    (
+    'PrtSc',               { 72/00 }
+    ' <-  ',               { 73/00 }
+    ' ->  ',               { 74/00 }
+    'End  ',               { 75/00 }
+    'PgDn ',               { 76/00 }
+    'Home ');              { 77/00 }
+  {$ELSE}
+    (
+    'PrtSc',               { 72/00 }
+    'Bal  ',               { 73/00 }
+    'Jobb ',               { 74/00 }
+    'End  ',               { 75/00 }
+    'PgDn ',               { 76/00 }
+    'Home ');              { 77/00 }
+  {$ENDIF}
+{$ENDIF}
+
+
+       F1  = 59; F2  = 60; F3  = 61; F4  = 62; F5  = 63;
+       F6  = 64; F7  = 65; F8  = 66; F9  = 67; F10 = 68;
+
+       F11 = $85;
+       F12 = $86;
+
+Functionkeys      : SET of BYTE = [F1..F10,F11,F12];
+
+       Ctrl_F1 = $5E; Ctrl_F2  = $5F; Ctrl_F3 = $60; Ctrl_F4 = $61;
+       Ctrl_F5 = $62; Ctrl_F6  = $63; Ctrl_F7 = $64; Ctrl_F8 = $65;
+       Ctrl_F9 = $66; Ctrl_F10 = $67;
+
+       Ctrl_F11 = $89;
+       Ctrl_F12 = $8A;
+
+       ALT_F1 = $68; ALT_F2  = $69; ALT_F3 = $6A; ALT_F4 = $6B;
+       ALT_F5 = $6C; ALT_F6  = $6D; ALT_F7 = $6E; ALT_F8 = $6F;
+       ALT_F9 = $70; ALT_F10 = $71;
+
+       Alt_F11 = $8B;
+       Alt_F12 = $8C;
+
+       SHIFT_F1 = $54; SHIFT_F2  = $55; SHIFT_F3 = $56; SHIFT_F4 = $57;
+       SHIFT_F5 = $58; SHIFT_F6  = $59; SHIFT_F7 = $5A; SHIFT_F8 = $5B;
+       SHIFT_F9 = $5C; SHIFT_F10 = $5D;
+
+       Shift_F11 = $87;
+       Shift_F12 = $88;
+
+MaxFontKey = F10;
+
+{$IFDEF VER352}
+MaxFontNum =  10;
+{$ELSE}
+MaxFontNum =  15;
+{$ENDIF}
+
+MaxShiftFontKey = SHIFT_F1 + MaxFontNum - 11;
+
+       NumLock = $20;
+
+       Enter     = 13;
+       Cr        = 13;
+       Backspace = 08;
+       Tabu      = 09;
+       ESCAPE    = 27;
+       INS       = $52;
+       DEL       = $53;
+       Prtsc     = $37;
+
+       CTRL_HOME      = 119;      CTRL_END        = 117;
+       FELNYIL        = 72;       LENYIL          = 80;
+       BALRANYIL      = 75;       JOBBRANYIL      = 77;
+       Ctrl_Balranyil = $73;      Ctrl_jobbranyil = $74;
+       PAGEUP         = 73;       PAGEDOWN        = 81;
+       Ctrl_PageUp    = $84;      Ctrl_PageDown   = $76;
+       HOME           = 71;       ENDKEY          = 79;
+       GrayPlus       = $4E;      GrayMinus       = $4A;
+
+       Ctrl_A  =  01;  Ctrl_B  =  02;  Ctrl_C  =  03;  Ctrl_D  =  04;
+       Ctrl_E  =  05;  Ctrl_F  =  06;  Ctrl_G  =  07;  Ctrl_H  =  08;
+       Ctrl_I  =  09;  Ctrl_J  =  10;  Ctrl_K  =  11;  Ctrl_L  =  12;
+       Ctrl_M  =  13;  Ctrl_N  =  14;  Ctrl_O  =  15;  Ctrl_P  =  16;
+       Ctrl_Q  =  17;  Ctrl_R  =  18;  Ctrl_S  =  19;  Ctrl_T  =  20;
+       Ctrl_U  =  21;  Ctrl_V  =  22;  Ctrl_W  =  23;  Ctrl_X  =  24;
+       Ctrl_Y  =  25;  Ctrl_Z  =  26;  Ctrl_min=  31;
+
+       Space   =  $39;
+       Alt_E   =  $12;
+       Alt_U   =  $16;
+       Alt_K   =  $25;
+       Alt_N   =  $31;
+       Alt_B   =  $30;
+       Alt_I   =  $17;
+       Alt_G   =  $22;
+       Alt_M   =  $32;
+       Alt_O   =  $18;
+       Alt_C   =  $2E;
+       Alt_D   =  $20;
+       Alt_P   =  $19;
+       Alt_S   =  $1F;
+       Alt_R   =  $13;
+       Alt_T   =  $14;
+       Alt_V   =  $2F;
+       Alt_Z   =  $2C;
+       Alt_F   =  $21;
+       Alt_L   =  $26;
+       Alt_0   =  $81;
+       Alt_1   =  $78;
+       Alt_2   =  $79;
+       Alt_3   =  $7A;
+       Alt_4   =  $7B;
+       Alt_5   =  $7C;
+       Alt_6   =  $7D;
+       Alt_7   =  $7E;
+       Alt_8   =  $7F;
+       Alt_9   =  $80;
+       Alt_Q   =  $10;
+
+       Alt_X   =  $2D;
+
+       Alt_A   =  $1E;
+       Alt_W   =  $11;
+       Alt_H   =  $23;
+       Alt_J   =  $24;
+       Alt_Y   =  $15;
+       Btab    =  $0F;
+
+       Alt_minus = $82;
+       Alt_egyen = $83;
+
+       FreeHot : Boolean = True;
+
+(************************************************************************)
+
+VAR
+       GlobalErrorNum : Integer;
+       GlobalErrorSt  : String[80];
+
+
+       Full_Lines,Max_Lines        : Integer;
+
+       Kbflag    :  BYTE    absolute $0040:$0017;
+       CRTmode   :  BYTE;   {    absolute $0040:$0049;}
+       ESC       :  Boolean Absolute $0000:$0380 {03FF};
+       InpJel    :  Word;   { Absolute $0000:$0086*4; }
+       OutJel    :  Word;   { Absolute $0000:$0086*4+2; }
+
+       GKbf      :  Byte;
+       Sor       :  STr160;
+       Textfile  :  Szoveg;
+
+       FontCsere,ExitFind,ReplaceBool,Numeric  :  Boolean;
+
+       VanSzotarFile : Boolean;
+
+       Szotar    :  FILE;
+       Fontfile  :  FILE;
+       PointerTomb : ^PointerTombT;
+       LapVegTomb  : ^LapVegTombT;
+       MemLines,
+       EmsLines,
+       XmsLines,
+       DskLines,
+       DskLinesT   : LongInt;
+       DskFil      : File;
+
+       LapVegSzam : Integer;   { Hany lapvege van az aktualis image elott }
+
+TYPE
+      FontTipus =  Record
+                      Case Byte Of
+
+                      1 : (ElejeE :Array[1..ECB2] Of Byte;
+                           FontE  :Array [32..128,1..CLin2] of BYTE);
+
+                      2 : (ElejeC : Array[1..ECB1] Of Byte;
+                           FontC  : array [32..128,1..CLin1] of BYTE);
+                    End;
+      AllFontType = Array[0..MaxFontNum] Of FontTipus;
+
+VAR
+       Fonts     :  ^AllFontType;
+
+       Wst       :  Str160;
+       Bool      :  Boolean;
+       VanIntA1  :  Boolean;
+       FiFi      :  Text;
+       Fontnames :  Array[1..MaxFontNum] Of String[12];
+       ChFont    :  Array[1..MaxFontNum] Of Boolean;
+       Glob_Pos  :  Integer;
+
+       OszlopMode:  Boolean;
+
+Type GTI = (IBMXT,IBMAT);
+
+Var    KeyR,KeyPr : Word;
+
+       MaxChiFont : Byte;
+       ChiFont    : Array[1..20] Of String[8];
+       EkSzFont   : Array[1..20] Of String[8];
+
+       UsedFont   : Array[1..MaxFontNum] Of Boolean;
+
+CONST
+       LoadedChiFont : Byte = 3;
+       VoltChiIn : Boolean = False;
+       ChiNum    : Byte = 1;
+       ChiFonts  : Array[1..20] Of Byte =
+                   (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,1,2,3,4,5);
+
+       Geptipus       : GTI = IBMAT;
+
+       KeyRead    : Array[0..1] Of Word = ($0000,$1000);
+       KeyPress   : Array[0..1] Of Word = ($0100,$1100);
+
+       EndOfMacro : Boolean = False;
+
+       TilosChars : SET of BYTE =
+
+       [Enter,
+        32,
+        Backspace,
+        Tabu,
+        Ctrl_D];
+
+       TilosScans : SET of BYTE =
+
+       [Pageup,
+        Pagedown,
+        Felnyil,
+        Lenyil,
+        Jobbranyil,
+        Balranyil,
+        Home,
+        Endkey,
+        Alt_H,
+        Alt_Q,
+        Ctrl_F1..Ctrl_F4];
+
+       CommandScans : SET of BYTE =
+
+       [ Alt_1..Alt_0,
+         Alt_B,
+         Alt_C,
+         Alt_D,
+         Alt_E,
+         Alt_F1..Alt_F10,
+         Alt_G,
+         Alt_H,
+         Alt_I,
+         Alt_J,
+         Alt_K,
+         Alt_L,
+         Alt_M,
+         Alt_N,
+         Alt_O,
+         Alt_P,
+         Alt_R,
+         Alt_S,
+         Alt_T,
+         Alt_U,
+         Alt_V,
+         Alt_W,
+         Alt_Y,
+         Alt_Z,
+         Btab,
+         Ctrl_Pageup,
+         Ctrl_Pagedown,
+         Ctrl_Home,
+         Ctrl_End,
+         Ctrl_Jobbranyil,
+         Ctrl_Balranyil,
+         Del,
+         Ins,
+         F1..F10,
+         Shift_F1..Shift_F5];
+
+       CommandChars : SET of BYTE =
+
+       [ 33..126,                                    {Betuk,Szamok,stb...}
+         Ctrl_A,
+         Ctrl_B,
+         Ctrl_C,
+         Ctrl_E,
+         Ctrl_F,
+         Ctrl_G,
+         Ctrl_J,
+         Ctrl_K,
+         Ctrl_L,
+         Ctrl_P,
+         Ctrl_R,
+         Ctrl_S,
+         Ctrl_T,
+         Ctrl_U,
+         Ctrl_V,
+         Ctrl_W,
+         Ctrl_Z
+
+         (* Ctrl_B,Ctrl_Y,Ctrl_A,Ctrl_L,Ctrl_F,Ctrl_S,Ctrl_D,  {WordStar}
+         Ctrl_E,Ctrl_X,Ctrl_R,Ctrl_C,Ctrl_G,Ctrl_V,Ctrl_K,Ctrl_Q,Ctrl_O *)
+          ];
+
+       Controlchars : SET of BYTE = [0..31];
+       NormalChars  : SET of BYTE = [16,32..126,254];
+       Nulchar      : SET of BYTE = [0];
+       InputChars   : SET of BYTE =
+
+       [0,Ctrl_A,Enter,BackSpace,Escape,Ctrl_Y,32..255 {127}];
+
+     {$IFDEF KREATOR}
+       dir_nagysag  = 340;
+       Dir_darab    = 100;
+     {$ELSE}
+         dir_nagysag  = 360;
+         Dir_darab    =  80;
+     {$ENDIF}
+
+TYPE
+    nevtomb  = array[1..dir_nagysag] of string[12];
+    attrtomb = array[1..dir_nagysag] of byte;
+
+VAR
+     Fnam : st40;
+
+VAR
+     cikl       : byte;
+     puffer     : integer;
+     nev_db     : word;
+     dir_db     : Word;
+     ossz_db    : word;
+     old_path   : string[64];
+     az_ut      : string;
+     a_drive    : byte;
+     Last_drive : byte;
+     osv_puff   : string;
+
+(****************** Global variables for Edit procedure *****************)
+
+
+
+
+CONST    IroIdo         : Integer    = 10;
+         Check_Device   : Boolean    = True;
+         Spacet         : string[5]  = '     ';
+         Space12        : string[12] = '            ';
+         OldFont        : Byte       = 255;
+         InfoWindow     : Boolean = False;
+
+
+       SaveCount : Byte = 0;
+       Full      : Boolean = False;
+
+       OneFontDraft  = 2304;
+       OneFontNLQ    = 4224;
+       FirstNLQ      = 8;
+
+Type   PrintNLQ1   = Array[1..FirstNLQ,1..OneFontNLQ] Of Byte;
+       PrintNLQ2   = Array[1..MaxFontNum-FirstNLQ+1,1..OneFontNLQ] Of Byte;
+
+       PrintDraft  = Array[1..MaxFontNum+1,1..OneFontDraft] Of Byte;
+       PMutat      = ^St160;
+       ImageTip    = FirstLine..MLastLine;
+       AllImage    = Array [-2..MLastLine] Of Lpoint;
+
+       CimrecT1    = Array[-4..2000] Of Byte;
+
+       CLVType     = Record  { Cimlista valtozok }
+                       MaxCimRec,
+                       AktivCimRec,
+                       CountRec       : LongInt;
+                       CimRecLen      : Word;
+
+                       VarSt          : Array[1..18] Of String[20];
+                       VarPos         : Array[1..16] Of Word;
+                       VarLen         : Array[1..16] Of Byte;
+
+                       Variables      : Array[1..16] Of String[18];
+
+                       BlankVar       : Array[1..16] Of String[59];
+                       BlankVarAttr   : Array[1..16] Of String[10];
+
+                       CondiResult    : Array[1..128] Of Byte;
+
+                       VarNum         : Byte;
+                       HibaKod        : Byte;
+                       HibaPoz        : Byte;
+
+                       Condi          : String[255];
+                       GCondi         : String[255];
+                       CondiFile      : Fntyp;
+                     End;
+
+
+
+Var    SorTab                               : ^SorTabT;
+       Vector1B,IntPtr                      : Pointer;
+       Hfil                                 : File Of HelpRec;
+       SaX,SaY                              : Array[1..16] Of Integer;
+       SaFont                               : Array[1..16] Of BYTE;
+       TempLinespace,TempFont               : BYTE;
+       Linespace,GlobalFont,Lastfontnum,
+       MezoFont                             : BYTE;
+       X,Pagelen,Page,BackupTime,Linespacing: INTEGER;
+       PrintMargin,FirstPage,Lastpage       : INTEGER;
+       FirstPageNum                         : INTEGER;
+       LabelDist                            : Real;
+       NyomSzam, LASER_nyomszam             : Integer;
+       Leftmar                              : Array[1..MaxEditor] Of byte;
+       Rightmar                             : Array[1..MaxEditor] Of byte;
+       Tszam,Xpos,Ypos                      : Integer;
+       Linenum,Pagenum,Uplinenum,Dlinenum,
+       Gr,Gm                                : INTEGER;
+       Sync,Inser,Just,StopAfterPage,Control: BOOLEAN;
+       TempSync,TempInser,TempJust          : BOOLEAN;
+       MegisKell,LeszBlokk                  : Boolean;
+       Csaknez                              : Boolean;
+       StartLine,EndLine                    : Array[1..MaxEditor] Of Integer;
+       Image                                : AllImage;
+
+       CimRecBuff                           : ^CimRecT1;
+
+
+       RecDate                              : ^DateTip;
+
+       ImageToHeap                          : Array[ImageTip] Of Integer;
+       MainOfIndex                          : Array[ImageTip] Of Integer;
+       Tabs                                 : array [1..MaxMaxChars] of Boolean;
+       Filename                             : Array [1..4] Of FnTyp;
+       GFilename                            : Array [1..4] Of FnTyp
+                                                        Absolute Filename;
+       OrigPath,
+       OvrPath                              : FnTyp;
+       Fs                                   : FnTyp;
+       FontOffs,ImageOffs,SortabOffs,
+       Wor                                  : Word;
+       Pfontoff,
+       Pfontseg                             : Array[0..1] Of Word;
+       Tabss                                : Set Of Byte;
+       FirstAttrib,ExitCode                 : Byte;
+       FelsoIndexek,AlsoIndexek             : Byte;
+       Kodolatlan,
+       JelszValt,
+       Valtozas,
+       New_Kell                             : Array[1..MaxEditor] Of Boolean;
+       FontNum                              : Array[1..MaxEditor] Of Byte;
+       OldFontNum                           : Array[1..MaxEditor] Of byte;
+       All_Lines,
+       NemKells,
+       MainPs,
+       Scounts,
+       Lcounts,
+       Pcounts                              : Array[1..MaxEditor] Of Integer;
+       Xps,Yps                              : Array[1..MaxEditor] Of Byte;
+       Xel                                  : Array[1..MaxEditor] Of Byte;
+
+       Block                                : Array[0..1] Of Integer;
+
+       TrueLast,Eddig,Cik                   : Integer;
+       Register                             : Registers;
+
+       FFF                                  : Char;
+       Legfelso,
+       Legalso,NemVoltHelp,Eloszor          : Boolean;
+       EditNum,       {  Az aktiv editor    }
+       Scount,        {  Az image legfelso sora hanyadik felsor a szovegben }
+       Lcount,        {  Az image legfelso sora hanyadik felsor a lapon     }
+       Pcount         {  Az image+legfelso sora hanyadik lapon van          }
+                                            : Integer;
+       Ctp,NemKellCursor,ElsoBelep          : Boolean;
+       Gxy                                  : Word;
+       Kell_Help                            : Boolean;
+       Ch,Sc,Gcur                           : Byte;
+       FindMode                             : FindType;
+       CLV                                  : ^CLVType;
+
+
+
+Const
+       CimFejlecLen    = 389;
+
+       {$IFDEF CHEMOLIMPEX}
+       Szekreterfile                        : FnTyp = '';
+       {$ENDIF}
+
+
+       Max_Key         : Word = 1000;
+
+       StopRun         : Boolean = False;
+       Pic_Volt        : Boolean = False;
+
+       Color : Array[1..MaxEditor] Of BYTE =
+         (11,12,13,                             { Editorok szinei   }
+          15,15,15,15,15,15,15,15,15,15,15,15,  { Headerek szinei   }
+          10,10,10,10,10,10,10,10,10,10,10,10,  { Footerek szinei   }
+          14,                                   { Buffer szine      }
+          9);                                   { Help szine        }
+
+       BackG : Array[1..MaxEditor] Of BYTE =
+         (00,00,00,                             { Editorok hatterei }
+          00,00,00,00,00,00,00,00,00,00,00,00,  { Headerek hatterei }
+          00,00,00,00,00,00,00,00,00,00,00,00,  { Footerek hatterei }
+          00,                                   { Buffer hattere    }
+          01);                                  { Help hattere      }
+
+CheckNum   = 660421;
+MacNameLen = 8;
+
+DefExt : String[3] = 'DOC';
+
+Type
+
+MacroRecord = Record
+
+                MacIns     : Boolean;
+                MacJust    : Boolean;
+                MacSync    : Boolean;
+                MacSpacing : Byte;
+                MacFont    : Byte;
+
+              End;
+
+Var    Macro      : Array[1..MaxMac] Of Boolean;
+       MacLevel   : Byte;
+       Recording  : Boolean;
+
+       LongNum    : LongInt;                 { LongNum -> DefKeys = 3600 byte }
+       MacNum     : Array[1..255] Of Byte;
+       ActMacPos  : Array[1..MaxMac] Of Byte;
+       MacPos     : Array[1..MaxMac] Of Byte;
+       MacName    : Array[1..MaxMac] Of String[MacNameLen];
+       ActMacName : String[8];
+       MacTomb    : Array[1..MaxMac,1..MacLen] Of Word;
+       MacCount   : Byte;
+       PActMacnum,
+       RActMacnum : Byte;
+       MaxKey     : Word;
+
+       MacEnv     : Array[1..MaxMac] Of MacroRecord;
+
+       DefKeyNum  : Byte;
+       DefKeys    : Array[1..255] Of Word;
+
+Var  PFname,Toltes : Array[1..4] Of Boolean;
+
+type st8          =   string[8];
+     printer_pars =   record
+                           pr_ini       : st8;   {teljes inicializalas}
+                           pr_lf_5_72   : st8;   {5/72 soremeles beallitasa}
+                           pr_set_l_m   : st8;   {bal margo beallitas x-re}
+                           pr_ini_ff_12 : st8;   {FF inicializalasa 12 inch-re}
+                           pr_ini_d_gr  : st8;   {dupla suru grafika ini x1,x2}
+                           pr_lf_1_216  : st8;   {legkisebb emeles}
+                           pr_lf_14_216 : st8;   {legkisebb emelessel egyutt 5/72 legyen}
+                           pr_vastag_be : st8;
+                           pr_vastag_ki : st8;
+                           pr_ala_be    : st8;
+                           pr_ala_ki    : st8;
+
+                           pr_DownLoad  : boolean; {csak akkor TRUE, ha
+                                                    '@'..'_' attervezheto}
+                           pr_IniDownLoad : st16;   {ROM -> RAM
+                                                    es Choose RAM}
+                           pr_EgyetTervez : st8;   {mi kell a karakterszam
+                                                   elott}
+                           pr_KarNumNum   : byte;  {hanyszor kell kiadni
+                                                   a karakter szamat}
+                           pr_KarnumUtan  : st8;   {kell meg valami a karakter
+                                                    szam utan, a matrix elott}
+                           pr_joker     : char;    {text mod-ban mi legyen a
+                                                    nem ASC vagy magyar helyett}
+                          (* uj parameterek ************************************************ *)
+                           Pr_OVR       : Byte;
+                                         { 0 = 8-tus matrix
+                                           1 = LASER
+                                           2 = ROBOTRON
+                                           3 = 24-tus LQ matrix }
+                           pr_maxfelsor :  integer; {mennyi felsort lehet engedni}
+                           pr_egyeb     : st16;    {tovabbi opcioknak }
+
+                         end;
+
+var     ppar      : printer_pars;
+        ppar_tomb : Array[1..4] Of printer_pars;
+        ppar_nev  : Array[1..4] Of St12;
+        ppars : file of printer_pars;
+
+
+type    serial_pars =   record
+                           s_ini       : st8;   {teljes inicializalas, ha van}
+                           s_cr_lf     : st8;   {cr lf}
+                           s_vastag_be : st8;
+                           s_vastag_ki : st8;
+                           s_ala_be    : st8;
+                           s_ala_ki    : st8;
+                           s_bill_on   : st8;  {billentyuzet bekapcs}
+                           s_bill_off  : st8;
+                           s_1_12      : st8;  {1/12 beosztas}
+                           s_ritka_off : st8;  {ritkitott irast kikapcs}
+                           s_joker     : char;    {mi legyen a
+                                                   nem ASC vagy magyar helyett}
+                           s_ovr       : Byte;
+                           s_maxfelsor : Integer;
+                           s_atkod     : array[1..2] of array [33..126] of char;
+                         end;
+
+var     spar     : serial_pars;
+        spars    : file of serial_pars;
+        Van_Font : Array[0..MaxFontNum] Of Boolean;
+
+        ptimeout  : array[0..3] of byte absolute $40:$78;
+        stimeout  : array[0..3] of byte absolute $40:$7c;
+
+
+
+const  Volt_Sps     : Boolean = False;
+       Volt_PPs     : Boolean = False;
+       KellHelpFile : Boolean = True;
+       Mentes_e     : Boolean = False;
+       PSFile       : Array[Boolean] Of FnTyp = ('','');
+       KonvName     : Array[1..3] of FnTyp = ('','','');
+
+
+       EOF_Modem    : Boolean = False;
+       ModemIras    : Boolean = False;
+       ModemMode    : Boolean = False;
+       ModemBdr     : Byte    = 2;    { 300 Baud }
+
+       MEMORIA     : REAL = 0.000000;
+
+       CRPoz       : Byte = 0;
+       SzotarPoz   : Byte = 0;
+
+       {$IFDEF OHEBER}
+
+       MaxGorogNum      = 16;
+       HeberPoz         : Byte = 0;
+       MostLettHeberVege: Boolean = False;
+       HeberJelzes      : Boolean = False;
+       GorogJelzes      : Boolean = False;
+       HeberNum         : Byte = 0;
+       GorogNum         : Byte = 0;
+       HeberINS         : Boolean = False;
+
+       HeberLength : Array [0..12] Of Byte =
+
+       (5,5,5,5,5,5,5,5,5,5,5,8,8);
+
+       GorogLength : Array [0..MaxGorogNum] Of Byte =
+
+       (5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2);
+
+       HeberASC : Array[0..10] Of String[5] = (
+       #0#0#0'!'#0,
+       #0#0#0'"'#0,
+       #0#0#0'#'#0,
+       #0#0#0'$'#0,
+       #0#0#0'%'#0,
+       #0#0#0'&'#0,
+       #0#0#0''''#0,
+       #0#0#0'('#0,
+       #0#0#0')'#0,
+       #0#0#0'*'#0,
+       #0#0#0'/'#0
+       );
+
+       GorogASC : Array[0..MaxGorogNum] Of String[5] = (
+       #0#0#0'!'#0,
+       #0#0#0'"'#0,
+       #0#0#0'$'#0,
+       #0#0#0'%'#0,
+       #0#0#0'&'#0,
+       #0#0#0''''#0,
+       #0#0#0'('#0,
+       #0#0#0')'#0,
+       #0#0#0'*'#0,
+       #0#0#0'+'#0,
+       #0#0#0','#0,
+       #0'#',
+       #0'-',
+       #0'.',
+       #0'/',
+       #0'0',
+       #0'1');
+
+       HeberASC11 : Array[11..12] Of String[8] =
+       (
+       #0#0#0'+'#0','#0#0,
+       #0#0#0'-'#0'.'#0#0
+       );
+
+       HeberScan : String[5] =
+
+       Char(BalraNyil)+
+       Char(Ctrl_PageDown)+
+       Char(Shift_F5)+
+       #$30+
+       Char(Ctrl_PageUp);
+
+       GorogScan : String[5] =
+
+       Char(BalraNyil)+
+       Char(Ctrl_PageUp)+
+       Char(Shift_F4)+
+       #$30+
+       Char(Ctrl_PageDown);
+
+       GorogScan2 : String[2] =
+
+       Char(Shift_F4)+
+       #$30;
+
+       HeberScan11 : Array[11..12] Of String[8] =
+
+       (
+       Char(BalraNyil)+
+       Char(Ctrl_PageUp)+
+       Char(Shift_F5)+
+       #$30+
+       Char(Shift_F5)+
+       #$30+
+       Char(Ctrl_PageDown)+
+       Char(BalraNyil),
+
+       Char(BalraNyil)+
+       Char(Ctrl_PageDown)+
+       Char(Shift_F5)+
+       #$30+
+       Char(Shift_F5)+
+       #$30+
+       Char(Ctrl_PageUp)+
+       Char(BalraNyil)
+
+
+       );
+
+       {$ENDIF OHEBER}
+
+       MostLettVege      : Boolean = False;
+       MostLettSzotarVege: Boolean = False;
+
+       CalcJelzes  : Boolean = False;
+       CalcAzaz    : Boolean = False;
+       CalcResult  : String  = '';
+       SzotarResult: String[40]  = '';
+
+       CalcAzazResult  : String  = '';
+
+       DRPoz       : Byte = 0;
+       DatumJelzes : Boolean = False;
+       DatumRes    : String[21] = '';
+
+       {$IFDEF NORVEG}
+       Honapok : Array[1..12] Of String[10] =
+
+      ('januar','februar','mars','april','mai','juni',
+       'juli','august','september','oktober','november','desember');
+
+       {$ELSE}
+       {$IFDEF OROSZ}
+       Honapok : Array[1..12] Of String[10] =
+
+      ('ü≠¢†‡Ô','î•¢‡†´Ô','å†‡‚†','ÄØ‡•´Ô','å†Ô','àÓ≠Ô',
+       'àÓ´Ô','Ä¢£„·‚†','ë•≠‚Ô°‡Ô','é™‚Ô°‡Ô','çÆÔ°‡Ô','Ñ•™†°‡Ô');
+
+       {$ELSE}
+       Honapok : Array[1..12] Of String[10] =
+
+      ('janu''r','febru''r','m''rcius','''prilis','m''jus','j]nius',
+       'j]lius','augusztus','szeptember','okt=ber','november','december');
+       {$ENDIF}
+       {$ENDIF}
+       CalcRes     : Real = 0.000;
+       CalcNum     : Real = 0.000;
+
+       SZAM        : array[1..2] of real = (0.000000,0.000000);
+       AKT         : INTEGER = 01;
+       MUVAKT      : INTEGER = 15;
+       tizedes     : BOOLEAN = FALSE;
+       jel         : BOOLEAN = FALSE;
+       jel2        : BOOLEAN = FALSE;
+       OSZTO       : REAL    = 0.000000;
+
+Type
+    KarMut   = array[1..MaxFontNum+1,1..94] Of             {LQ fontok}
+       Record
+         Cim       : Word;
+         Bevezeto  : Byte;
+         Oszlopok  : Byte;
+       End;
+
+    puffertipus  = Array[0..14000] Of Byte;
+    fontpoint    = Array[1..MaxFontNum+1] Of ^Puffertipus;
+    dnloadtomb   = array [0..449] of byte; {9 * (32 + 18)}
+                   {magyar karakter matrix file-bol}
+
+TYPE Fejezet = record
+                 Fej_resz : fntyp;
+               End;
+
+VAR  Kiadv_sor : fejezet;
+
+Var
+  FontKezdet  : FontPoint;
+  PluszFont   : Byte;
+
+  {$ifdef demo}
+  demo_nyom_sorok : word;
+  {$endif}
+
+  {$ifdef romchk}
+  const
+
+   {RCH_tol : word = $0000;
+    RCH_ig  : word = $1111;
+    RCH_ert : word = $2222;}
+
+    CsekSzam: String[5] = 'kutya';
+
+  {$endif}
+
+CONST Pic_Spec : string[64] = '';
+
+      KellLapdob : Boolean = True;
+      PublPrint  : Boolean = False;
+      Lapszamoz  : Boolean = False;
+
+      UresString : String[1] = '';
+
+VAR
+      FontAttr   : Array[1..MaxFontNum] Of Byte;
+
+      UpCasePoint: Array[0..MaxFontNum,1..2] Of PMutat; {^St80}
+
+      Mozgott    : Boolean;
+
+      Temp_Font  : Byte;
+      Temp_Ins,Temp_Sync,Temp_Just : Boolean;
+Type
+      KeyMode = (None,CtrlMode,AltMode,Ctrl_AltMode,Ctrl_ShiftMode,Blokk_Mode);
+
+      Directions = (Up,Down,Left,Right);
+
+TYPE  Doc_sor = array [0..FnSize] of FnTyp;
+VAR   Akt_kiadv_szam : byte;
+
+Const
+      ChooseMode : KeyMode = None;
+
+      Direction : Directions = Left;
+      Pen       : Directions = Down;
+
+      FrameSet : Set Of Char = ['|','_','o','+','u',',','n','i','m','j','k'];
+
+      FrameMode: Boolean = False;
+
+      UpArray    : Array[0..3] Of Char = ('|',' ','n',',');
+      DownArray  : Array[0..3] Of Char = (' ','|','u','o');
+      RightArray : Array[0..3] Of Char = ('u','n',' ','_');
+      LeftArray  : Array[0..3] Of Char = ('o',',','_',' ');
+      Pub_nev    : FnTyp = '';
+      OszlopVolt : Boolean = False;
+      ElvJel    : char = '.';
+      AktBejovo_ReadOnly : boolean = False;
+      ReadOnlyT       : array [1..28] of boolean =
+                        (False,False,False,False,False,
+                         False,False,False,False,False,
+                         False,False,False,False,False,
+                         False,False,False,False,False,
+                         False,False,False,False,False,
+                         False,False,False);
+
+Var
+      Volt_Bill  : Boolean;
+      PubStr     : string[3];
+
+Const AkosMarKikuldte : boolean = false;
+      Korlevelben     : boolean = false;
+
+
+Const MaxEmsC = (MMaxE*2+1)*2+2; { Ket teljes komplex sor + 2 tartalek }
+Type  EmsTombR = Record
+                   Sor    : Pointer;
+                   Sorsz  : Word;
+                   Cou    : Word;
+                   { NullTben: Byte; }
+                 End;
+      EmsTombT = Array[1..MaxEmsC] Of EmsTombR;
+                   
+Const SizeOfEmsTombR = SizeOf(EmsTombR);
+
+Var
+     EmsTomb     : EmsTombT;
+     NullTomb    : Array[1..MaxEmsC+1] Of Byte;
+     NullTBe,
+     NullTKi     : Byte;
+     EMR         : EmsTombR;
+     EmsTombC    : Word;
+     EmsTombM    : Word;
+     EmsSeg      : Word;
+     ActEmsLap   : Word;
+     ActLaponVan : Word;
+     EmsMaradek  : Word;
+
+     VanALapon : Boolean;
+     VanEmsM   : Boolean;
+     VanXmsM   : Boolean;
+     VanDskM   : Boolean;
+
+     MennyiKell : Word;
+
+     Hptr      : LPoint;
+     HeapP2    : Word Absolute Hptr;
+
+     HpVolt    : Word;
+
+Const
+   KvtMax = 512; {A kînyvt†r tîmbîs t†rol†s†n†l elhelyezhetî kvt-ak max. sz†ma}
+
+
+Type
+    String12 = String[12];
+{ A kînyvt†rfa rekord tipusai:}
+    KvtMut = ^KvtRec;
+    KvtRec = record
+                 Name : string12;
+                 Attr : byte;
+
+                 { A kînyvt†rfa nÇgy ir†nya: }
+                 Fent ,
+                 Bal  ,
+                 Jobb ,
+                 Lent : KvtMut;
+
+                 { A kînyvt†rh†l¢-csom¢pontok koordin†t†i: }
+                 Sor,
+                 Osz  :word;
+             end;
+
+   KvTombT = array[1..KvtMax] of KvtRec; {KvtRec mÇrete 34 byte.}
+Var
+   KvtTomb    : ^KvTombT;
+
+   ADB40 : Boolean;
+
+   LaserY: integer;
+   Dobott: boolean;
+   ElsoHVolt : Boolean;
+
+Const
+   SzoPoz : Integer = 0;
+
+{****************** Az EkSzer magyar vonatkozasu reszei ***************}
+
+
+{ ********** Menu system types, constans and variables *********** }
+
+Type  MnRec = Record
+                Start  : Byte; { A szovegek tombjeben hol kezdodik.
+                                 Nem kell megadni, az InitMenu kitolti   }
+                MemNum : Byte; { Hany menupontja van a menunek           }
+                Xp     : Byte; {\                                        }
+                Yp     : Byte; {-- Koordinatak                           }
+                Xp2    : Byte; {/                                        }
+                Yp2    : Byte; {/                                        }
+                Co     : Byte; { Az ablak attributuma                    }
+                Co2    : Byte; { A keret attributuma                     }
+                Co3    : Byte; { Elso karakter attributuma               }
+                Typ    : (hor,ver); { Vizszintes vagy fuggoleges menu    }
+                P      : Byte; { Melyik menubol hivodott meg ez a menu   }
+              End;
+
+Const
+       CurColor : Array[DispType] Of Byte = (63,112); { A menu kurzor szine }
+
+{$IFDEF VER3}
+
+       MpNum         = 153;  {  Osszesen hany menuszoveg van (5.xx)    }
+       MenuNum       =  18;  {  Hany menunk van (fomenut is beleertve) }
+
+{$ELSE}
+
+       MpNum         = 155;  {  Osszesen hany menuszoveg van           }
+       MenuNum       =  19;  {  Hany menunk van (fomenut is beleertve) }
+
+{$ENDIF}
+
+
+       NewMenu  : Array[1..MpNum] of Byte =
+          {  Melyik menupontrol hanyas menube lephetunk be.
+             Ha ez a szam 0, a menupontnak nincs tovabbi almenuje  }
+
+{$IFNDEF VER3}
+                         {Edit}
+  (2,3,4,5,6,7,8,9,0,  0,0,12,13,0,
+
+    {Delete}       {Load}            {Save}          {Publik}
+  0,0,14,15,   0,0,0,0,0,0,0,   0,0,0,0,0,0,0,0,   0,0,0,0,0,0,17,
+
+     {Change}             {Print}
+    0,0,10,0,0,0,0,0,18,    0,0,0,0,11,0,16,
+
+     {File}        {chg par}          {pr. opt}
+    0,0,0,0,0,    0,0,0,0,0,0,0,19,   0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0, 0,0,
+
+                     0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, { 16. Konfigur†ci¢ });
+
+                     0,0,0,0,0                    { 17. Kalkul†tor }
+
+{$ELSE}
+                         {Edit}
+  (2,3,4,5,6,7,8,0,    0,0,11,12,0,
+
+    {Delete}       {Load}            {Save}
+   0,0,13,14,   0,0,0,0,0,0,0,   0,0,0,0,0,0,0,0,
+
+     {Change}                   {Print}
+    0,0,09,0,0,0,0,0,16,18,    0,0,0,0,10,0,15,
+
+     {File}      {chg par}          {pr. opt}
+    0,0,0,0,0,    0,0,0,0,0,0,0,17,   0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0, 0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, { 16. Konfigur†ci¢ }
+
+                     0,0,0,0,0,    { 17. Kalkul†tor }
+                     0,0,0         { 18. Konverziok }
+                     );
+
+{$ENDIF}
+
+       ShowLine : Array[1..MpNum] of Byte =
+          { Fuggoleges menu eseten ez tartalmazza azt, hogy a menupontok
+            hanyadik sorban jelenjenek meg. Az ablak legelso sora = 1.
+            Vizszintes menu eseten a menupont x pozicioja az ablakban,
+            Ezt az InitMenu rutin automatikusan beallitja }
+
+{$IFNDEF VER3}
+                       {Edit}
+ (0,0,0,0,0,0,0,0,0,  2,3,4,5,7,
+
+   {Delete}      {Load}             {Save}           { Public }
+   2,3,4,5,    2,3,4,5,6,7,8,     2,3,4,5,6,7,8,9,   2,3,4,5,6,7,8,
+
+       {Change}           {Print}
+ 2,3,4,5,6,7,8,9,10,    2,3,4,5,6,7,9,
+
+ {File}        {chg par}          {pr. opt}
+ 2,3,4,5,7,   2,3,4,5,6,8,9,11,   2,3,4,5,6,7,8,9, 11,12,13, 15,16, 17,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     { KîrlevelezÇs }        { 17. Nyomt. opc.}
+
+                     2,3,4, 6,7,              2,3,
+
+                      { 18. Konfigur†ci¢ }
+
+                     1,2,3,4,5,6,  8,9,10,11,12,13, 14,15,16, 17,18,
+
+                     2,3,4,5,6);                  { 19. Kalkul†tor }
+
+
+{$ELSE}
+                       {Edit}
+ (0,0,0,0,0,0,0,0,    2,3,4,5,7,
+
+   {Delete}      {Load}             {Save}
+   2,3,4,5,    2,3,4,5,6,7,8,     2,3,4,5,6,7,8,9,
+
+       {Change}             {Print}
+ 2,3,4,5,6,7,8,9,10,11,    2,3,4,5,6,7,9,
+
+ {File}        {chg par}          {pr. opt}
+ 2,3,4,5,7,   2,3,4,5,6,8,9,11,    2,3,4,5,6,7,8,9, 11,12,13, 15,16, 17,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+                     0,0,0,0,0,0,0,0,0,0,0,0,
+
+                     { KîrlevelezÇs }
+
+                     2,3,4, 6,7,
+
+                     { 16. Konfigur†ci¢ }
+
+                     1,2,3,4,5,6,  8,9,10,11,12,13, 14,15, 16,17,
+
+                     2,3,4,5,6,
+
+                     2,3,4);                  { 17. Kalkul†tor }
+
+{$ENDIF}
+
+       MenuRec : Array[1..MenuNum] Of MnRec =(
+       { Ezek a rekordok a menuk adatait tartalmazzak. Ld. az MnRec leirast }
+
+    (Start  :  1;    { Fomenu  1 }
+     {$IFNDEF VER3}
+     MemNum :  9;
+     {$ELSE}
+     MemNum :  8;
+     {$ENDIF}
+     Xp     :  1;
+     Yp     :  1;
+     Xp2    : 80;
+     Yp2    :  3;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :hor;
+     P      :  0),
+
+    (Start  :  0;    { Edit    2 }
+     MemNum :  5;
+     Xp     :  1;
+     Yp     :  3;
+     Xp2    : 16;
+     Yp2    : 12;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    : ver;
+     P      :  1),
+
+    (Start  :  0;    { Delete  3 }
+     MemNum :  4;
+     Xp     : 10;
+     Yp     :  3;
+     Xp2    : 25;
+     Yp2    : 10;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     P      :  1),
+
+    (Start  :  0;    { Load   4 }
+     MemNum :  7;
+     Xp     : 30;
+     Yp     :  3;
+     Xp2    : 51;
+     Yp2    : 13;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     P      :  1),
+
+    (Start  :  0;    { Save  5 }
+     MemNum :  8;
+     Xp     :  1;
+     Yp     :  3;
+     Xp2    : 22;
+     Yp2    : 14;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     P      :  1),
+
+{$IFNDEF VER3}
+    (Start  :  0;    { Publicat 6 }
+     MemNum :  7;
+     Xp     : 50;
+     Yp     :  3;
+     Xp2    : 73;
+     Yp2    : 13;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     P      :  1),
+{$ENDIF}
+
+    (Start  :  0;    { Change 6 }
+     MemNum : 10;
+     Xp     : 10;
+     Yp     :  3;
+{$IFDEF ROMAN}
+     Xp2    : 36;
+{$ELSE}
+     Xp2    : 30;
+{$ENDIF}
+     Yp2    : 16;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     P      :  1),
+
+   (Start   :  0;    { Print 7 }
+    MemNum  :  7;
+    Xp      : 30;
+    Yp      :  3;
+    Xp2     : 48;
+    Yp2     : 14;
+    Co      : 31;
+    Co2     : 15;
+    Co3     : 23;
+    Typ     :ver;
+    P       :  1),
+
+   (Start   :  0;    { File   8 }
+    MemNum  :  5;
+    Xp      : 50;
+    Yp      :  3;
+    Xp2     : 65;
+    Yp2     : 12;
+    Co      : 31;
+    Co2     : 15;
+    Co3     : 23;
+    Typ     :ver;
+    P       :  1),
+
+    (Start  :  0;    { Change parameters 9 }
+     MemNum :  8;
+     Xp     : 35;
+     Yp     :  6;
+{$IFDEF ROMAN}
+     Xp2    : 62;
+{$ELSE}
+     Xp2    : 59;
+{$ENDIF}
+     Yp2    : 19;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     {$IFNDEF VER3}
+     P      :  7),
+     {$ELSE}
+     P      :  6),
+     {$ENDIF}
+
+    (Start  :  0;    { Printer options    10 }
+     MemNum : 14;
+     Xp     : 52;
+     Yp     :  3;
+     Xp2    : 78;
+     Yp2    : 21;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     {$IFNDEF VER3}
+     P      :  8),
+     {$ELSE}
+     P      :  7),
+     {$ENDIF}
+
+
+    (Start  :  0;    { Edit headers       11 }
+     MemNum : 12;
+     Xp     : 07;
+     Yp     :  4;
+     Xp2    : 73;
+     Yp2    : 06;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :hor;
+     P      :  2),
+
+
+    (Start  :  0;    { Edit footers       12 }
+     MemNum : 12;
+     Xp     : 07;
+     Yp     :  6;
+     Xp2    : 73;
+     Yp2    : 08;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :hor;
+     P      :  2),
+
+    (Start  :  0;    { Delete headers     13 }
+     MemNum : 12;
+     Xp     : 07;
+     Yp     :  4;
+     Xp2    : 73;
+     Yp2    : 06;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :hor;
+     P      :  3),
+
+    (Start  :  0;    { Delete footers     14 }
+     MemNum : 12;
+     Xp     : 07;
+     Yp     :  6;
+     Xp2    : 73;
+     Yp2    : 08;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :hor;
+     P      :  3),
+
+    (Start  :  0;    { KîrlevelezÇs    15 }
+     MemNum :  5;
+     Xp     : 54;
+     Yp     :  5;
+
+{$IFDEF ROMAN}
+     Xp2    : 80;
+{$ELSE}
+     Xp2    : 78;
+{$ENDIF}
+
+     Yp2    : 14;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     {$IFNDEF VER3}
+     P      :  8)
+     {$ELSE}
+     P      :  7)
+     {$ENDIF}
+
+     {$IFNDEF VER3}
+   ,(Start  :  0;    { Nyomt. opc.    17 }
+     MemNum :  2;
+     Xp     : 50;
+     Yp     :  9;
+     Xp2    : 74;
+     Yp2    : 14;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     P      :  6)
+     {$ENDIF}
+
+   ,(Start  :  0;    { 16. Konfigur†ci¢ }
+     MemNum : 16;
+     Xp     : 47;
+     Yp     :  3;
+     Xp2    : 76;
+     Yp2    : 21;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :Ver;
+     {$IFNDEF VER3}
+     P      :  7
+     {$ELSE}
+     P      :  6
+     {$ENDIF}
+     ),
+
+    (Start  :  0;    { 17. Kalkul†tor }
+     MemNum :  5;
+     Xp     : 33;
+     Yp     :  8;
+     Xp2    : 57;
+     Yp2    : 16;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     {$IFNDEF VER3}
+     P      : 10)
+     {$ELSE}
+     P      : 9)
+     {$ENDIF}
+
+    ,(Start  :  0;    { 18. Konverziok }
+     MemNum :  3;
+     Xp     : 48;
+     Yp     : 14;
+     {$IFDEF NORVEG}
+     Xp2    : 76 ;
+     {$ELSE}
+     Xp2    : 73;
+     {$ENDIF}
+     Yp2    : 20;
+     Co     : 31;
+     Co2    : 15;
+     Co3    : 23;
+     Typ    :ver;
+     {$IFNDEF VER3}
+     P      : 7)
+     {$ELSE}
+     P      : 6)
+     {$ENDIF}
+
+
+);
+
+{********************** Menu system end ************************}
+
+{--------- File-bol beolvasando konverzios tablak ------FI--------}
+Type ConvString = record
+                   ezt     : string[255];    {mirol..mire}
+                   EztFont : string[255];
+                   erre    : string[255];
+                   ErreFont: string[255];
+                  end;
+
+    ConvStringA = record
+                   ezt     : string;    {mirol..mire}
+                   erre    : string;
+                  end;
+
+{$IFDEF NORVEG}
+Const Key_In : ConvString = (Ezt:     '';
+                             EztFont: '';
+                             Erre:    '';
+                             ErreFont:'');
+{$ENDIF}
+
+{$IFDEF ANGOL}
+Const Key_In : ConvString = (Ezt:     '';
+                             EztFont: '';
+                             Erre:    '';
+                             ErreFont:'');
+{$ENDIF}
+
+{$IFNDEF NORVEG}
+  {$IFNDEF ANGOL}
+Const Key_In : ConvString =
+
+(Ezt     :  '†èÇê°ç¢ïîôìß£óÅöñòåãäÉÖÜàâÑé·';
+ EztFont :  'M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*N*';
+
+ Erre    :  '''";:`~=+0)[{]}-_\|~[;'''''';;''"-';
+ ErreFont:  'M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*M*N*');
+
+{file: key_in.dat}
+{ha nincs file, akkor is konvertal}
+
+  {$ENDIF}
+{$ENDIF}
+
+Var   Key_InSt : Array[1..4] Of String[255] Absolute Key_In;
+
+Const
+
+
+     Chi_In : ConvstringA = (ezt : '';
+                             erre: '');       {file: Chi_in.dat}
+
+
+     Asc_In : ConvstringA = (ezt : '';
+                             erre: '');  {ha nincs file, akkor semmi,
+                                          mert a CWI a FILECDW.PAS-ban
+                                          gy†rilag benne van}
+
+     Asc_Out: ConvStringA = (ezt :'!@#$^&*(<>/'+#39+'`0-=\[];"~)_+|{}:';
+                             erre:'0"+!/=();:-'+'†'+'°îÅ¢ñì£Çèçôöïòßóê');
+                                        {file: asc_out.dat}
+                                        {ha nincs file, akkor CWI}
+
+     TablazatConvSt: Array[0..1] Of String[11] =
+
+     ('|uionm,_+jk',
+      '≥⁄¬ø¿¡Ÿƒ≈√¥');
+
+{file-ok beolvasasa Ekszer konyvtarbol a READ_DRIVERS rutinban: STARTCDW-ben}
+{--------- File-bol beolvasando konverzios tablak ------FI--------}
+
+NemInputString : Boolean = True;
+
+BackSlash : String[1] = '\';
+
+ExtSet    : Set Of Byte = [];
+
+KettosPont: Boolean = False;
+
+InChooseban: Boolean = False;
+
+Type  CharType     = (Normal,Dolt,Vastag,Every);
+
+{$IFDEF NORVEG}
+
+      LanguageType = (Norveg,Sami);
+
+Const
+
+MaxLanguage = 2;
+LanguageArray : Array[1..MaxLanguage] Of LanguageType = (Norveg,Sami);
+LanguageName  : Array[1..MaxLanguage] Of String[8]   = ('Norske','Samiske');
+
+Language      : LanguageType = Norveg;
+LanguagePos   : Byte = 1;
+ChooLang      : Boolean = False;
+
+{$ENDIF}
+
+Var
+  FontHely,
+  FontHely2    : Pointer;
+  NyelveszBent : Boolean;
+  WinHely : Array[0..2] Of String[100];
+  StandardHandle : Word;
+  VideoCim       : Pointer;
+
+  BpErtek : Word;
+  EmsOvr  : Boolean;
+
+  SwapError,
+  SwapError2 : Boolean;
+
+  NyelvWinAz : ^Word;
+  NyelvWinM  : Word;
+  DoglottNyelvEsz : Boolean;
+  SErrorSt   : String[64];
+  EmblemaSor,
+  EmblemaXPos : Byte;
+Const
+  EmblemaMod  : Byte = 1;
+
+  EmbXLen = 4;
+  EmbYLen = 4;
+
+{$IFDEF JELSZAVAS}
+  JelSzoCount : Longint = 0;
+  Elszaro     : Word    = 0;
+  JelSzoStr   : String[16] = '';
+{$ENDIF}
+
+Type ByteMut = Array[0..15000] Of Byte;
+
+Var
+  Xresolution,
+  Yresolution  : Integer;
+  ExtendedGr   : Boolean;
+  ExtendedMode : Integer;
+  NoOfColors   : Integer;
+
+  LapReszV    : Boolean;
+  PrevXs,
+  PrevYs      : Integer;
+  PrevHely    : ^ByteMut;
+
+  PrevHeadNum,
+  PrevFootNum : Integer;
+
+
+{$IFDEF EKSZINFO}
+Const ActVerz = 10;
+      MaxItem = Dir_Nagysag;
+
+Type
+  IItemRec = Record
+              Verzio    : Byte;
+              Iname     : String[12];
+              IdateTime : Longint;
+              Isize     : Longint;
+              Itext     : String[70];
+              Inum      : Integer;
+              Tartalek  : Array[1..60] Of Byte
+            End;
+    INamesT     = Array[0..MaxItem-1] Of String[12];
+    IIndexT     = Array[0..MaxItem-1] Of Integer;
+    IndexTM     = ^IIndexT;
+Var
+    IndexM      : IndexTM;
+
+Const
+    MegisIze : Boolean = False;
+
+{$ENDIF}
+Const
+    MostKellInf  : Boolean = False;
+    Xoffset      : Byte    = 0;
+    ScStep       : Word    = 1;
+
+{$IFDEF PACKARD}
+Type Byte6 = Array[1..6] Of Byte;
+     Byte4 = Array[1..4] Of Byte;
+
+Var
+       Cluster   : Word;
+
+       CompDate  : Word;
+       CompTime  : LongInt;
+
+       DatePack1 : Byte4;    { nem clusteros  }
+       DatePack2 : Byte4;    { clusteros      }
+
+       TimePack1 : Byte6;    { nem clusteros  }
+       TimePack2 : Byte6;    { clusteros      }
+       TimePack3 : Byte6;    { clusteros CMOS }
+
+       DD1,
+       DD2       : Word;
+       TT1,
+       TT2,
+       TT3       : Longint;
+
+       SerSt     : String[64];
+
+Const XorA : Array[1..3,1..6] Of Byte = (($2A,$45,$72,$B7,$86,$E3),
+                                         ($4B,$26,$FC,$A3,$D2,$87),
+                                         ($5F,$E3,$6B,$12,$57,$CE));
+Var Pw1 : Array[1..10] Of String[10];
+
+Const
+
+    CmosStart  : Byte = $F0;
+    CheckSzamok = 40;
+    {ChkTomb : Array[1..5] Of Word    =  (39471,8395,1585,8395,25747);}
+
+
+    CmosStartT : Array[1..6,1..6] Of Byte=
+                                       (($37,$38,$39,$3A,$3B,$3C),{Ez nem jo}
+                                        ($23,$24,$25,$26,$39,$3C),
+                                        ($70,$71,$72,$73,$74,$75),
+                                        ($7A,$7B,$7C,$7D,$7E,$7F),
+                                        ($70,$71,$72,$73,$74,$75),
+                                        ($50,$51,$52,$53,$54,$55));
+
+
+Var
+    JoCMOS : Boolean;
+    GepType : Byte;
+{$ENDIF}
+
+(*** 5.0 ***)
+
+Const
+      OvrHely: Array[False..True] Of String[3] = ('DISK','EMS');
+
+      FormatSt: Array[0..3] Of String[6] =
+
+      ('100%','1000','1,000','10E+03');
+
+{ Kalkul†tor menÅ v†ltoz¢i }
+
+      Tizedesek : Byte = 2;
+      Format    : Byte = 1;
+      Szammal : String[80]  = '';
+      Betuvel : String[128] = '';
+
+      GSzammal : String[80]  = '';
+      GBetuvel : String[128] = '';
+
+{ Nyomtat†s/Opci¢k menÅ £j v†ltoz¢i }
+
+      Formatum  : Boolean = True;
+      Condensed : Boolean = False;
+
+      GlobalNum: Real = 0;
+
+      DateSort : Boolean = False;
+
+Type  CalcType = (Add,Sub,Multiply,Division,Equal);
+
+Const Gyujtes  : Boolean = False;
+
+      ASCIIVolt: Array[1..29] Of Boolean =
+
+      (False,False,False,False,False,False,False,False,False,
+       False,False,False,False,False,False,False,False,False,
+       False,False,False,False,False,False,False,False,False,
+       False,False);
+
+      DiskMemPath : String[64] = '\';
+
+      Magyar         : Byte = 0;
+      MagyarDolt     : Byte = 0;
+      MagyarVastag   : Byte = 0;
+      MagyarIndex    : Byte = 0;
+      MagyarAlahuzott: Byte = 0;
+      MagyarOrator   : Byte = 0;
+
+      Standard         : Byte = 0;
+      StandardDolt     : Byte = 0;
+      StandardVastag   : Byte = 0;
+      StandardIndex    : Byte = 0;
+      StandardAlahuzott: Byte = 0;
+      StandardOrator   : Byte = 0;
+Var
+      MagyarSet  : Set Of Byte;
+      StandardSet: Set Of Byte;
+      EgyebSet   : Set Of Byte;
+
+      GIBWord    : ^String;
+      GIBEnabled : Boolean;
+      MagyarVolt : Boolean;
+
+      {$IFDEF NORVEG}
+      GlobalSzoAtt,
+      {$ENDIF}
+      SzoAtt,
+      Szo        : Str160;
+
+      FontMentes : Byte;
+
+{$IFDEF SECRET}
+      BaseBytes  : Array[1..23] Of Byte;
+      JelszoDe   : String[30];
+{$ENDIF}
+
+
+Const
+      KellJelszo : Boolean = False;
+      VanJelszo  : Boolean = False;
+      InJelszo   : Boolean = False;
+      KodoltFile : Boolean = False;
+      BackupVan  : Boolean = False;
+      KodAzon    : Array[1..3] Of Byte = ($99,$88,$77);
+
+      SzoTermSet : Set Of Char =
+
+      {$IFDEF HELYESKE}
+      [',','@','#','$','%','^','&','*','(','<','>','?'];
+      {$ELSE}
+      [',','.','@','#','$','%','^','&','*','(','<','>','/','?'];
+      {$ENDIF}
+
+      AngolSzoTermSet : Set Of Char =
+
+      {$IFDEF HELYESKE}
+      [',','@','#','$','%','^','&','*','(','<','>','/','?',
+      '"',';',':','`','~','=','+','0',')','[','{',']',
+      '}','_','\','|'];
+      {$ELSE}
+      [',','@','#','$','%','^','&','*','(','<','>','/','?',
+      '''','"',';',':','`','~','=','+','0',')','[','{',']',
+      '}','-','_','\','|','.'];
+      {$ENDIF}
+
+      Kis_A_Kis_Z   : Set Of Char =  ['a'..'z'];
+      Nagy_A_Nagy_Z : Set Of Char =  ['A'..'Z'];
+
+      StandardFont : Byte = 1;
+      MagyarFont   : Byte = 2;
+
+      CalcOpKey  : String[5]  = '+-*/=';
+      CalcOpKeyM : String[10] = '#/*^&+-*/=';
+
+      SpellerNum: Byte = 1;
+
+      Speller: Array[0..2] Of String[8] =
+
+      {$IFDEF SPELL}
+      ('Nyelvêsz','"Lektor"','Speller');
+      {$ELSE}
+      ('Nyelvêsz','"Lektor"','Helyeske');
+      {$ENDIF}
+
+      Header_Mode : Boolean = False;
+      Nulla       : Byte    = 0;
+
+      HardSoftSpace : Set Of Char = [' ',#0];
+      SoftSpace     : Set Of Char = [#0];
+
+Type  GlobalKeyModeType = (StandardMode,MagyarMode);
+
+Const GlobalStringMode : (SemmiSem,SzamMode,BetuMode,CondiMode) = SemmiSem;
+      GlobalKeyMode    : GlobalKeyModeType = StandardMode;
+
+      GlobalKeyModeStr : Array[StandardMode..MagyarMode] Of String[8]
+      = ('STANDARD',' MAGYAR ');
+
+      GuardDsk : String[10] = 'GUARDDSK';
+
+      PontPont : String[12] = '..          ';
+
+      ValodiSize = 16384;
+      KodoltSize = ValodiSize + ((ValodiSize +1023) DIV 1024)*12;
+
+     {$IFDEF SECRET}
+     PufferSize = KodoltSize;
+     {$ELSE}
+     PufferSize = ValodiSize;
+     {$ENDIF}
+
+
+Type
+
+  Bufft = Array[1..Puffersize] Of Byte;
+
+Var
+  BufferP    : ^Bufft;
+  BufPointer : Word;
+  Pufferben  : Word;
+
+Const Mindigletolt : Boolean = False;
+      GGFN : St16='';
+
+{$IFDEF OROSZ}
+  const Ekszer_ciril : string[70] =
+  'F<DULT:PBQRKVYJGHCNEA{WXIO}SM">Zf,dult;pbqrkvyjghcnea[wxio]sm''.z';
+  const GOST_ciril   : string[70] =
+  'ÄÅÇÉÑÖÜáàâäãåçéèêëíìîïñóòôöõúùûü†°¢£§•¶ß®©™´¨≠ÆØ‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔ';
+  const GOST_LO : string[33] =
+  '†°¢£§•¶ß®©™´¨≠ÆØ‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔ';
+{$ENDIF}
+
+{$IFDEF HALO}
+
+  KellMessage : Boolean = True;
+
+{$ENDIF}
+
+  HanyMasodpercenkentFigyel : Longint = 3;
+
+Figyel          : Boolean = False;
+VisszaKellRakni : Boolean = False;
+LeKellPoz       : Byte    = 00;
+
+BreakStatus : Byte = 00;
+
+Var ExtVolt : Boolean;
+
+Const LastFont : Byte = 0;
+
+{$IFDEF ROMAN}
+Kell_Roman : Boolean = True;
+{$ENDIF}
+
+(****************** SPEAKER *******************)
+
+Const
+
+    Frekvencia   : Word = 15625;
+    EnabledSpeak : Boolean = False;
+
+    Volume       : Integer = 200;
+
+Var
+    Sebesseg   : Word;
+    Speed      : Word;
+
+Var   Kezdo : ShortInt;
+
+Const MaxDiad = 1368;
+Type
+PofaRec     = Record
+                AzKod   : Word;
+                IRepeat : Byte;
+              End;
+
+PofaDatType = Array[0..MaxDiad,0..2] Of PofaRec;
+
+Const DiadFileName = 'POFA.DAT';
+
+	  SPAC = 101;
+	  MondatSize = 2000;
+ PofaFrekv = 22050;
+
+ BreakVolt : Boolean = False;
+
+Radir            : Boolean = False;
+
+Type  MondatType = Array[0..MondatSize] Of Char;
+	  MondatWord = Array[0..MondatSize] Of Word;
+
+
+{$IFDEF HELYESKE}
+Var
+
+HelyesLen    : Word;
+VanHelyeske : Boolean;
+SzoTomb      : Array[0..50] Of String[59];
+SzoTombC     : Array[0..50] Of Array[0..59] Of Char Absolute SzoTomb;
+SzoPointTomb : Array[0..50] Of Word;
+SzoDarab     : Byte;
+SajatSzo     : Str160;
+
+{$ENDIF}
+
+Var
+
+BlokkSearch      : Boolean;
+Kezd,Veg         : Word;
+Kezdodo,Vegzodo  : Word;
+
+{INPUTCDW.PAS-bol}
+
+IdoAlap           : Word Absolute $0040:$006C;
+
+Const
+
+LastIdoAlap: Word    = 0;
+LastDefIdo : Word    = 0;
+LastKeyIdo : Word    = 0;
+LastMsgIdo : Word    = 0;
+
+{ 6.5 verzi¢ £j v†ltoz¢i: }
+
+Const
+
+KellCloseBox         : Boolean = False;
+LeftButtonPressed    : Boolean = False;
+RightButtonPressed   : Boolean = False;
+CenterButtonPressed  : Boolean = False;
+ClickOnCurrentWindow : Boolean = False;
+ClickOnInfoWindow    : Boolean = False;
+ClickOnCloseBox      : Boolean = False;
+
+ClickOnChooseItem    : Integer = -1;
+PrevChooseItem       : Integer = -1;
+
+Type PointRecord =
+           Record
+             X   : Integer;
+             Y   : Integer;
+           End;
+Var
+
+EscPoint              : PointRecord;
+MouseXPos,MouseYPos   : Integer;
+ActWindMin,ActWindMax : Word;
+ClickXpos,ClickYpos   : ShortInt;
+
+{$IFDEF NAGYSOLYMOSI}
+  Var TimeSt,DateSt : String[24];
+{$ENDIF}

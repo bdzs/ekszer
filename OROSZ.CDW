@@ -1,0 +1,477 @@
+
+{********************** Printeles uzenetek *********************}
+
+
+const   pr_mess1   = 'Печать остановлена';
+        pr_mess2   = 'ESC прекратить, др. клавиша продолжать';    
+        pr_mess3   = 'Загрузка';
+        pr_mess4   = 'Отсутствует файл :';
+        pr_mess5   = ' загружается...';
+        pr_mess7   = 'Подождите немножко...';
+        pr_mess8   = 'Печатание';
+        pr_mess9   = 'Прекратить: любой клавишей';
+        pr_mess10  = 'Конец листа';
+        pr_mess11  = '   Если принтер остановится';
+        pr_mess12  = 'смените бумагу и нажмите ENTER';
+        pr_mess13  = ' Принтер не готов !';
+        pr_mess14  = ' <С>нова или <П>рекратить ?';
+        pr_mess15  = '  Длина листа не пригодна !';
+        pr_mess16  = '<А>ктуал. <М>аксим. <П>рекратить';
+        pr_mess17  = 'Актуаль.:';
+        pr_mess18  = ' Максималь. :';
+        pr_mess19  = '-  если нет сносок а шапок  -';
+        pr_mess20  = ' чтобы загрузить набор знаков';
+        pr_mess21  = 'Оптимализация памяти';
+        {$IFDEF LICENC}
+        ElveszettSt = 'эмблема поверж некоторых букв !';
+        {$ENDIF}
+
+(******************************* Egyeb nevek ********************************)
+
+
+                         { SET.CDW - bol}
+
+  Enter_Max_Key = 'Макс. нажатий : ';
+      SST0      = 'Число макро клавишей';
+
+      EnterDist = 'Расстояние (дюйм): ';
+      EnterPage = 'Номер стр.: ';
+      EnterPld  = 'экземпляры :';
+      SST1      = 'Первая страница';
+      SST2      = 'Последняя страница';
+      SST3      = 'Номер первой страницы';
+      SST4      = 'Синхронизация принтера';
+      SST5      = 'Синхронизация : ';
+      SST6      = 'Установка длины страницы';
+      SST7      = 'Длина страницы : ';
+      SST8      = 'Распред. индекс. строк';
+      SST9      = 'Пропорция строк % (1-100) : ';
+      SST10     = 'Периодическая запись';
+      SST11     = 'Каждые x минут : ';
+      SST12     = 'Пробел в печати';
+      SST13     = 'Левый пробел : ';
+      SST14     = 'Число экземпляров';
+      SST15     = 'Расстояние между двумя этикетками';
+
+                  { INITCDW.CDW-bol }
+
+      IniST1    = 'Загрузка';
+      IniST2    = 'Информация';
+      IniST3    = 'Новая маска файла';
+      IniST4    = 'Маска файла  : ';
+      IniST5    = ' каталог';
+      IniST6    = 'Каталог : ';
+
+
+                  { INPUTCDW.PAS-bol }
+
+      InpST1    = ' Сортировка...';
+      InpST2    = 'Каталог : ';
+      InpST3    = ' чтобы загрузить файл';
+      InpST4    = 'Шапки';
+      InpST5    = ' загружается';
+      InpST6    = ' записывается';
+      InpST7    = ' PgUp : пред. лист ';   
+      InpST8    = 'Внимание';
+      InpSt9    = ' PgDn : след. лист ';   
+      InpSt10   = ' Слышком много файлов... ';
+
+                  { INPUTELE.CDW-bol }
+
+      IneSt1    : String[16] = '<ESC> прекратит';      
+      IneSt2    = 'Внимание';
+      IneSt3    = 'Вы уверены, что ';
+
+      IneSt5    = ' хотите убирать файл ? (Д/Н) ';
+      IneSt6    = 'Уборка файла';
+      IneSt7    = 'Каталог : ';
+      IneSt8    = ' убирается';
+      IneSt9    = 'Переименование файла';
+      IneSt10   = 'Старойе ';
+      IneSt11   = 'Новойе ';
+      IneSt12   = 'Бег остановлен';
+      IneSt13   = ' загружается...';
+      IneSt14   = '. набор :';
+      IneSt15   = ' обрабатывается';
+      IneSt16   = 'Запись макро';
+      IneSt17   = 'Загрузка макро';
+      IneSt18   = 'Запись параметров';
+      IneSt19   = 'Загрузка параметров';
+      IneSt20   = 'Копирование файла';
+      IneSt21   = '  Файл-оригинал ';
+      IneSt22   = '     Новый файл ';
+      IneSt23   = 'Выбор пиш. машины';
+      IneSt24   = 'Выбор принтера';
+      IneSt25   = 'Выбор списка адресов';
+      IneSt26   = 'Дефиниция условий';
+      IneSt27   = 'Запись конфигурации';
+
+      Feltetel  : String[10] = 'Условие';
+
+                   { CDW.CDW-bol }
+
+      CDWST1    = ' загружается';
+
+                   { ELEJE.CDW-bol }
+
+      EleSt1    = 'Карактеры';
+      EleSt2    = 'Отметка файла';
+      EleSt3    = 'Выбор';
+      EleSt4    = 'Стирание памяти';
+      EleSt5    = 'Подождите немножко';
+      EleSt6    = 'Каталог : ';
+      EleSt7    = ' чтобы добавить строку';
+
+                   { BLOKK.CDW-bol   }
+
+      BlSt1     = ' чтобы копировать блок';
+
+                   { REPLACE.CDW-bol }
+
+      RepSt1    = ' Сменить ? (Д/Н) :';
+      RepSt2    = 'Новый текст:';
+      RepSt3    = 'Опции: ';
+
+                   { MENU.CDW-bol    }
+
+      MSt1     = 'Загрузка';
+      MSt2     = 'Центральное меню';
+
+                   { CDW.PAS-bol     }
+
+      CDWFst1  = ' чтобы вставить карактер';
+      CDWFst2  = 'Порядковый номер : ';
+      CDWFst3  = 'Вставьте ключевой диск в дисковод A !';     
+
+                   { FORMAT.CDW-bol   }
+
+      FORMst1  = ' чтобы форматировать';
+
+                   { Innen-onnan }
+
+      YesChar   = 'L';    { Igen-Nem valaszok             }
+      NoChar    = 'Y';
+
+      UjraChar  = 'C';    { Karakterleutesek nyomtataskor }
+      AktChar   = 'F';
+      MaxiChar  = 'V';
+      KilepChar = 'G';   {= prekratit`}
+      EkSzerChar= 'G';   {= ProTex}
+      AsciiChar = 'F';
+
+      DocuSt    : String[10] = 'Документ';
+      ASCIISt   : String[10] = 'ASCII файл';
+      VenturaSt : String[12] = 'Ventura файл';
+      WordStarSt: String[13] = 'WordStar файл';
+
+      Fstr      : Array [Find..Replace] Of String[15] =
+           ('Поиск','Поиск + Смена');
+
+
+   Texts : Array [-2..8] of STRING[5] =
+   ('ПНС','ДЕФ','ИНЗ','СНХ','ПОПР','ПОЛН:','РАСС:','НАБ:','СТК:','СТЛ:','СТР :');
+
+      Positions : array[-2..8] of BYTE = (13,13,17,21,25,30,40,47,54,63,71);
+      YesNo     : Array[0..1] Of String[3] = ('  Н','  Д');
+      Wss       : Array[0..1] Of String[8] = ('  ProTex','WordStar');
+      ColMo     : Array[DispType] Of String[6] = ('Цветн.','   Ч/Б');
+
+      {$IFNDEF VER3}
+      PbPr      : Array[0..1] of String[5] = (' Акт.','ЕгВсз');
+      PgNm      : Array[0..1] of String[5] = ('Фолы.','Доку.');
+      {$ENDIF}
+
+      Nincs     : String[5]  = 'Нет';
+
+
+      {$IFDEF VER352}
+      ExName    : String[40]  = 'ProTex Версия 3.90';
+      {$ELSE}
+        {$IFNDEF VER3}
+        ExName    : String[48]  = 'ProTex Версия 4.00';
+        {$ELSE}
+          ExName    : String[40]  = 'ProTex Версия 5.10';
+        {$ENDIF}
+      {$ENDIF}
+
+      Szov      : Array [1..3] Of String[6] =
+
+      ('Рабоч.','ProTex','Основ.');
+
+      MemSt : String[12] = 'Диск. память';  { Vigyаzat ! Ez a Szov[4]-kВnt
+                                              is mБkФdik ! }
+
+      KovLap    : String[16] = ' PgDn : пред.стр.';
+
+      Temp_String : String[32] =
+      'Периодич. запись, подождите !';   
+      Save_String : String[11] =
+      'Запись файла';
+
+      {$IFDEF SZAMVEVO}
+      Wsstr : String[20] = 'Ки акарйа ментени а ';
+      {$ELSE}
+      Wsstr : String[35] = 'Вы уверены, что не хотите записать ';
+      {$ENDIF}
+      WssSz : String[11] = 'текст ?';
+      WssFj : String[18] = 'шапки/сноски ?'; { [62] volt (?) }
+      IgNe  : String[ 9] = ' (Д/Н) : ';
+
+
+      Enter_fn        = 'Имя файла ';
+      ReplaySt        = 'Исполнить макро';
+      MacSt           = 'Выбирать макро';
+      DefMac          = 'Дефиниция макро';
+      MacroNameString = 'МАКРО : ';
+
+      PictureNev      = 'Имя файла-картинки';
+      KepSzelAbl      = 'Ширина картинки';
+      KepSzel         = 'Ширина :';
+      KepMagAbl       = 'Высота картинки';
+      KepMag          = 'Высота :';
+      KepOpcAbl       = 'Печатный вид';
+      KepOpc          = 'Опции :';
+      TulMagas        = 'Слышком высок !';
+      TulSzeles       = 'Слышком широк !';
+
+      TTT       : Array[1..2] Of String[4]
+                     = (' ','это ');
+      KiBe      : Array[False..True] Of String[3]
+                     = ('Нет',' Да');
+
+
+  Fst   : String[18] = 'НАБОР ЗНАКОВ : ';
+
+  SzovegS: String[36]= 'НАЖМИТЕ @, БУКВУ, ИЛИ [ESC]';
+
+      SzotarFile    : FnTyp      = 'KIVETEL.SZO';
+      SzoFile       : FnTyp      = 'KIVETEL.BIN';
+
+      Configfile    : FnTyp      = 'CONFIG.PAR';
+      Deffile       : FnTyp      = 'BASE.PAR';
+      MhelpFile     : FnTyp      = 'PROTEX.HLP';
+      SystemFontname: FnTyp      = 'PROTEX';
+      Backupfile    : String[12] = 'BACKUP.DOC';
+      UresName      : String[08] = 'EMPTY.DOC';
+      FMask         : String[4]  = '.HDR';
+
+
+        {$IFDEF PROBA}
+        OvrName    : String[07] = 'CDW.OVR';
+        {$ELSE}
+          {$IFDEF CDVIEW}
+          OvrName    : String[10] = 'EKNEZO.OVR';
+          {$ELSE}
+            {$IFDEF DEMO}
+              OvrName    : String[12] = 'PRODEMO.OVR';     {'ЕКДЕМО.ОВР';}
+            {$ELSE}
+              {$IFDEF CDNYOM}
+                OvrName    : String[12] = 'EKNYOM.OVR';
+              {$ELSE}
+                OvrName    : String[10] = 'PROTEX.OVR';
+              {$ENDIF}
+            {$ENDIF}
+          {$ENDIF}
+        {$ENDIF}
+
+
+      {$IFDEF TITKAR}
+       HelpFile      : Array [0..1] Of STRING [16] =
+                     ('HELPEKT.DOC','HELPWST.DOC');
+      {$ELSE}
+       HelpFile      : Array [0..1] Of STRING [16] =
+                     ('PROTHELP.DOC','WSHELP.DOC');
+      {$ENDIF}
+
+
+                      { ERRORS.HUN }
+
+
+       ErrorStNum : Byte = 1;
+       ErrorSt    : Array [1..2] Of String[8] = ('ОШИБКА','ВНИМАНИЕ');
+
+Const
+
+
+Copyright2 : String[70] =
+
+{$IFNDEF DEMO}
+     ' (C) EkSoft KFT 1992                 < Порядковый номер : 2045   > ';
+  {  ' (Ц) ДАРВАС СОФТШАРЕ БТ (Ц) РкСофт КФТ 1992   < Сорсзам : 2045   > '; }
+{$ELSE}
+     ' (C) EkSoft KFT  1992, Демо-версия!  < Порядковый номер : 2045   > ';
+  {  ' (Ц) ДАРВАС СОФТШАРЕ БТ (Ц) РкСофт КФТ 1992   < Сорсзам : 2045   > '; }
+{$ENDIF}
+
+
+ErrX : Array[1..8] Of String[16] =
+
+('Отсутствует ")"',
+ 'Ошибочная переменная',
+ 'Пустой стринг',
+ 'Отсутствует оператор',
+ 'Слышком много ")"',
+ 'Слышком мало ")"',
+ 'Ошибочная область',
+ 'Отсутствует "("');
+
+
+                       { 8*17+19 }
+       Kivevo2 : Array[1..4,1..4] Of Byte =
+       (($32 XOR $CB,234,52,20),
+        (19,$30 XOR $ED,34,8),
+        (150,55,$34 XOR $13,98),
+        (68,51,227,$35 XOR $25));
+
+{$IFDEF HALO}
+Jogosultak_szama: byte		=	100;  { <= 100 }
+{$ELSE}
+Jogosultak_szama: byte		=	 50;  { <= 100 }
+{$ENDIF}
+
+PressMacKey = 'Клавиша : ';
+ReDefine    = ' ';
+Betut       = ' переопределить';
+{ ReservedKey = 'Фоглалт '; }
+
+MMSG1   =  ' попытка связываться ';
+MMSG2   =  '. рекорд посылается ';
+MMSG3   =  '. рекорд принимается ';
+MMSG4   =  ' Вы хотите прекратить ? (Д/Н) ';
+MMSG5   =  ' Связь модема прекращена ';
+MMSG6   =  ' Прекратить связь : <ЕСЦ> ';
+MMSG7   =  '. попытка';
+MMSG8   =  ' Код ошибки: ';
+
+CimFileStr = 'Список адресов: ';
+Keszult    = 'Изготовлен    : ';
+Modositva  = 'Изменен       : ';
+Rekord     = ' рекорд';
+
+Condi_Ok = ' в порядке';
+
+
+ FejCim    = ' ФейезетнВв : ';
+ Felulir_e = ' Мар лВтезФ фейезет.'+#13+#10+'ФелБлбрхатв ? (И/Н)';
+
+ Kiadv_kerd = ' А телйес киадваныт кбванйа ныомтатни ? (И/Н) ';
+ Kiadv_fej  = ' Киадваны ныомтатас ';
+ Lapsz_kerd = ' Фолыаматос лапсзамозаст кбван ? (И/Н) ';
+
+ KvtFaSt1   = 'Каталог загружается ...';
+ KvtHelpSor = ' F3 - новый дисковод ';
+ Lemlabel   = ' Имя диска : ';
+
+KivetelSt = 'КИВРТЕЛСЗв';
+UjSzoSt   = 'гЙ СЗв: ';
+UjSzoBeSt = 'АЗ гЙ СЗв БЕИЛЛЕСЗТРСЕ';
+SzoIndexSt= 'А СЗвТПРФИЛЕ ИНДЕЖЕЛРСЕ';
+
+MarLetezik  = 'уже существует, можно убрать ';
+
+drv3 : String[37] = 'Загрузка таблицы конверт. клавиатуры';
+drv1 : String[37] = 'Загрузка входной таблицы ASCII ';
+drv2 : String[37] = 'Загрузка выходной таблицы ASCII ';
+
+Var KonvertText : Array[1..3] Of String[37] Absolute Drv3;
+
+Const
+
+SzovegMentes   = 'Запись текста';
+Billentyumakro = 'Макро клавиша';
+
+NotAllowed = ' запрещен !';
+
+LineSt = ' строка';
+
+ExtFontNotLoaded = 'Расширенный набор не загружен !';
+
+IsmeretlenFile = ' Неизвестная структура файла !';
+Betoltsem      = '     Загрузить ? (';
+
+ASCII_Vagy_Ekszer = ' Загрузить в формате ASCII ';    
+OlvassamBe        = '     или ProTex ? (';
+
+LoadError    = 'Ошибка при загрузке';
+FileFormat   = 'Формат файла';
+
+Find_Replace_Options: String[38] = 'U: строчная-прописная, G: целый текст ';
+FindOptions: String[20] =          'F1..F@: поиск набора знаков';
+ReplaceOptions: String[38] =       'A: все, N:automatiq., число: штуки';
+
+FranciaFormat = 'Француз. формат';
+
+PrevSt1 = 'Создание набора знаков :';
+
+Type  Rec = Record
+              Poz : Byte;
+              Txt : String[9];
+            End;
+
+Const
+      PrTomb : Array[1..9] Of Rec =
+      (
+      (Poz: 00; Txt:'Страница'),         {2}
+      (Poz: 08; Txt:'Номер стр.'),     {3}
+      (Poz: 20; Txt:'Длина стр.'),    {4}
+
+      (Poz: 34; Txt:'Принтер'),     {6}
+      (Poz: 51; Txt:'Цель'),         {7}
+      (Poz: 61; Txt:'экземпляры'),       {8}
+
+      (Poz: 70; Txt:'Левый пробел'),       {9}
+
+      (Poz: 01; Txt:'Шапки'),      {11}
+      (Poz: 19; Txt:'Сноски')      {12}
+      );
+
+GoPageSt = 'Новая страница';
+
+FormatumSt  : Array[False..True] Of String[5] = (' лежа',' стоя');
+CondensedSt : Array[False..True] Of String[8] = ('нормал.','густой');
+KellSt      : Array[False..True] Of String[7] = ('  1 раз',' всегда');
+
+PrevStSt = 'Мод, Разреш.X, Разреш.Y, Цвета';
+
+Tip    : Array[0..1] Of String[5] = ('СТАР.',' НОВ.');
+
+{
+CPIST    = 'Карактер/инцх ГЫОРС мвдбан';
+EnterCPI = 'ЦПИ = ';
+}
+
+ResSt = 'Результат калкулятора ';
+SzammalSt = 'числом';
+BetuvelSt = 'буквами';
+
+SzovegSt = 'Текст : ';
+
+  MemSt1 = 'Число строк    : ';
+  MemSt6 = 'В памяти DOS   : ';   
+  MemSt4 = 'В памяти EMS   : ';   
+  MemSt5 = 'В памяти XMS   : ';   
+  MemSt7 = 'В дисковой пам.: ';
+
+  MemSt2 = 'Свобод. строки : ';
+  MemSt3 = 'Занятые строки : ';
+
+SortStr : Array[False..True] Of String[5] = ('  Имя',' Дата');
+
+  ExitStr = 'Наберите "EXIT" чтобы вернуться к ProTex...';   
+
+  CharOver   = 'А ГИБ лефоглалта а';
+  Billentyut = ' биллентыБт !';
+
+  OsszegSt = 'сумма ';
+
+  CalcOperators : Array[1..5] Of String[9] =
+               ('Прибавить',
+                'Отчислить',
+                'Умножить',
+                'Делить',
+                'Равно');
+
+  NemVegreHajthato = 'Операция не возможна - ';
+
+
+NINCSS = 'NONE';

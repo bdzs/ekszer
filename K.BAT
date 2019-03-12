@@ -1,0 +1,1 @@
+tasm a:ekszer kodol

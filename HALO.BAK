@@ -1,0 +1,29 @@
+File INPUTELE.CDW:
+309     {$IFDEF HALO}
+407     {$ENDIF HALO}
+831       {$IFDEF HALO}
+2001              {$IFDEF HALO}
+File MAGYAR.CDW:
+344     {$IFDEF HALO}
+358           HalozatSzam   = 3;
+359           HalozatSzamok : Array[1..HalozatSzam] Of LongInt=
+372           HalozatSzam   = 122;
+374           HalozatSzamok : Array[1..HalozatSzam] Of LongInt=
+407         06441842,     { Szeghalom                }
+716     {$IFDEF HALO}
+File NORVEG.CDW:
+344     {$IFDEF HALO}
+File OROSZ.CDW:
+326     {$IFDEF HALO}
+File REGISAVE.CDW:
+22      {$IFDEF HALO}
+92      {$IFDEF HALO}
+493     {$IFDEF HALO}
+707     {$IFDEF HALO}
+File ROMAN.CDW:
+360     {$IFDEF HALO}
+512     {$IFDEF HALO}
+File CDWHUN.DEF:
+11      {$IFDEF HALO}
+83      {$ENDIF HALO}
+2746    {$IFDEF HALO}

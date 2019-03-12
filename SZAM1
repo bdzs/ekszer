@@ -1,0 +1,23 @@
+    Helyi : Array[1..7] Of String[7] =
+
+    ('','','sz''z','ezer/','','sz''z','milli=/');
+
+    Szamjegy : Array[0..9] Of String[6] =
+
+     ('',
+      'egy',
+      'kett[',
+      'h''rom',
+      'n;gy',
+      '0t',
+      'hat',
+      'h;t',
+      'nyolc',
+      'kilenc');
+
+    Tizes : Array[1..9] Of String[9] =
+
+     ('tizen','huszon','harminc','negyven','0tven',
+      'hatvan','hetven','nyolcvan','kilencven');
+
+    TizHusz : Array[1..2] Of String[4] =  ('t`z','h]sz');

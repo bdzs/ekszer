@@ -1,0 +1,394 @@
+{********************** Printeles uzenetek *********************}
+
+
+const   pr_mess1   = 'Tlac prerusen†';
+        pr_mess2   = 'ESC koniec, inÇ pokracovat';
+        pr_mess3   = 'Nacitanie';
+        pr_mess4   = 'Chyba s£bor:';
+        pr_mess5   = ' naplnenie...';
+        pr_mess7   = 'Moment prosim..';
+        pr_mess8   = 'Tlac';
+        pr_mess9   = 'Prerusenie lubovol.kl†ves';
+        pr_mess10  = 'Koniec strany';
+        pr_mess11  = '     Ak tlaciaren zastav°';
+        pr_mess12  = 'vlozte list a stlacte  <ENTER>';
+        pr_mess13  = 'Tlaciaren OFF LINE !';
+        pr_mess14  = '   <Z>novu  <K>oniec ?';
+        pr_mess15  = '  Nevhodn† dlzka strany !';
+        pr_mess16  = '<A>ktu†lny <M>axim†lny <K>oniec';
+        pr_mess17  = 'Aktu†lny :';
+        pr_mess18  = 'Maxim†lny :';
+        pr_mess19  = '- ak nepouz°vate zahl†via -';
+        pr_mess20  = ' k naplneniu znakovej sady ';
+        pr_mess21  = 'Optimaliz†cia pamÑte ';
+
+(******************************* Egyeb nevek ********************************)
+
+
+                         { SET.CDW - bol}
+
+  Enter_Max_Key = 'Max. impulzy: ';
+      SST0      = 'Pocet kl†ves makier';
+
+      EnterDist = 'Vzdialenost (inch): ';
+      EnterPage = 'Strana: ';
+      EnterPld  = 'Kopie: ';
+      SST1      = 'prv† strana - tlac';
+      SST2      = 'posledn† strana - tlac';
+      SST3      = 'C°slovat od';
+      SST4      = 'Casovanie tlace';
+      SST5      = 'Casovanie: ';
+      SST6      = 'Nastavenie dlzky str.';
+      SST7      = 'Dlzka str. : ';
+      SST8      = 'Rozdelenie index.riadkov';
+      SST9      = 'Rozdelenie % (1-100) : ';
+      SST10     = 'Doba ulozenia-nastavenie';
+      SST11     = 'Cas (min.): ';
+      SST12     = 'Lavy okraj - tlac';
+      SST13     = 'Okraj : ';
+      SST14     = 'Pocet kopii';
+      SST15     = 'Vzdialenost dvoch st°tkov';
+
+                  { INITCDW.CDW-bol }
+
+      IniST1    = 'Nac°tanie';
+      IniST2    = 'Inform†cie';
+      IniST3    = 'Rozs°renie';
+      IniST4    = 'Rozs°renie  : ';
+      IniST5    = ' adres†r';
+      IniST6    = 'Adres†r: ';
+
+
+                  { INPUTCDW.PAS-bol }
+
+      InpST1    = 'Usporiadanie';
+      InpST2    = 'Adres†r: ';
+      InpST3    = ' nac°tanie s£boru';
+      InpST4    = 'H.z†hlavie';
+      InpST5    = ' nac°tanie';
+      InpST6    = ' ulozenie ';
+      InpST7    = ' PgUp: str. vpred ';
+      InpST8    = 'Pozor';
+      InpSt9    = ' PgDn : str. vzad';
+      InpSt10   = ' Vela s£borov...';
+
+                  { INPUTELE.CDW-bol }
+
+      IneSt1    : String[16] = '<ESC> - KONIEC';
+      IneSt2    = 'Pozor';
+      IneSt3    = 'Urcite';
+      IneSt4    = ' s£bor';
+      IneSt5    = ' vymazat ? (A/N) ';
+      IneSt6    = 'Mazanie s£boru';
+      IneSt7    = 'Adres†r: ';
+      IneSt8    = ' mazanie';
+      IneSt9    = 'premenovanie';
+      IneSt10   = 'StarÇ ';
+      IneSt11   = ' NovÇ ';
+      IneSt12   = 'Koniec';
+      IneSt13   = ' nac°tanie...';
+      IneSt14   = '. sada :';
+      IneSt15   = ' spracovanie ';
+      IneSt16   = 'Makr† ulozenie';
+      IneSt17   = 'Makr† nac°tanie';
+      IneSt18   = 'Parametre ulozenie';
+      IneSt19   = 'Parametre nac°tanie';
+      IneSt20   = 'K¢pia s£boru';
+      IneSt21   = '  Kop°rovat s£bor';
+      IneSt22   = '       Novy s£bor';
+      IneSt23   = 'Pisaci stroj';
+      IneSt24   = 'Tlaciaren';
+      IneSt25   = 'St°tky';
+      IneSt26   = 'Defin°cia podmienky';
+      IneSt27   = 'Konfigur†cia ulozenie';
+
+      Feltetel  : String[10] = 'Podmienka';
+
+                   { CDW.CDW-bol }
+
+      CDWST1    = ' nac°tanie';
+
+                   { ELEJE.CDW-bol }
+
+      EleSt1    = 'Znaky';
+      EleSt2    = 'Oznacenie s£boru';
+      EleSt3    = 'Volba';
+      EleSt4    = 'Mazanie pamÑte';
+      EleSt5    = 'Moment';
+      EleSt6    = 'Adres†r: ';
+      EleSt7    = ' k vlozeniu riadku';
+
+                   { BLOKK.CDW-bol   }
+
+      BlSt1     = 'ku kop°rovaniu bloku';
+
+                   { REPLACE.CDW-bol }
+
+      RepSt1    = ' Zmena ? (A/N) :';
+      RepSt2    = 'Novy text:';
+      RepSt3    = 'Opcie: ';
+
+                   { MENU.CDW-bol     }
+
+      MSt1     = 'Nac°tanie';
+      MSt2     = 'HlavnÇ menu';
+
+                   { CDW.PAS-bol      }
+
+      CDWFst1  = 'k zap°saniu znaku';
+      CDWFst2  = 'SÇria : ';
+      CDWFst3  = 'Vlozte kl£cov£ disketu do mechaniky A: !';
+
+                   { FORMAT.CDW-bol   }
+
+      FORMst1  = ' k form†tovaniu ';
+
+                   { Innen-onnan }
+
+      YesChar   = 'A';    { Igen-Nem valaszok             }
+      NoChar    = 'N';
+
+      UjraChar  = 'Z';    { Karakterleutesek nyomtataskor }
+      AktChar   = 'A';
+      MaxiChar  = 'M';
+      KilepChar = 'K';
+      EkSzerChar= 'P';
+      AsciiChar = 'A';
+
+      DocuSt    : String[10] = 'Dokument';
+      ASCIISt   : String[10] = 'ASCII s£bor';
+      VenturaSt : String[12] = 'Ventura s£bor';
+      WordStarSt: String[15] = 'WordStar s£bor';
+
+      Fstr      : Array [Find..Replace] Of String[15] =
+           ('Hladanie','Hladanie + zmena');
+
+
+   Texts : Array [-2..8] of STRING[5] =
+   ('ROZ','DEF','INS','SYN.','ZAR.','MEMO:','RIAD:','SADA:','R.: ','S.: ','STR.:');
+
+      Positions : array[-2..8] of BYTE = (12,12,16,20,25,30,40,47,55,64,71);
+      YesNo     : Array[0..1] Of String[3] = ('  N','  A');
+      Wss       : Array[0..1] Of String[8] = ('  ProTex','WordStar');
+      ColMo     : Array[DispType] Of String[6] = ('Color','  C/M');
+
+      Nincs     : String[6]  = 'Nie'; { nie je }
+
+  {$IFNDEF VER3}
+      ExName    : String[27]  = 'ProTex  4.00c';
+  {$ELSE}
+      ExName    : String[27]  = 'ProTex  4.11';
+  {$ENDIF}
+
+      Szov      : Array [1..2] Of String[6] = ('Prac.','ProTex');
+
+      KovLap    : String[17] = ' PgDn: str. vpred';
+
+      Temp_String : String[22] =
+      'ULOZENIE... MOMENT !';
+      Save_String : String[11] =
+      'ULOZENIE';
+
+      {$IFDEF SZAMVEVO}
+      Wsstr : String[38] =
+     ' Chcete ulozit ';
+      {$ELSE}
+      Wsstr : String[32] =
+     'Urcite nechcete ulozit ';
+      {$ENDIF}
+
+      WssSz : String[11] = 'text ?';
+      WssFj : String[11] = 'z†hlavie ?'; { [62] volt (?) }
+      IgNe  : String[ 9] = ' (A/N) : ';
+
+      Enter_fn        = 'meno ';
+      ReplaySt        = 'Makro vykonanie';
+      MacSt           = 'Makro vyber';
+      DefMac          = 'Makro defin°cia';
+      MacroNameString = 'MAKRO : ';
+
+      PictureNev      = 'N†zov obr. s£b.';
+      KepSzelAbl      = 'S°rka obrazu';
+      KepSzel         = 'S°rka :';
+      KepMagAbl       = 'Vyska obrazu';
+      KepMag          = 'Vyska :';
+      KepOpcAbl       = 'Zobrazenie';
+      KepOpc          = 'Opcie :';
+      TulMagas        = 'VysokÇ !';
+      TulSzeles       = 'SirokÇ !';
+
+      TTT       : Array[1..2,1..2] Of String[1]
+                     = (('',''),('',''));
+      KiBe      : Array[False..True] Of String[3]
+                     = (' 0 ',' 1 ');
+
+
+  Fst   : String[18] = 'ZNAKOVè SADA : ';
+
+{$IFNDEF TITKAR}
+  SzovegS: String[42]= 'STLACTE F1..F10, KLèVES, ALEBO [ESC]';
+{$ELSE}
+  SzovegS: String[42]= 'STLAC F1..F5, KLèVES, ALEBO [ESC]';
+{$ENDIF}
+
+
+      ScreenDevName : Array[GrTip] Of String [8] =
+                        ('','','EGA.BIN','HERC.BIN');
+
+      SzotarFile    : FnTyp      = 'VYNIMKA.SZO';
+      SzoFile       : FnTyp      = 'VYNIMKA.BIN';
+
+      Configfile    : FnTyp      = 'KONFIG.PAR';
+      Deffile       : FnTyp      = 'ZAKL.PAR';
+      MhelpFile     : FnTyp      = 'PROTEX.HLP';
+      SystemFontname: FnTyp      = 'PROTEX';
+      Backupfile    : String[10] = 'ULOZEN.DOC';
+      UresName      : String[08] = 'PRAZ.DOC';
+      FMask         : String[4]  = '.ZAH';
+
+
+      {$IFDEF PROBA}
+      OvrName    : String[07] = 'CDW.OVR';
+      {$ELSE}
+      OvrName    : String[10] = 'PROTEX.OVR';
+      {$ENDIF}
+
+      {$IFDEF TITKAR}
+       HelpFile      : Array [0..1] Of STRING [16] =
+                     ('HELPEKT.DOC','HELPWST.DOC');
+      {$ELSE}
+       HelpFile      : Array [0..1] Of STRING [16] =
+                     ('HELPPROT.DOC','HELPWS.DOC');
+      {$ENDIF}
+
+
+                      { ERRORS.HUN }
+
+       Errornum   = 33;
+
+       ErrorStNum : Byte = 1;
+       ErrorSt    : Array [1..2] Of String[8] = ('CHYBA','POZOR');
+
+                 {  SERIALNO.CDW   }
+
+        Const
+
+Copyright2 : String[70] =
+
+{$IFNDEF DEMO}
+{$IFNDEF CDVIEW}
+
+' (C) DARVAS SOFTWARE  (C) êkSoft Ltd 1992 < SÇria  :       >';
+{$ELSE}
+
+' (C) DARVAS SOFTWARE  (C) êkSoft Ltd 1992  < Tul:           >';
+
+{$ENDIF}
+
+{$ELSE}
+
+' (C) DARVAS SOFTWARE  (C) êkSoft Ltd 1992 < SÇria  : ----- >';
+
+{$ENDIF}
+
+PressMacKey = 'Kl†ves: ';
+ReDefine    = ' ';
+Betut       = ' prepisatelny';
+{ ReservedKey = 'Obsadeny'; }
+
+MMSG1   =  ' Sk£ska kontaktovania';
+MMSG2   =  '. Z†znam vysielanie';
+MMSG3   =  '. Z†znam prijem ';
+MMSG4   =  ' Urcite chcete vyst£pit ? (A/N) ';
+MMSG5   =  ' Modem spojenie prerusenÇ ';
+MMSG6   =  ' Prerusenie spojenia: <ESC> ';
+MMSG7   =  '. sk£ska  ';
+MMSG8   = ' Chyba: ';
+
+CimFileStr = 'St°tky      : ';
+Keszult    = 'VyhotovenÇ  : ';
+Modositva  = 'ModifikovanÇ: ';
+Rekord     = ' z†znam';
+
+Condi_Ok = ' O.K.';
+
+ErrX : Array[1..8] Of String[11] =
+
+('Chyba   ")"',
+ 'Chybn† prem',
+ 'Pr†zd.retaz',
+ 'Chyba   op.',
+ 'Vela    ")"',
+ 'M†lo    ")"',
+ 'Chyba-inter',
+ 'Chyba   "("');
+
+ FejCim    = ' Meno state : ';
+ Felulir_e = ' Existuj£ca stat.'+#13+#10+'Prepisateln† ? (A/N)';
+
+ Kiadv_kerd = ' Vytlacit cely publikacny s£bor ? (A/N) ';
+ Kiadv_fej  = ' Tlac publikacnÇho s£boru';
+ Lapsz_kerd = ' PlinulÇ c°slovanie ? (A/N) ';
+
+ KvtFaSt1   = 'Nac°tanie adres†ra...';
+ KvtHelpSor = ' F3 - Zmena mechaniky';
+ Lemlabel   = ' Meno diskety: ';
+
+KivetelSt = 'VYNIMKA';
+UjSzoSt   = 'NOVY : ';
+UjSzoBeSt = 'VLOZENIE NOVêHO SLOVA';
+SzoIndexSt= 'INDEXOVANIE SLOVNIKA';
+
+MarLetezik  = 'existuje, prepisatelny ';
+
+drv1 = 'Nac°tanie vstupnej ASCII tabulky';
+drv2 = 'Nac°tanie vystupnej ASCII tabulky';
+drv3 = 'Nac°tanie konvert. tabulky kl†ves';
+
+SzovegMentes   = 'Ulozenie textu';
+Billentyumakro = 'Kl†v.-makro';
+
+NotAllowed = ' zamedzenÇ !';
+
+LineSt = ' riadok';
+
+ExtFontNotLoaded = 'Extended font nenac°tany !';
+
+IsmeretlenFile = ' Nezn†ma strukt£ra s£boru !';
+Betoltsem      = '      Nac°tat ? (';
+
+ASCII_Vagy_Ekszer = ' ASCII alebo ProTex form†t ';
+OlvassamBe        = '    Nac°tat ? (';
+
+LoadError    = 'Chyba nac°tania';
+FileFormat   = 'Form†t s£boru';
+
+Find_Replace_Options: String[40] = 'u: kisbetÅ=nagybetÅ, g: teljes szîveg, ';
+FindOptions: String[20] =          'f1..f@: fontkeresÇs';
+ReplaceOptions: String[38] =       'a: mindet, n:automatikus, sz†m: darab';
+
+FranciaFormat = 'Francia format';
+
+PrevSt1 = 'Font gener†l†s :';
+
+Type  Rec = Record
+              Poz : Byte;
+              Txt : String[9];
+            End;
+
+Const
+      PrTomb : Array[1..9] Of Rec =
+      (
+      (Poz: 2; Txt:'Lap'),
+      (Poz: 3; Txt:'Lapsz†m'),
+      (Poz: 4; Txt:'Laphossz'),
+
+      (Poz: 6; Txt:'Nyomtat¢'),
+      (Poz: 7; Txt:'CÇl'),
+      (Poz: 8; Txt:'Darabsz†m'),
+
+      (Poz: 9; Txt:'Marg¢'),
+
+      (Poz:11; Txt:'FejlÇc'),
+      (Poz:12; Txt:'L†brÇsz')
+      );

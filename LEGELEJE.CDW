@@ -1,0 +1,323 @@
+
+{$IFNDEF NOPW}
+Procedure Jelszavak;
+Begin
+  Inline($EB/$78/ {JMP SHORT ATUGORJA}
+         65/65/65/65/65/65/65/65/65/65/   { 24 tus   }
+         66/66/66/66/66/66/66/66/66/66/   { Grafika  }
+         67/67/67/67/67/67/67/67/67/67/   { Irogep   }
+         68/68/68/68/68/68/68/68/68/68/   { Korlevel }
+         69/69/69/69/69/69/69/69/69/69/   { Laser    }
+         70/70/70/70/70/70/70/70/70/70/   { NyelvEsz }
+         71/71/71/71/71/71/71/71/71/71/   {}
+         72/72/72/72/72/72/72/72/72/72/   {}
+         73/73/73/73/73/73/73/73/73/73/   {}
+         74/74/74/74/74/74/74/74/74/74/   {}
+         11/11/11/11/11/11/11/11/11/11/   { Packard bell }
+         11/11/11/11/11/11/11/11/11/11);
+
+End;
+
+{$ELSE}
+
+Procedure Jelszavak;
+Begin
+  Inline($EB/$78/ {JMP SHORT ATUGORJA}
+         48/48/48/48/48/48/48/48/48/48/   { 24 tus   }
+         48/48/48/48/48/48/48/48/48/48/   { Grafika  }
+         48/48/48/48/48/48/48/48/48/48/   { Irogep   }
+         48/48/48/48/48/48/48/48/48/48/   { Korlevel }
+         48/48/48/48/48/48/48/48/48/48/   { Laser    }
+         48/48/48/48/48/48/48/48/48/48/   { NyelvEsz }
+         48/48/48/48/48/48/48/48/48/48/   {}
+         48/48/48/48/48/48/48/48/48/48/   {}
+         48/48/48/48/48/48/48/48/48/48/   {}
+         48/48/48/48/48/48/48/48/48/48/   {}
+         48/48/48/48/48/48/48/48/48/48/   { Packard bell }
+         48/48/48/48/48/48/48/48/48/48);  {}
+
+End;
+
+{$ENDIF}
+
+{$IFNDEF CDVIEW}
+Procedure Change_One_Font; (*******  Javitva !!! *******)
+
+Const  X1 : Integer = 48;  Y1 : Integer = 03;
+       X2 : Integer = 66;  Y2 : Integer = 18;
+
+       Spc : String[8] = '        ';
+
+       Numbers : Set Of Byte = [48..57];
+
+Var Ch,Sc,Yp,Oyp,C : BYTE;
+    Pozi           : Integer;
+    Ws             : St20;
+    Ut             : String;
+    DTOMB          : NEVTOMB;
+    DDB            : Word;
+    Kilepett,Kesz  : Boolean;
+    Pst            : St40;
+    Sft            : String[8];
+    GoodFont       : Boolean;
+    Temp           : Integer;
+
+Begin
+  Jelszavak;
+  Y2 := Y1 + MaxFontNum + 3;
+  BOOL := CREATE_WINDOW(X1,Y1,X2,Y2,EleSt1,CA[DispMode,1],CA[DispMode,20]);
+  CurOff;
+  Sft := '*'+Fext[GrMode];
+  Attribute(Y1+2,X1+2,Y2-2,X2-2,CA[DispMode,16]);
+
+  Yp  := 1;
+  Oyp := 1;
+  Attribute(Yp+Y1+1,X1+2,Yp+Y1+1,X2-2,CA[DispMode,18]);
+
+  { FreeHot := False; }
+
+  Repeat
+
+    For C:= 1 to MaxFontNum Do
+    Begin
+      Str(C:(C DIV 10 +1),Ws);
+      Ws := 'F' + Ws + Copy(Spc,1,1-(C DIV 10))+': '+Fontnames[C] + Spc;
+      Ws[0] := #13;
+      Display(Ws,C+Y1+1,X1+3);
+    End;
+
+    Puffi(Ch,Sc);
+    Oyp := Yp;
+
+    Case Sc Of
+
+      Felnyil        : Dec(Yp);
+      Lenyil         : Inc(Yp);
+      F1..MaxFontKey : Yp := Sc-F1+1;
+
+      SHIFT_F1..MaxShiftFontKey: If MaxFontNum > 10 Then
+                                    Yp := Sc-Shift_F1+11;
+
+    End;
+
+    If Yp > MaxFontNum Then Yp := 1;
+    If Yp < 1  Then Yp := MaxFontNum;
+
+    If Yp <> Oyp Then
+    Begin
+      Attribute(Oyp+Y1+1,X1+2,Oyp+Y1+1,X2-2,CA[DispMode,16]);
+      Attribute(Yp+Y1+1,X1+2,Yp+Y1+1,X2-2,CA[DispMode,18]);
+  End;
+
+  Kilepett := ESC;
+  Kesz     := False;
+
+  If (Ch = Cr) Or (Sc In [F1..MaxFontKey,Shift_F1..MaxShiftFontKey]) Then
+  Begin
+
+    Str(Yp:(Yp DIV 10 +1),Ws);
+    Ws := '[F' + Ws + '] ';
+
+    BOOL := CREATE_WINDOW(38,09,77,13,EleSt2+Ws,CA[DispMode,1],CA[DispMode,2]);
+    Repeat
+      GotoXY(7,2);
+      MAxStringLen := 8;
+      Input_String(Enter_fn,Font_name,9);
+      CurOff;
+
+      If NOT ESC Then
+      Begin
+        If (Font_Name = '') or (Pos('*',Font_Name)>0) Then
+        Begin
+          Set_Choose(38,12,79,18,12,0);
+          BOOL := CREATE_WINDOW(37,11,80,19,EleSt3,CA[DispMode,1],CA[DispMode,20]);
+
+          Pst := PathSt+Sft;
+
+          Enged := 0;
+
+          Dir(PSt,Dtomb,DDb,Ut);      {Read_directory}  {@@@@@}
+
+          If DDb = 0 Then ESC := True
+          Else
+          Begin
+
+            Font_Name := Dtomb[1];
+
+            Pozi := Pos('.',Font_Name)-1;
+
+            If (NOT ESC) And (Pozi > 0) Then Font_Name:=Copy(Font_Name,1,Pozi);
+
+          End;
+          Bool := Remove_Window;
+        End;
+
+        Clrscr;
+        GotoXY(2,2);
+        If NOT ESC Then
+        Begin
+          Load_Font(Yp,Font_name);
+          ChFont[Yp] := True;       {@@@}
+          Kesz:= True;
+        End
+        Else ESC := False;
+
+      End; {If NOT ESC}
+
+      If ESC Then
+      Begin
+        Kesz := True;
+        ESC := False;
+      End;
+
+    Until Kesz;
+
+    Bool := Remove_Window; {Fontfile}
+
+  End; {Ch = Cr , Functionkey vagy Number}
+
+  Until ESC; {Kilepett Or Kesz;}
+
+  { FreeHot := True; }
+
+  Bool := Remove_Window; {Change Font}
+
+End;
+
+Procedure ClearBuffer(Edit:Integer);
+Var Kell_Ablak : Boolean;
+Begin
+  If Not (Valtozas[Edit]) Or Are_You_Sure(Edit,Single) Then
+  Begin
+    Kell_Ablak := (EndLine[Edit] - StartLine[Edit]) > 500;
+    If Kell_Ablak Then
+      Begin
+        BOOL := CREATE_WINDOW(10,5,30,9,EleSt4,CA[DispMode,1],CA[DispMode,2]);
+        GotoXY(4,2);
+        Write(EleSt5);
+      End;
+    FreeEdit(Edit);
+
+    ASCIIVolt[Edit] := False;
+
+    If Edit < 4 Then
+    Begin
+      FileName[Edit] := UresName;
+      Fresh_Info;
+    End
+    Else
+      If Edit = BufferNum Then FileName[4] := '';
+
+    If Kell_Ablak Then Bool := Remove_window;
+  End;
+End;
+
+{$ENDIF CDVIEW}
+
+{$IFNDEF VER3}
+
+Procedure Print_Pub(Option : Integer);
+
+TYPE kiadvany = array [0..76] of byte;
+
+VAR Kiadv_tart : Doc_sor;
+    Kiadv_ind  : kiadvany absolute Kiadv_tart;
+    Kiadv_file : file;
+    cikl       : word;
+    kiadv_lap  : word;
+    KezdLapsz  : word;
+    ElsoOld    : word;
+    UtsoOld    : word;
+
+PROCEDURE RestoreLapszam;
+
+BEGIN
+   FirstPage:=ElsoOld;
+   LastPage:=UtsoOld;
+   FirstPageNum:=KezdLapsz;
+End;
+
+BEGIN
+
+   ElsoOld := FirstPage;
+   UtsoOld := LastPage;
+   FirstPage:=   1;
+   LastPage:= 999;
+   KezdLapsz:=FirstPageNum;
+   If Lapszamoz then FirstPageNum:=1;
+
+   If not PublPrint then
+     BEGIN
+       If Lapszamoz then
+         BEGIN
+           Str(akt_kiadv_szam-1:0,PubStr);
+           PubStr:=PubStr+ElvJel;
+         End
+       else FirstPageNum:=KezdLapsz;
+       StartPrint(option);
+     End
+   else   { (0) }
+     BEGIN
+       Assign(Kiadv_file,Pub_nev);
+       {$I-}
+       Reset(Kiadv_file,1);
+       {$I+}
+       If IOResult<>0 then
+         BEGIN
+           Error(3,pub_nev);
+           RestoreLapszam;
+           Exit;
+         End;
+       {$I-}
+       BlockRead(Kiadv_File,Kiadv_tart,SizeOf(kiadv_tart));
+       {$I+}
+       If IOResult<>0 then
+         BEGIN
+           {$I-}
+           Close(Kiadv_file);
+           {$I+}
+           cikl:=IOResult;
+           Error(6,Pub_nev);
+           RestoreLapszam;
+           Exit;
+         End;
+       {$I-}
+       Close(Kiadv_file);
+       {$I+}
+       cikl:=IOResult;
+       If Kiadv_ind[0]<2 then
+         BEGIN
+           Error(36,Pub_nev);
+           RestoreLapszam;
+           StartPrint(Option);
+           Exit;
+         End;
+       If Valtozas[EditNum] and  not Are_You_Sure(EditNum,Single) then
+         BEGIN
+           RestoreLapszam;
+           Exit;
+         End;
+
+{ Itt kezdodik a publ. fileok nyomtatasa }
+
+       Kiadv_lap:=1;
+       REPEAT
+         If Lapszamoz then
+           BEGIN
+             Str(Kiadv_lap:0,PubStr);
+             PubStr:=PubStr+ElvJel;
+           End;
+         EditNum:=GeditNum;
+         Load(Kiadv_tart[Kiadv_ind[Kiadv_lap+1]],Document,NoWriteMode);
+         FileName[GEditNum]:=Nev_Ad(Kiadv_tart[Kiadv_ind[Kiadv_lap+1]]);
+         Fresh_Info;
+         StartPrint(Option);
+         If Not Lapszamoz then FirstPageNum:=PageC2;
+         Inc(Kiadv_lap);
+       UNTIL ESC or (Kiadv_lap >= Kiadv_ind[0]);
+
+     End; { ha kiadvany nyomt   (0)-else }
+  RestoreLapszam;
+End;
+
+{$ENDIF}

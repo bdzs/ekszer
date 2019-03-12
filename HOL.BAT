@@ -1,0 +1,1 @@
+grep -in %1 %2 %3 %4 *.pas *.cdw *.def *.asm

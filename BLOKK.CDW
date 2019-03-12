@@ -1,0 +1,1525 @@
+(****************** BLOKK rutinok glob lis v ltoz¢i *******************)
+
+Var Kicsi,Nagy   : Integer;
+    Fpoz,Lpoz,
+    Elsok,Utolsok: Integer;
+    Fpoz2,Lpoz2      : Integer;
+
+Procedure Valtozasok;
+Begin
+  BlockMode         := False;
+  Mozgott           := True;
+  Valtozas[EditNum] := True;
+End;
+
+Procedure Block_Begin(Oszlop : Boolean);
+Begin
+  Beepel(300);
+  OszlopMode := Oszlop;
+  If Oszlop Then Beepel(600);
+  BlockMode := True;
+  Block[0] := MainOfIndex[Ypos];
+  InvPoz[0] := Xpos;
+  Block_End;
+  InvertLine(Ypos,True);
+  {ActiveBlock[EditNum] := (Block[0] < Block[1]);}
+End;
+
+Procedure Xchg(Var X,Y : Word);
+Begin
+
+  InLine($1E/         { Push  DS         }
+         $C4/$7E/<X/  { LES   DI,[BP+XX] }
+         $C5/$76/<Y/  { LDS   SI,[BP+YY] }
+         $26/         { ES:              }
+         $FF/$35/     { Push  [DI]       }
+         $FF/$34/     { Push  [SI]       }
+         $26/         { ES:              }
+         $8F/$05/     { Pop   [DI]       }
+         $8F/$04/     { Pop   [SI]       }
+         $1F);        { Pop   DS         }
+End;
+
+Procedure KisebbNagyobb(Var X,Y:Word);
+Var Z : Integer;
+Begin
+  Z := X;
+  X := Kisebb(Z,Y);
+  Y := Nagyobb(Z,Y)
+End;
+
+
+Var Forwar       : Byte;
+    EgySorMode   : Boolean;
+
+Procedure ClearImage;
+Var Cikl : Byte;
+Begin
+  For Cikl := FirstLine To LastLine Do
+    Image[Cikl]^.Chars[C80+c79] := #0;
+End;
+
+Procedure ClearImageBlock;
+Begin
+  ClearImage;
+  PosToPos(Block[0],InvPoz[0],True);
+End;
+
+Procedure KicsiNagy(Var Kicsi,Nagy: Integer);
+Begin
+  Forwar := Byte(Block[0] <= Block[1]);
+  Kicsi := Kisebb(Block[0],Block[1]);
+  Nagy  := Nagyobb(Block[0],Block[1]);
+End;
+
+Procedure Set_KicsiNagy;
+Begin
+
+  KicsiNagy(Kicsi,Nagy);
+
+  FirstAndLast(Kicsi,Fpoz,Lpoz2);
+  FirstAndLast(Nagy,Fpoz2,Lpoz);
+
+  Kezdodo := InvPoz[Forwar XOR 1];
+  Vegzodo := InvPoz[Forwar];
+End;
+
+Procedure Valtozasok_Set_KicsiNagy;
+Begin
+  Valtozasok;
+  Set_KicsiNagy;
+End;
+
+Procedure Set_Kicsi_Nagy_Kezd_Veg;
+Var Dummy : Integer;
+Begin
+
+  KicsiNagy(Kicsi,Nagy);
+
+  Kezdodo := InvPoz[Forwar XOR 1];
+  Vegzodo := InvPoz[Forwar];
+
+  EgySorMode := (Kicsi = Nagy);
+  Kezd := InvPoz[Forwar XOR 1];
+  Veg  := InvPoz[Forwar];
+
+  If OszlopMode AND (Kezd > Veg) Then Xchg(Kezd,Veg);
+
+  If EgySorMode Then
+  Begin
+    KisebbNagyobb(Kezd,Veg);
+    OszlopMode := False;
+  End;
+
+  FirstAndLast(Kicsi,Fpoz,Dummy);
+  Elsok   := Dummy-Fpoz;
+  FirstAndLast(Nagy,Dummy,Lpoz);
+  Utolsok := Lpoz-Dummy;
+
+End;
+
+Function UresSor(P : Lpoint; Kezd,Veg : Integer):Boolean;
+Var Cik : Integer;
+    Ch  : Char;
+Begin
+  Cik := Kezd;
+  Ch := P^.Chars[C80+Cik];
+
+  While (Cik < Veg) AND (Ch = #00) Do
+  Begin
+    Inc(Cik);
+    Ch := P^.Chars[C80+Cik];
+  End;
+  UresSor := (Ch = #00);
+End;
+
+Procedure ElsoUresSor(Var Fpoz,Cikl,Hp,NewMain : Integer;
+                      Var Kezd               : Word;
+                      Var ElsoUres,UjSor     : Boolean);
+Var Bc : Integer;
+    P  : Lpoint;
+Begin
+  For Bc := Fpoz To Cikl-1 Do
+  Begin
+    Heap_Pos(P,PointerTomb^[Bc]);
+    If NOT UresSor(P,0,Kezd-1) Then
+      ElsoUres := False;
+    FreeEms1(PointerTomb^[Bc])
+  End;
+  If ElsoUres Then
+  Begin
+    For Bc := Fpoz To Cikl-1 Do
+    Begin
+      Dec(Hp);
+      DelHeapLine(Fpoz);
+      Dec(All_Lines[EditNum]);
+    End;
+  End;
+
+  UjSor := False;
+End;
+
+Procedure DelEmptyLines(Var Kcik,Hp: Integer;
+                        Var UtolsoUres,FullBlokk : Boolean);
+Var P : Lpoint;
+    Bc: Integer;
+Begin
+  For Bc := KCik To Hp-1 Do
+  Begin
+    Heap_Pos(P,PointerTomb^[Bc]);
+    If NOT UresSor(P,0,c77) Then
+      UtolsoUres := False;
+    FreeEms1(PointerTomb^[Bc])
+  End;
+  If (NOT FullBlokk) AND UtolsoUres AND (Kcik > StartLine[EditNum]) Then
+    For Bc := KCik To Hp-1 Do
+    Begin
+      {$IFDEF PROTECT}
+      If NOT ProtectedLine(Bc) Then
+      {$ENDIF}
+      Begin
+        DelHeapLine(Kcik);
+        Dec(All_Lines[EditNum]);
+      End;
+    End;
+End;
+
+Procedure SetNewMain(Var NewMain: Integer);
+Begin
+  If NewMain > EndLine[EditNum] Then
+  Begin
+    NewMain := EndLine[EditNum];
+    If NOT MainLine(NewMain) Then
+      NewMain := PrevMain(NewMain);
+  End;
+End;
+
+Procedure Move_Block_End;
+Var TeditNum,
+    Dummy,Cikl,
+    NewMain,Cikl2,KCik,
+    FullS,Hp              : Integer;
+    Pufferban             : Integer;
+    Blockban              : Integer;
+    Source,Dest,P         : Lpoint;
+    KiszurE,
+    Elsoben,Utolsoban,Mai : Boolean;
+    _1,_2                 : Word;
+    FullBlokk,ElsoUres,
+    UtolsoUres,UjSor,
+    UjUtolsoSor           : Boolean;
+
+Procedure Kiszurogat;
+Begin
+  Kiszur(KiszurE,Source,Kezd,Veg-Kezd+1);            { Editor        }
+  Kiszur(True,Dest,Veg+1,c78-(Veg+1));             { Puffer vege   }
+  Kiszur(True,Dest,0,Kezd);                       { A puffer eleje}
+End;
+
+Begin
+
+  If BlockMode Then
+  Begin
+
+    Set_Kicsi_Nagy_Kezd_Veg;
+
+    Pufferban := EndLine[BufferNum] - StartLine[BufferNum]+1;
+    Blockban  := Lpoz - Fpoz + 1;
+
+    If (NOT(OszlopMode)) Or (FreeLines-(Blockban-Pufferban) > 5) Then { 5 = biztonsagi rahagyas }
+    Begin
+
+      Valtozasok;
+
+      Valtozas[BufferNum] := True;
+
+      NewMain   := Kicsi;
+
+      TEditNum  := EditNum;
+
+      FreeEdit(BufferNum);
+      New_Kell[BufferNum] := False;
+      Hp := Fpoz;
+
+      FullBlokk := ((Fpoz = StartLine[EditNum]) AND (Lpoz = EndLine[EditNum]));
+
+      If NOT OszlopMode Then
+      Begin
+        UjSor       := True;
+        UjUtolsoSor := True;
+        ElsoUres    := True;
+        UtolsoUres  := True;
+      End;
+
+      For Cikl := Fpoz To Lpoz Do
+        Begin
+
+          {$IFDEF PROTECT}
+          KiszurE := NOT ProtectedLine(Cikl);
+          {$ELSE}
+          KiszurE := True;
+          {$ENDIF}
+
+          EditNum := BufferNum;
+          NewHeapLine(EndLine[EditNum]+1);
+
+          Heap_Pos(Dest,PointerTomb^[EndLine[EditNum]]);
+          _1 := PointerTomb^[EndLine[EditNum]];
+
+          EditNum := TEditNum;
+
+          Mai := MainLine(Hp);
+          If Mai Then
+            Begin
+              FullS := DownInd(Hp)+UpInd(Hp)+1;
+              Inc(All_Lines[BufferNum],FullS);
+            End;
+
+          Heap_Pos(Source,PointerTomb^[Hp]);
+          _2 := PointerTomb^[Hp];
+
+          Move(Source^,Dest^,C160);
+
+          Elsoben   := InInt(Cikl,Fpoz,Fpoz+Elsok);
+          Utolsoban := InInt(Cikl,Lpoz-Utolsok,Lpoz);
+
+          If Elsoben Then
+            Begin
+              If EgySorMode Then Kiszur(True,Dest,0,Kezd)
+                Else
+              If (Not OszlopMode) AND (Kezd > LeftMar[EditNum]) Then
+                Kiszur(True,Dest,LeftMar[EditNum],Kezd-LeftMar[EditNum]); { A puffer eleje }
+
+              If OszlopMode Then
+              Begin
+                Kiszur(KiszurE,Source,Kezd,Veg-Kezd+1);       { Editor        }
+                Kiszur(True,Dest,Veg+1,c78-(Veg+1));        { Puffer vege   }
+                Kiszur(True,Dest,0,Kezd);                  { A puffer eleje}
+              End
+              Else
+              Begin
+                If Utolsoban Then
+                Begin
+                  Kiszur(KiszurE,Source,Kezd,Veg-Kezd+1);            { Editor        }
+                  Kiszur(True,Dest,Veg-Kezd+1,c78-(Veg-Kezd+1));   { A puffer vege }
+                  If (Kezd <= LeftMar[EditNum]) AND (Veg >= RightMar[EditNum]) Then
+                    If NOT FullBlokk Then
+                    Begin
+                      DelHeapLine(Fpoz);
+                      Dec(All_Lines[EditNum]);
+                    End;
+                End
+                Else
+                  Kiszur(KiszurE,Source,Kezd,c78-Kezd);
+              End;
+              Inc(Hp)
+            End
+          Else
+            If Utolsoban Then
+              Begin
+
+                If Not OszlopMode Then
+                Begin
+                  Kiszur(KiszurE,Source,0,Veg+1);
+                  Kiszur(True,Dest,Veg+1,c78-(Veg+1));
+
+                  If UjSor Then
+                    ElsoUresSor(Fpoz,Cikl,Hp,NewMain,Kezd,ElsoUres,UjSor);
+
+                  If UjUtolsoSor Then
+                  Begin
+                    KCik := Hp;
+                    UjUtolsoSor := False;
+                  End;
+
+                End
+                Else Kiszurogat;
+
+                Inc(Hp);
+
+              End
+            Else
+              Begin
+                If OszlopMode Then
+                Begin
+                  Kiszurogat;
+                  Inc(Hp);
+                End
+                Else
+                Begin
+
+                  {$IFDEF PROTECT}
+                  If NOT ProtectedLine(Hp) Then
+                  {$ENDIF}
+                  Begin
+                    If UjSor Then
+                      ElsoUresSor(Fpoz,Cikl,Hp,NewMain,Kezd,ElsoUres,UjSor);
+                    DelHeapLine(Hp);
+                    If Mai Then Dec(All_Lines[EditNum],FullS);
+                  End
+                  {$IFDEF PROTECT}
+                  Else Inc(Hp)
+                  {$ENDIF}
+                  ;
+                  {If NewMain > Fpoz Then Dec(NewMain);}
+                End;
+              End;
+          FreeEms1(_1);
+          FreeEms1(_2);
+        End;
+
+      If (NOT OszlopMode) AND (NOT UjUtolsoSor) Then
+        DelEmptyLines(Kcik,Hp,UtolsoUres,FullBlokk);
+
+      SetNewMain(NewMain);
+
+      ClearImage;
+
+      TeditNum := EditNum;
+      EditNum := BufferNum;
+      SeekToFirstLine;
+      EditNum := TEditNum;
+
+      OszlopVolt := OszlopMode;
+
+      PosToPos(NewMain,Kezd,True);
+    End
+    Else
+    Begin
+      Error(4,BlSt1);
+    End;
+
+  End;
+End;
+
+Procedure Delete_Block_End;
+
+Var Dummy,Cikl,Bc,KCik,Hp,NewMain :integer;
+    FullS                         : Integer;
+    Source,Dest,P                 : Lpoint;
+    KiszurE,Elsoben,Utolsoban,Mai : Boolean;
+    _1                            : Word;
+    FullBlokk,ElsoUres,UtolsoUres,
+    UjSor,UjUtolsoSor             : Boolean;
+
+Procedure Kiszuras;
+Begin
+  Kiszur(KiszurE,Source,Kezd,Veg-Kezd+1)            { Editor        }
+End;
+
+Begin
+  If BlockMode Then
+  Begin
+
+    Valtozasok;
+
+    Set_Kicsi_Nagy_Kezd_Veg;
+
+    NewMain   := Kicsi;
+
+    HP := Fpoz;
+
+    FullBlokk := ((Fpoz = StartLine[EditNum]) AND (Lpoz = EndLine[EditNum]));
+
+    If NOT OszlopMode Then
+    Begin
+      UjSor       := True;
+      UjUtolsoSor := True;
+      ElsoUres    := True;
+      UtolsoUres  := True;
+    End;
+
+    For Cikl := Fpoz To Lpoz Do
+      Begin
+
+        {$IFDEF PROTECT}
+        KiszurE := NOT ProtectedLine(Cikl);
+        {$ELSE}
+        KiszurE := True;
+        {$ENDIF}
+
+        MAi := MainLine(Hp);
+        If Mai Then
+          FullS := DownInd(Hp)+UpInd(Hp)+1;
+        Heap_Pos(Source,PointerTomb^[Hp]);
+        _1 := PointerTomb^[Hp];
+
+        Elsoben   := InInt(Cikl,Fpoz,Fpoz+Elsok);
+        Utolsoban := InInt(Cikl,Lpoz-Utolsok,Lpoz);
+        If Elsoben Then
+          Begin
+              If OszlopMode OR Utolsoban Then
+              Begin
+                Kiszuras;
+                If (NOT OszlopMode) AND Utolsoban Then
+                  If (Kezd <= LeftMar[EditNum]) AND (Veg >= RightMar[EditNum]) Then
+                    If NOT FullBlokk Then
+                    Begin
+                      DelHeapLine(Fpoz);
+                      Dec(All_Lines[EditNum]);
+                    End;
+              End
+            Else
+            Begin
+              Kiszur(KiszurE,Source,Kezd,c78-Kezd);
+            End;
+            Inc(Hp)
+          End
+        Else
+        Begin
+          If Utolsoban Then
+            Begin
+              If OszlopMode Then Kiszuras
+                Else
+              Begin
+                Kiszur(KiszurE,Source,0,Veg+1);
+
+                If UjSor Then
+                  ElsoUresSor(Fpoz,Cikl,Hp,NewMain,Kezd,ElsoUres,UjSor);
+                If UjUtolsoSor Then
+                Begin
+                  KCik := Hp;
+                  UjUtolsoSor := False;
+                End;
+
+              End;
+              Inc(Hp)
+            End
+          Else
+            Begin
+              If OszlopMode Then
+              Begin
+                Kiszuras;
+                Inc(Hp);
+              End
+              Else
+              Begin
+
+                {$IFDEF PROTECT}
+                If NOT ProtectedLine(Hp) Then
+                {$ENDIF}
+                Begin
+                  If UjSor Then
+                    ElsoUresSor(Fpoz,Cikl,Hp,NewMain,Kezd,ElsoUres,UjSor);
+                  DelHeapLine(Hp);
+                  If Mai Then Dec(All_Lines[EditNum],FullS);
+                End
+                {$IFDEF PROTECT}
+                Else Inc(Hp)
+                {$ENDIF}
+                ;
+                { If NewMain > Fpoz Then Dec(NewMain);}
+              End;
+            End;
+        End;
+        FreeEms1(_1)
+      End;
+
+    If (NOT OszlopMode) AND (NOT UjUtolsoSor) Then
+       DelEmptyLines(Kcik,Hp,UtolsoUres,FullBlokk);
+
+    SetNewMain(NewMain);
+
+    ClearImage;
+
+    PosToPos(NewMain,Kezd,True);
+  End;
+End;
+
+Procedure Copy_Block_End;
+
+Var TeditNum            : Integer;
+    Dummy,Cikl          : Integer;
+    Source,Dest         : Lpoint;
+    Pufferban           : Integer;
+    Blockban            : Integer;
+    Elsoben,Utolsoban,
+    Mai                 : Boolean;
+    _1,_2               : Word;
+
+Procedure Kiszurogat;
+Begin
+  Kiszur(True,Dest,Veg+1,c78-(Veg+1));        { Puffer vege   }
+  Kiszur(True,Dest,0,Kezd);                  { A puffer eleje}
+End;
+
+Begin
+  If BlockMode Then
+  Begin
+
+    Set_Kicsi_Nagy_Kezd_Veg;
+
+    Pufferban := EndLine[BufferNum] - StartLine[BufferNum]+1;
+    Blockban  := Lpoz - Fpoz + 1;
+
+    If FreeLines-(Blockban-Pufferban) > 5 Then    { 5 = biztonsagi rahagyas }
+      Begin
+        TEditNum := EditNum;
+        BlockMode := False;
+        FreeEdit(BufferNum);
+        Valtozas[BufferNum] := True;
+        New_Kell[BufferNum] := False;
+        For Cikl := Fpoz To Lpoz Do
+          Begin
+            EditNum := BufferNum;
+            NewHeapLine(EndLine[EditNum]+1);
+
+            Heap_Pos(Dest,PointerTomb^[EndLine[EditNum]]);
+            _1 := PointerTomb^[EndLine[EditNum]];
+
+            EditNum := TEditNum;
+            If MainLine(Cikl) Then
+              Inc(All_Lines[BufferNum],DownInd(Cikl)+UpInd(Cikl)+1);
+
+            Heap_Pos(Source,PointerTomb^[Cikl]);
+            _2 := PointerTomb^[Cikl];
+
+            Move(Source^,Dest^,C160);
+            Elsoben   := InInt(Cikl,Fpoz,Fpoz+Elsok);
+            Utolsoban := InInt(Cikl,Lpoz-Utolsok,Lpoz);
+            If Elsoben Then
+              Begin
+                If EgySorMode Then Kiszur(True,Dest,0,Kezd) Else
+                If Not(OszlopMode) AND (Kezd > LeftMar[EditNum]) Then
+                  Kiszur(True,Dest,LeftMar[EditNum],Kezd-LeftMar[EditNum]); { A puffer eleje }
+                If OszlopMode Then Kiszurogat
+                Else
+                If Utolsoban Then
+                  Kiszur(True,Dest,Veg-Kezd+1,c78-(Veg-Kezd+1)); { A puffer vege }
+              End
+            Else
+              Begin
+                If OszlopMode Then Kiszurogat
+                Else
+                If Utolsoban Then
+                  Kiszur(True,Dest,Veg+1,c78-(Veg+1));
+              End;
+            FreeEms1(_1);
+            FreeEms1(_2);
+          End;  { for cikl }
+
+        ClearImage;
+
+        SaveLastP;
+
+        TeditNum := EditNum;
+        EditNum := BufferNum;
+
+        SeekToFirstLine;    { Ez all a puffer elejere }
+
+        EditNum := TEditNum;
+
+        OszlopVolt := OszlopMode;
+
+        SeekToLastP;
+      End
+    Else
+    Begin
+      Error(4,BlSt1);
+    End;
+
+  End { If BlockMode }
+End;
+
+Procedure Abort_Block;
+Var Cikl : Integer;
+Begin
+  If BlockMode Then
+  Begin
+    BlockMode := False;
+    ClearImage;
+    FreshPage;
+  End { If BlockMode }
+End;
+
+Procedure Change_Block_Font(Font: Byte);
+Var
+    Kot                       : Array [0..MaxMaxChars] Of Byte;
+    Uto,Kotok,Cik             : Byte;
+    Attr                      : Byte;
+    Cikl,Temp                 : Integer;
+    Vege,Kezd                 : Word;
+    Source                    : Lpoint;
+    NewMain                   : Integer;
+    _1                        : Word;
+    Tip,OldTip                : CharType;
+    X                         : Byte;
+
+Begin
+  If BlockMode AND (NOT ExtendedE(Font)) Then
+  Begin
+      If DoltE(Font) Then Tip := Dolt Else
+      If VastagE(Font) Then Tip := Vastag Else Tip := Normal;
+
+      If OldFont <> 255 Then
+      Begin
+        If DoltE(OldFont) Then OldTip := Dolt Else
+        If VastagE(OldFont) Then OldTip := Vastag Else OldTip := Normal;
+      End
+      Else OldTip := Every;
+
+      Valtozasok_Set_KicsiNagy;
+
+      For Cikl := Fpoz To Lpoz Do
+        Begin
+
+          If (Not OnlyMain) OR (MainLine(Cikl)) Then
+          Begin
+            If OszlopMode Then
+            Begin
+              Kezd := Kezdodo;
+              Vege := Vegzodo;
+            End
+            Else
+            Begin
+              Kezd := 0;
+              Vege := c77;
+
+              If InInt(Cikl,Fpoz,Lpoz2) Then Kezd := Kezdodo;
+              If InInt(Cikl,Fpoz2,Lpoz) Then Vege := Vegzodo;
+
+            End;
+
+            If Vege < Kezd Then
+              Xchg(Kezd,Vege);
+
+            Heap_Pos(Source,PointerTomb^[Cikl]);
+
+            If Kezd = 0 Then Attr := Source^.Attribs[0] And $F0;
+
+            If OldFont = 255 Then
+            Begin
+              Uto   := c77;
+              Kotok := 00;
+              While Uto > 0 Do
+              Begin
+                If (Source^.Attribs[Uto] AND 15 = 0) AND
+                   (Source^.Chars[C80+Uto] = '-') Then
+                Begin
+                  Inc(Kotok);
+                  Kot[Kotok] := Uto;
+                End;
+                Dec(Uto);
+              End;
+
+              {$IFDEF PROTECT}
+              If NOT ProtectedLine(Cikl) Then
+              {$ENDIF}
+              For X := Kezd To Vege Do
+              Begin
+                If (Source^.Attribs[X] AND 15) In ExtSet Then
+                Begin
+                  Source^.Chars[C80+X] :=
+                  NewExtCharType((Source^.Attribs[X] AND 15),
+                                 Source^.Chars[C80+X],OldTip,Tip);
+                End
+                Else Source^.Attribs[X] := Font;
+              End;
+
+              { FillChar(Source^.Attribs[Kezd],Vege-Kezd+1,Font); }
+
+              If Kotok > 0 Then
+                For Cik := 1 To Kotok Do
+                  Source^.Attribs[Kot[Cik]] := 00;
+
+            End
+            Else
+            Begin
+              {$IFDEF PROTECT}
+              If NOT ProtectedLine(Cikl) Then
+              {$ENDIF}
+              For X := Kezd To Vege Do
+              Begin
+                If (Source^.Attribs[X] AND 15) In ExtSet Then
+                Begin
+                  Source^.Chars[C80+X] :=
+                  NewExtCharType((Source^.Attribs[X] AND 15),
+                                 Source^.Chars[C80+X],OldTip,Tip);
+                End
+                Else If (Source^.Attribs[X] AND 15) = OldFont Then
+                       Source^.Attribs[X] := Font;
+              End;
+
+              {ChangeLineFont(Source^.Attribs[Kezd],Kezd,Vege+1,OldFont,Font);}
+            End;
+
+            If Kezd = 0 Then Source^.Attribs[0] := Source^.Attribs[0] OR Attr;
+            FreeEms1(PointerTomb^[Cikl])
+          End;
+
+        End;
+
+        OldFont := 255;
+
+      ClearImageBlock;
+  End
+  Else
+  Begin
+    Beepel(660);
+    Beepel(440);
+  End;
+
+End;
+
+
+Procedure UpperCase_Block(Par : CaseType);
+Var
+    PP,
+    Att,X                     : Byte;
+    C                         : Char;
+    Cikl,Temp                 : Integer;
+    Vege,Kezd                 : Word;
+    Source                    : Lpoint;
+    NewMain                   : Integer;
+
+Procedure Upper;
+Begin
+  If C In Kis_A_Kis_Z Then Source^.Chars[C80+X] := Char(Byte(C)-$20)
+  Else If Att > 0 Then
+  Begin
+    PP := Pos(C,UpCasePoint[Att,1]^);
+    If PP > 0 Then Source^.Chars[C80+X] := UpCasePoint[Att,2]^[PP];
+  End;
+End;
+
+Procedure Lower;
+Begin
+  If C In Nagy_A_Nagy_Z Then Source^.Chars[C80+X] := Char(Byte(C)+$20)
+  Else If Att > 0 Then
+  Begin
+    PP := Pos(C,UpCasePoint[Att,2]^);
+    If PP > 0 Then Source^.Chars[C80+X] := UpCasePoint[Att,1]^[PP];
+  End;
+End;
+
+Procedure Invert;
+Begin
+  If C In Kis_A_Kis_Z Then Source^.Chars[C80+X] := Char(Byte(C)-$20) Else
+  If C In Nagy_A_Nagy_Z Then Source^.Chars[C80+X] := Char(Byte(C)+$20) Else
+  If Att > 0 Then
+  Begin
+    PP := Pos(C,UpCasePoint[Att,1]^);
+    If PP > 0 Then Source^.Chars[C80+X] := UpCasePoint[Att,2]^[PP] Else
+    Begin
+      PP := Pos(C,UpCasePoint[Att,2]^);
+      If PP > 0 Then Source^.Chars[C80+X] := UpCasePoint[Att,1]^[PP];
+    End;
+  End;
+End;
+
+Begin (* UpperCase_Block *)
+
+  If BlockMode Then
+  Begin
+
+      Valtozasok_Set_KicsiNagy;
+
+      For Cikl := Fpoz To Lpoz Do
+        Begin
+          If (Not OnlyMain) OR (MainLine(Cikl)) Then
+          Begin
+            If OszlopMode Then
+            Begin
+              Kezd := Kezdodo;
+              Vege := Vegzodo;
+            End
+            Else
+            Begin
+              Kezd := 0;
+              Vege := c77;
+
+              If InInt(Cikl,Fpoz,Lpoz2) Then Kezd := Kezdodo;
+              If InInt(Cikl,Fpoz2,Lpoz) Then Vege := Vegzodo;
+
+            End;
+
+            If Vege < Kezd Then
+              Xchg(Kezd,Vege);
+
+            Heap_Pos(Source,PointerTomb^[Cikl]);
+
+            For X := Kezd To Vege Do
+            Begin
+
+              C   := Source^.Chars[C80+X];
+              Att := Source^.Attribs[X] AND 15;
+
+              If FontAttr[Att] <> $F0 Then
+              Case Par Of
+                BlockUp  : Upper;
+                BlockLow : Lower;
+                BlockInv : Invert;
+              End;
+
+            End;
+            FreeEms1(PointerTomb^[Cikl]);
+          End;
+
+        End;
+
+      ClearImageBlock;
+
+  End;
+
+End;
+
+
+Procedure Calculate_Block(Par : CalcType);
+Var
+    PP,
+    Att,X                     : Byte;
+    C                         : Char;
+    Cikl,Temp                 : Integer;
+    Vege,Kezd                 : Word;
+    Source                    : Lpoint;
+    Code,NewMain              : Integer;
+    Oszto,Num                 : Real;
+    VegeVan                   : Boolean;
+    Ws                        : Str160;
+
+Begin { Calculate_Block }
+
+      GlobalNum := 0.0;
+      Num       := 0.0;
+      Ws        := '';
+
+      Valtozasok_Set_KicsiNagy;
+
+      For Cikl := Fpoz To Lpoz Do
+        Begin
+          If (Not OnlyMain) OR (MainLine(Cikl)) Then
+          Begin
+            If OszlopMode Then
+            Begin
+              Kezd := Kezdodo;
+              Vege := Vegzodo;
+            End
+            Else
+            Begin
+              Kezd := 0;
+              Vege := c77;
+
+              If InInt(Cikl,Fpoz,Lpoz2) Then Kezd := Kezdodo;
+              If InInt(Cikl,Fpoz2,Lpoz) Then Vege := Vegzodo;
+
+            End;
+
+            If Vege < Kezd Then
+              Xchg(Kezd,Vege);
+
+            Heap_Pos(Source,PointerTomb^[Cikl]);
+
+            For X := Kezd To Vege Do
+            Begin
+
+              C   := Source^.Chars[C80+X];
+              Att := Source^.Attribs[X] AND 15;
+
+              If MagyarE(Att) Then
+              EkSzer_To_ASCIIC(C);
+              {
+              Case C Of
+                '0' : C := '”';
+                '!' : C := '0';
+                '#' : C := '+';
+                '/' : C := '-';
+              End;
+              }
+
+              VegeVan := (X = Vege);
+
+              If C In ['0'..'9','.',',','E','e','-','%'] Then
+                Ws := Ws + C
+              Else VegeVan := True;
+
+              If VegeVan AND (Ws <> '') Then
+              Begin
+                Oszto := 1;
+                If Ws[Length(Ws)] = '%' Then
+                Begin
+                  Oszto := 100;
+                  Dec(Byte(Ws[0]));
+                End;
+
+		While Pos(',',Ws) > 0 Do Delete(Ws,Pos(',',Ws),1);
+
+                If Ws[Length(Ws)] = '-' Then Dec(Byte(Ws[0]));
+
+                If (Ws <> '') AND (Ws[Pos('-',Ws)+1] In ['0'..'9']) Then
+                Begin
+                  Val(Ws,Num,Code);
+
+                  If Code = 0 Then
+                  Begin
+                    Num := Num / Oszto;
+                    GlobalNum := GlobalNum + Num;
+                  End
+                  Else
+                  Begin
+                    Beepel(555);
+                  End;
+                End;
+
+                Ws := '';
+              End;
+
+            End;
+            FreeEms1(PointerTomb^[Cikl]);
+          End;
+
+        End;
+
+        If GlobalNum <> 0 Then
+        Begin
+
+          If NOT Gyujtes Then CalcRes := CalcNum;
+
+          Case Par Of
+            Add     : CalcRes := CalcRes + GlobalNum;
+            Sub     : CalcRes := CalcRes - GlobalNum;
+            Multiply: CalcRes := CalcRes * GlobalNum;
+            Division: CalcRes := CalcRes / GlobalNum;
+            Equal   : CalcRes := GlobalNum;
+          End;
+
+          CreateCalcResult(CalcRes);
+
+        End;
+
+        ClearImageBlock;
+
+End;  { Calculate_Block }
+
+Procedure GIBBlock(Par : Byte);
+Var
+
+MarVolt     : Boolean;
+Cikl,Temp   : Integer;
+Veg,Kez     : Byte;
+NewMain     : Integer;
+
+Begin { GIBBlock }
+
+  BlockMode := False;
+  Set_KicsiNagy;
+  EgySorMode := (Kicsi = Nagy);
+  MarVolt := False;
+  Cikl := Lpoz;
+
+  While (Cikl >= Lpoz) AND (NOT MarVolt) Do
+  Begin
+
+    If (NOT Marvolt) AND MainLine(Cikl) Then
+    Begin
+
+      If EgySorMode Then
+      Begin
+        If Vegzodo < Kezdodo Then
+          Xchg(Kezdodo,Vegzodo);
+
+        Kez := Kezdodo;
+        Veg := Vegzodo;
+      End
+      Else
+      Begin
+        Kez := 0;
+        Veg := 0;
+      End;
+
+      CallGIB(Par,Kez,Veg);
+
+      MarVolt := True;
+
+    End;
+
+    Dec(Cikl);
+
+  End;
+
+  ClearImageBlock;
+
+End;  { GIBBlock }
+
+
+{$IFNDEF NOSPEAK}
+Procedure SAYBlock;
+Var
+
+NewSentence : Boolean;
+Att,X,Bc    : Byte;
+Count,Cikl,
+
+Veg,Kez     : Byte;
+Vege,Kezd   : Word;
+OldC        : Char;
+NewMain     : Integer;
+Source      : Lpoint;
+Cik         : Integer;
+
+NagySet     : Set Of Char;
+DuplaVolt   : Boolean;
+
+Mondat      : MondatType;
+AzKodTomb   : PofaDatType;
+Poz         : Byte;
+
+
+Procedure InitBuf;
+Begin
+  FillChar(Mondat,SizeOf(Mondat),#00);
+  Mondat[0] := ' ';
+  Count := 1;
+  OldC  := #00;
+End;
+
+Begin { SAYBlock }
+  {Writeln(Lst,SpCheck);}
+
+  BreakVolt := False;
+  Init_Felolvas(AzKodTomb);
+
+  InitBuf;
+
+  Valtozasok_Set_KicsiNagy;
+
+  OldC    := #00;
+
+  For Cikl := Fpoz To Lpoz Do
+  Begin
+    If (Not OnlyMain) OR (MainLine(Cikl)) Then
+    Begin
+      If OszlopMode Then
+      Begin
+        Kezd := Kezdodo;
+        Vege := Vegzodo;
+      End
+      Else
+      Begin
+        Kezd := 0;
+        Vege := c77;
+
+        If InInt(Cikl,Fpoz,Lpoz2) Then Kezd := Kezdodo;
+        If InInt(Cikl,Fpoz2,Lpoz) Then Vege := Vegzodo;
+
+      End;
+
+      If Vege < Kezd Then
+        Xchg(Kezd,Vege);
+
+      If LenLine(Cikl) = 0 Then
+      Begin
+        {WriteLn(LST);
+        WriteLn(LST,'Ujsor, ujmon:');
+        WriteLn(LST);}
+        SaySentence(Mondat,Count,AzKodTomb);
+        InitBuf
+      End;
+
+      Heap_Pos(Source,PointerTomb^[Cikl]);
+
+      For X := Kezd To Vege Do
+      Begin
+
+        C   := UpCase(Source^.Chars[C80+X]);
+        Att := Source^.Attribs[X] AND 15;
+
+        If MagyarE(Att) Then
+        Begin
+          Poz := Pos(C,MagyUpcSt[0]);
+          If Poz > 0 Then C := MagyUpcSt[1][Poz];
+
+          Poz := Pos(C,CWIConvSt[0]);
+          If Poz > 0 Then C := CWIConvSt[1][Poz];
+        End;
+
+        If (C = ' ') AND (OldC = ' ') Then
+        Begin
+        End
+        Else
+        If (Att <> 0) AND NOT(C In [#00,#91..#96]) Then
+        Begin
+          Mondat[Count] := C;
+          Inc(Count);
+        End;
+
+        If (Count = SizeOf(Mondat)) OR (C In [',','.',';',':','!','?'])
+        Then
+        Begin
+
+          NewSentence := True;
+
+          If C = '.' Then
+          Begin
+
+            If OldC In ['0'..'9'] Then NewSentence := False
+            Else
+            Begin
+              (*
+              Bc := X;
+              While (Bc < C80) AND (Source^.Chars[C80+Bc]  In [#00,' ']) Do
+                Inc(Bc);
+              NagySet := ['A'..'Z'];
+              If MagyarE(Source^.Attribs[Bc] AND 15) Then
+                NagySet := NagySet + ['~',')','_','+','|','{','}',':','"'];
+              NewSentence := (Source^.Chars[C80+Bc] In NagySet);
+              *)
+            End;
+          End;
+
+          If NewSentence Then
+          Begin
+            {WriteLn(LST);
+            WriteLn(LST,'Ujmon:');
+            WriteLn(LST);}
+            SaySentence(Mondat,Count,AzKodTomb);
+            InitBuf
+          End;
+        End;
+
+        OldC := C;
+
+      End;
+
+      FreeEms1(PointerTomb^[Cikl]);
+
+      If BreakVolt Then
+      Begin
+        ClearImageBlock;
+        Exit;
+      End;
+
+    End;
+
+  End;
+
+  If Count > 0 Then
+  Begin
+    SaySentence(Mondat,Count,AzKodTomb);
+    InitBuf
+  End;
+
+  ClearImageBlock;
+
+End;  { SAYBlock }
+
+{$ENDIF}
+
+Procedure Change_Block_Bek;
+Var
+    Cikl                      : Integer;
+    Kicsi,Nagy                : Integer;
+
+Begin
+  If BlockMode Then
+  Begin
+
+      Valtozasok;
+
+      KicsiNagy(Kicsi,Nagy);
+      {
+      Kicsi := Kisebb(Block[0],Block[1]);
+      Nagy  := Nagyobb(Block[0],Block[1]);
+      }
+      Cikl := Kicsi;
+
+      While Cikl < Nagy Do
+        Begin
+          Set_Bits(Cikl,$FF-KemenySor,0);
+          Cikl := NextMain(Cikl)
+        End;
+
+      ClearImageBlock;
+
+    End;
+
+End;
+
+Procedure Change_Block_Spacing(Spac: Byte);
+Var
+    MaxFelso,MaxAlso    : Byte;
+    Olinespace          : Byte;
+    Attr                : Byte;
+    Dummy,Cikl,RegiUp,
+    RegiDown,NewMain    : Integer;
+Begin
+  If BlockMode Then
+  Begin
+
+    Valtozasok;
+
+    KicsiNagy(Kicsi,Nagy);
+    {
+    Kicsi := Kisebb(Block[0],Block[1]);
+    Nagy  := Nagyobb(Block[0],Block[1]);
+    }
+
+    OlineSpace := Linespace;
+    Set_Lines(Spac);
+
+    Cikl := Kicsi;
+
+    While Cikl <= Nagy Do
+    Begin
+      FirstAndLast(Cikl,Fpoz,Lpoz);
+      RegiUp   := UpInd(Cikl);
+      RegiDown := DownInd(Cikl);
+
+      If MainLine(Fpoz)
+        Then MaxFelso := 0
+      Else MaxFelso := UpInd(Fpoz);
+
+      If MainLine(Lpoz)
+        Then MaxAlso := 0
+      Else MaxAlso := UpInd(Lpoz);
+
+      If Alsoindexek >= MaxAlso Then
+        Begin
+          Inc(All_Lines[EditNum],AlsoIndexek-RegiUp);
+          Set_Und(Cikl,Alsoindexek);
+        End
+      Else
+        Begin
+          Inc(All_Lines[EditNum],MaxAlso-RegiUp);
+          Set_Und(Cikl,MaxAlso)
+        End;
+
+      If Felsoindexek >= MaxFelso Then
+        Begin
+          Inc(All_Lines[EditNum],FelsoIndexek-RegiDown);
+          Set_Ind(Cikl,Felsoindexek);
+        End
+      Else
+        Begin
+          Inc(All_Lines[EditNum],MaxFelso-RegiDown);
+          Set_Ind(Cikl,MaxFelso)
+        End;
+
+      If Not LastMain(Cikl)
+        Then Cikl := NextMain(Cikl)
+      Else
+        Inc(Cikl);
+    End;
+
+    Set_Lines(OlineSpace);
+
+    ClearImageBlock;
+
+  End
+End;
+
+Procedure Move_Block;
+Var MainP,Cikl,TeditNum,
+    Dummy,Szam,C,
+    Pufferban           : Integer;
+    Source,Dest         : Lpoint;
+    FSzam,CSzam,CEszam, NX,
+    SourceP               : Integer;
+    Levagva               : Boolean;
+    _1 : Word;
+    _2 : Word;
+
+Procedure Set_CSzam;
+Begin
+  Cikl := c77;
+  While (Cikl >= 0) And (Lukas(SourceP,Cikl,[#0])) Do
+    Dec(Cikl);
+  Inc(Cikl);
+  CSzam := Cikl;
+  If CSzam = 0 Then Inc(Cszam);
+End;
+
+Procedure Set_CESzam;
+Begin
+  Cikl := c77;
+  While (Cikl >= 0) And (Lukas(MainP,Cikl,[#0])) Do
+    Dec(Cikl);
+  Inc(Cikl);
+  CESzam := Nagyobb(Cikl,Xpos);
+  EgySorMode := Cszam+CESzam <= c76
+End;
+
+Procedure MoveToNewLine;
+Begin
+  NX := Xpos;
+  Dummy := 2000;
+  EditNum := TEditNum;
+  If Inser Then CompBeszur(Mainp,NX,Cszam);
+  Atrak(SourceP,MainP,0,NX,Cszam,Dummy,BufferNum,TeditNum,No);
+  Set_Bits(MainP,$FF,TeleSor);
+  If Atrakott > 0 Then Inc(All_Lines[TEditNum],Atrakott);
+End;
+
+Procedure CreateNewLine;
+Begin
+  EditNum := BufferNum;
+  Heap_Pos(Source,PointerTomb^[Cikl]);
+  _1 := PointerTomb^[Cikl];
+  If MainLine(Cikl) Then
+    Inc(All_Lines[TEditNum],DownInd(Cikl)+UpInd(Cikl)+1);
+  EditNum := TEditNum;
+  NewHeapLine(Fpoz);
+  Heap_Pos(Dest,PointerTomb^[Fpoz]);
+  _2 := PointerTomb^[Fpoz];
+
+  Move(Source^,Dest^,C160);
+End;
+
+Begin
+  Pufferban :=  EndLine[BufferNum] - StartLine[BufferNum] + 1;
+
+  If (OszlopVolt) AND (Xpos >= c76) Then Pufferban := 0;
+
+  If Pufferban > 0 Then
+    Begin
+      Mozgott := True;
+      Cikl := StartLine[BufferNum];
+      TEditNum := EditNum;
+      EditNum := BufferNum;
+      Fszam := 0;
+      While (Cikl <= EndLine[BufferNum]) And (Fszam < 2) Do
+        Begin
+          If MainLine(Cikl) Then
+            Begin
+              Inc(Fszam);
+              SourceP := Cikl
+            End;
+          Inc(Cikl)
+        End;
+
+      EgySorMode := (Fszam = 1);
+
+      If EgySorMode Then Set_CSzam;
+
+      EditNum := TEditNum;
+      MainP := MainOfIndex[Ypos];
+
+      If EgySorMode Then Set_CESzam;
+
+      If Pufferban < FreeLines - 2 Then    { 2 = biztonsagi rahagyas }
+        Begin
+          Valtozas[EditNum] := True;
+          If EgySorMode Then
+          Begin
+            MoveToNewLine;
+            Inc(MainP,Tagitott);
+          End
+          Else
+            Begin
+              If NOT OszlopVolt Then
+              Begin
+                NX := LeftMar[EditNum];
+                If Xpos <> 0 Then
+                  Begin
+                    InsertLines(MainP,Xpos,0,Dummy,Dummy,Dummy,LeftMar[EditNum]);
+                    MainP := NextMain(MainP)
+                  End;
+                FirstAndLast(MainP,Fpoz,Lpoz);
+                Cikl := EndLine[BufferNum];
+                While (Cikl >= StartLine[BufferNum]) Do
+                  Begin
+                    CreateNewLine;
+                    FreeEms1(_1);
+                    FreeEms1(_2);
+                  End
+              End
+              Else
+              Begin
+                Cikl := StartLine[BufferNum];
+
+                While NOT(MainLine(Cikl)) Do Inc(Cikl);
+
+                SourceP := Cikl;
+                Levagva := False;
+
+                While (SourceP <= EndLine[BufferNum]) AND
+                      (Mainp   <= EndLine[TeditNum]) Do
+                Begin
+
+                  If (SourceP <= EndLine[BufferNum]) Then
+                  Begin
+
+                    Set_CSzam;
+
+                    Set_CESzam;
+
+                    If Inser AND (CSzam + CESzam >= c76) Then
+                    Begin
+                      Dec(CSzam,CSzam+CESzam-c76);
+                      Levagva := True;
+                      NX      := Xpos;
+                    End
+                    Else
+                    If (NOT Inser) AND (CSzam + Xpos >= c76) Then
+                    Begin
+                      Dec(CSzam,CSzam+Xpos-c76);
+                      Levagva := True;
+                      NX      := Xpos;
+                    End;
+
+                    Atrakott := 1;
+
+                    {$IFDEF PROTECT}
+                    If NOT ProtectedLine(MainP) Then
+                    {$ENDIF}
+                    {If CSzam > 0 Then}
+                    MoveToNewLine;
+
+                    Inc(MainP,Atrakott);
+                    Inc(SourceP,Atrakott);
+
+                    While NOT(MainLine(SourceP)) Do Inc(SourceP);
+
+                    While NOT(MainLine(MainP)) Do Inc(MainP);
+
+                  End;
+
+                End;
+
+                If MainP > EndLine[TEditNum] Then
+                Begin
+                  NX := LeftMar[EditNum];
+                  FirstAndLast(MainP,Fpoz,Lpoz);
+                  Cikl := EndLine[BufferNum];
+                  Szam := Cikl-SourceP;
+                  While (Szam >= 0) Do
+                    Begin
+                      CreateNewLine;
+                      C := c77;
+                      While (C >= 0) And (Lukas(Fpoz,C,[#0])) Do
+                        Dec(C);
+                      Inc(C);
+
+                      If Xpos+C > c76 Then
+                      Begin
+                        FillChar(Dest^.Chars[C80+c76-Xpos],Xpos+C-c76,#00);
+                        FillChar(Dest^.Chars[C80+c76-Xpos],Xpos+c-c76,#00);
+                      End;
+
+                      If Xpos > 0 Then
+                      Begin
+                        CompBeSzur(Fpoz,0,Xpos);
+                        FillChar(Dest^.Chars[C80],Xpos,#00);
+                      End;
+
+                      Dec(Szam);
+                      Inc(MainP);
+                      FreeEms1(_1);
+                      FreeEms1(_2)
+                    End;
+                End;
+                If Levagva Then
+                Begin
+                  Beepel(600);
+                  Beepel(400);
+                End;
+              End;
+            End;
+          If MainP > EndLine[TEditNum] Then MainP := EndLine[TEditNum];
+          PosToPos(MainP,NX,True)
+        End  { Ha eleg a memoria }
+      Else
+      Begin
+	Error(4,BlSt1);
+      End;
+    End { Ha nem ures a blokk }
+End;

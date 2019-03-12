@@ -1,0 +1,515 @@
+
+{********************** Printeles uzenetek *********************}
+
+
+const   pr_mess1   = 'Imprimarea abandonatÜ';                     {100}
+        pr_mess2   = 'Iesire cu ESC si revenire cu altÜ tastÜ';   {100}
+        pr_mess3   = 'åncarcare';
+        pr_mess4   = 'Fisier absent :';
+        pr_mess5   = ' åncarcare...';
+        pr_mess7   = 'VÜ rog sÜ asteptati...';
+        pr_mess8   = 'TipÜrire';
+        pr_mess9   = 'Intrerupere la apÜsarea unei taste';
+        pr_mess10  = 'Sfårs. de pag.';
+        pr_mess11  = '     DacÜ se opreste impr.';              {101}
+        pr_mess12  = 'schimbati hårtia si tastati ENTER';       {101}
+        pr_mess13  = 'Imprimanta inactivÜ !';                   {102}
+        pr_mess14  = '   <R>eluare sau <I>esire ?';             {102}
+        pr_mess15  = '  Lungimea paginii este incorectÜ !';     {103}
+        pr_mess16  = ' <A>ctual <M>aximal <I>esire';            {103}
+        pr_mess17  = 'Actual :';
+        pr_mess18  = '   Maximal :';
+        pr_mess19  = '-dacÜ nu folositi antet/subsol de paginÜ-';
+        pr_mess20  = ' la åncarcarea setului de caractere';
+        pr_mess21  = 'Optimizare memorie';
+
+        pr_mess22  = 'Mod de tipÜrire gresitÜ !';
+        pr_mess23  = 'ån modul de tipÜrire actualÜ';
+        pr_mess24  = 'tipÜrire desÜ imposibilÜ !';
+        pr_mess25  = '<A>ctual <M>od rapid <I>esire';
+
+        {$IFDEF LICENC}
+        ElveszettSt = 'Emblema a suprascris niste caractere !'; {104}
+        {$ENDIF}
+
+(******************************* Alte nume ********************************)
+
+
+                         { SET.CDW - bol}
+
+  Enter_Max_Key = 'TastÜri max. : ';
+      SST0      = 'NumÜr taste MACRO:';
+
+      EnterDist = 'DistantÜ (inch): ';
+      EnterPage = 'Nr. pag.: ';
+      EnterPld  = 'Nr. exemplare :';
+      SST1      = 'Prima paginÜ de imprimat';
+      SST2      = 'Ultima paginÜ de imprimat';
+      SST3      = 'Nr. primei pagini de imprimat';
+      SST4      = 'Temporizare imprimantÜ';
+      SST5      = 'Temporizare : ';
+      SST6      = 'Setare lungime pag.';
+      SST7      = 'Lungime pag. : ';
+      SST8      = 'Distribuire rånd index';
+      SST9      = 'Raport distribuire (1-100%) :';
+      SST10     = 'Periodicitate de salvare';
+      SST11     = 'Timp (min.) : ';
+      SST12     = 'Margine la impr.';
+      SST13     = 'Margine : ';
+      SST14     = 'NumÜr exemplare';
+      SST15     = 'Distanta dintre douÜ etichete';
+
+                  { INITCDW.CDW-bol }
+
+      IniST1    = 'åncÜrcare';
+      IniST2    = 'Informatii';
+      IniST3    = 'mascÜ nouÜ pt. fisier';
+      IniST4    = 'MascÜ fisier : ';
+      IniST5    = ' bibliotecÜ';
+      IniST6    = 'BibliotecÜ : ';
+
+
+                  { INPUTCDW.PAS-bol }
+
+      InpST1    = ' Ordonare...';
+      InpST2    = 'BibliotecÜ : ';
+      InpST3    = ' pt. åncÜrcarea fis.';                       {105}
+      InpST4    = 'Antete';
+      InpST5    = ' åncÜrcare';
+      InpST6    = ' salvare';
+      InpST7    = 'PgUp: pag. prec.';
+      InpST8    = 'Atentie';                                    {106}
+      InpSt9    = 'PgDn: pag. urm.';
+      InpSt10   = ' Prea multe fis. ';                          {107}
+
+                  { INPUTELE.CDW-bol }
+
+      IneSt1    : String[16] = 'IESIRE CU <ESC>';
+      IneSt2    = 'Atentie';                                    {106}
+      IneSt3    = 'Sånteti sigur cÜ';                           {108}
+      IneSt5    = ' vreti sÜ stergeti fis. ? (D/N) ';           {109}
+      IneSt6    = 'Sterg. fisier';
+      IneSt7    = 'Stergerea : ';
+      IneSt8    = ' bibliotecii';
+      IneSt9    = 'Redenumire de fis.';
+      IneSt10   = 'Vechi ';
+      IneSt11   = '  Nou ';
+      IneSt12   = 'Rularea åntreruptÜ';
+      IneSt13   = ' åncÜrcarea...';
+      IneSt14   = '. prelucrarea :';
+      IneSt15   = ' setului';
+      IneSt16   = 'Salvare de macro';
+      IneSt17   = 'åncÜrcare de macro';
+      IneSt18   = 'Salvarea parametrilor';
+      IneSt19   = 'åncÜrcarea parametrilor';
+      IneSt20   = 'Copiere de fis.';
+      IneSt21   = 'Fisier de copiat ';
+      IneSt22   = '      Fisier nou ';
+      IneSt23   = 'Alegere mas. de scris';
+      IneSt24   = 'Alegere imprimantÜ';
+      IneSt25   = 'Selectare listÜ de adrese';
+      IneSt26   = 'Definire conditie';
+      IneSt27   = 'Salvarea configuratiei';
+
+      Feltetel  : String[10] = 'Conditie';
+
+                   { CDW.CDW-bol }
+
+      CDWST1    = ' åncÜrcare';
+
+                   { ELEJE.CDW-bol }
+
+      EleSt1    = 'Caractere';
+      EleSt2    = 'Marcare fisier';
+      EleSt3    = 'Alegere';
+      EleSt4    = 'Stergere memorie';
+      EleSt5    = 'Asteptati';
+      EleSt6    = 'BibliotecÜ : ';
+      EleSt7    = ' pt inserarea råndului';                     {110}
+
+                   { BLOKK.CDW-bol   }
+
+      BlSt1     = ' pt copierea blocului';                      {111}
+
+                   { REPLACE.CDW-bol }
+
+      RepSt1    = ' SchimbÜm ? (D/N) :';
+      RepSt2    = 'Text nou:';
+      RepSt3    = 'Optiuni: ';
+
+                   { MENU.CDW-bol    }
+
+      MSt1     = 'IncÜrcare';
+      MSt2     = 'Meniu principal';
+
+                   { CDW.PAS-bol     }
+
+      CDWFst1  = ' Pt inscrierea car.';                         {112}
+      CDWFst2  = 'Nr. ordine : ';
+      CDWFst3  = 'Puneti discheta cheie in unitatea A !';       {113}
+
+                   { FORMAT.CDW-bol   }
+
+      FORMst1  = ' pt formatare';                               {114}
+
+                   { Innen-onnan }
+
+      YesChar   = 'D';    { Igen-Nem valaszok             }
+      NoChar    = 'N';
+
+      UjraChar  = 'R';    { Karakterleutesek nyomtataskor }
+      AktChar   = 'A';
+      MaxiChar  = 'M';
+      KilepChar = 'I';
+      EkSzerChar= 'E';
+      AsciiChar = 'A';
+      GyorsChar = 'M';
+
+      DocuSt    : String[10] = 'Document';
+      ASCIISt   : String[12] = 'Fisier ASCII';
+      VenturaSt : String[14] = 'Fisier Ventura';
+      WordStarSt: String[15] = 'Fisier WordStar';
+
+      Fstr      : Array[Find..Replace] Of String[17] =
+           ('CÜutare','CÜutare+schimbare');
+
+
+   Texts : Array [-2..8] of STRING[5] =
+   ('DES','DEF','INS','SINC','DR: ','PLIN:','SPRN:','CARC:','RIND','COL:','PG  :');
+
+      RajzTorl_St: Array[False..True] Of String[6] = ('RAJZOL','TxRxL ');       {@@@ Itt meg MAGYAR }
+      KiBe_St    : Array[0..1] Of String[4] = (': AF',': IN');
+
+      Positions : array[-2..8] of BYTE = (12,12,16,20,25,30,40,47,55,64,71);
+      YesNo     : Array[0..1] Of String[3] = ('  N','  D');
+      Wss       : Array[0..1] Of String[8] = ('EdRom','WordStar');
+      ColMo     : Array[DispType] Of String[6] = ('Color','   A/N');
+
+      {$IFNDEF VER3}
+      PbPr      : Array[0..1] of String[5] = (' Act.','Tot');
+      PgNm      : Array[0..1] of String[5] = ('Cont.','Docu.');
+      {$ENDIF}
+
+      Nincs     : String[5]  = 'LipsÜ';
+
+
+      {$IFDEF VER352}
+      ExName    : String[40]  = 'êkSzer  3.90 verzi¢';
+      {$ELSE}
+        {$IFNDEF VER3}
+        ExName    : String[48]  = 'êkSzer  4.00 (hÅha) verzi¢';
+        {$ELSE}
+
+          {$IFDEF VER4}
+          ExName    : String[40]  = 'êkSzer  4.90 verzi¢';
+          {$ELSE}
+           ExName    : String[40]  = 'EdRom  6.41';
+          {$ENDIF}
+
+        {$ENDIF}
+      {$ENDIF}
+
+      Szov      : Array [1..3] Of String[6] =
+
+      ('MuncÜ','EdRom','BazÜk');
+
+      MemSt : String[12] = 'Memorie disc';  { Vigy†zat ! Ez a Szov[4]-kÇnt
+                                              is mÅkîdik ! }
+
+      KovLap    : String[16] = ' PgDn : pg. urm.';
+      TooMany   : String[17] = ' Multe fisiere ..';             {107}
+
+      Temp_String : String[32] =
+      'SALVARE PERIODICè... ASTEPTATI !';                       {115}
+      Save_String : String[11] =
+      'SALVARE FIS';
+
+      {$IFDEF SZAMVEVO}
+      Wsstr : String[20] = 'Vreti sÜ salvati ';                 {116}
+      {$ELSE}
+        {$IFDEF NAGYSOLYMOSI}
+        Wsstr : String[20] = 'Vreti sÜ salvati fisierul ';
+        {$ELSE}
+        Wsstr : String[35] = 'Sigur cÜ nu vreti sÜ salvati ';   {117}
+        {$ENDIF}
+      {$ENDIF}
+      WssSz : String[11] = 'textul ?';                          {118}
+      WssFj : String[11] = 'antet/subsol ?';                    {119}
+      IgNe  : String[ 9] = ' (D/N) : ';
+
+
+      Enter_fn        = 'Nume fis.';
+      ReplaySt        = 'Executie MACRO';
+      MacSt           = 'Selectare MACRO';
+      DefMac          = 'Definitie MACRO';
+      MacroNameString = 'MACRO : ';
+
+      PictureNev      = 'Nume fis. imagine';
+      KepSzelAbl      = 'LÜtime imagine';
+      KepSzel         = 'LÜtime :';
+      KepMagAbl       = 'InÜltime imagine';
+      KepMag          = 'InÜltime :';
+      KepOpcAbl       = 'Afisare';
+      KepOpc          = 'Optiuni :';
+      TulMagas        = 'Prea ånalt !';
+      TulSzeles       = 'Prea lat !';
+
+      TTT       : Array[1..2] Of String[5]
+                     = ('t','-t');
+      KiBe      : Array[False..True] Of String[3]
+                     = (' Af',' In');
+
+
+  Fst   : String[18] = 'SET DE CARACTERE :';
+
+  SzovegS: String[32]= 'TASTATI @, O LITERè SAU [ESC]';
+
+      SzotarFile    : FnTyp      = 'EXCEPT.CUV';
+      SzoFile       : FnTyp      = 'EXCEPT.BIN';
+
+      Configfile    : FnTyp      = 'CONFIG.PAR';
+      Deffile       : FnTyp      = 'BAZA.PAR';
+      MhelpFile     : FnTyp      = 'EDROM.HLP';
+      SystemFontname: FnTyp      = 'EDROM';
+      Backupfile    : String[10] = 'SALV.DOC';
+      UresName      : String[08] = 'GOL.DOC';
+      FMask         : String[4]  = '.ANT';
+
+
+        {$IFDEF PROBA}
+        OvrName    : String[07] = 'CDW.OVR';
+        {$ELSE}
+          {$IFDEF CDVIEW}
+          OvrName    : String[10] = 'EKNEZO.OVR';
+          {$ELSE}
+            {$IFDEF DEMO}
+              OvrName    : String[12] = 'EKDEMO.OVR';     {'EKDEMO.OVR';}
+            {$ELSE}
+              {$IFDEF CDNYOM}
+                OvrName    : String[12] = 'EKNYOM.OVR';
+              {$ELSE}
+                OvrName    : String[10] = 'EDROM.OVR';
+              {$ENDIF}
+            {$ENDIF}
+          {$ENDIF}
+        {$ENDIF}
+
+
+       HelpFile      : Array [0..1] Of STRING [16] =
+                     ('EDROM.DOC','EDROMWS.DOC');
+
+                      { ERRORS.HUN }
+
+
+       ErrorStNum : Byte = 1;
+       ErrorSt    : Array [1..2] Of String[8] = ('EROARE','ATENTIE');
+
+Const
+
+      (********************************************************)
+      Sorszam = 5001; (* CSAK ITT KELL MODOSITANI A SORSZAMOT *)
+      (********************************************************)
+
+      SorszSt = Char((Sorszam DIV 1000)+48)+
+                Char(((Sorszam DIV 100) MOD 10)+48)+
+                Char(((Sorszam DIV 10) MOD 10)+48)+
+                Char((Sorszam MOD 10) +48);
+
+Copyright2 : String[70] =
+
+  ' (C) DARVAS SOFTWARE BT (C) êkSoft KFT 1994   < Sorsz†m : '+SorszSt+'   >   ';
+
+
+ErrX : Array[1..8] Of String[16] =
+
+('Absent ")"',                                                  {120}
+ 'Var. gresit',                                                 {121}
+ 'String gol',                                                  {122}
+ 'LipsÜ de op.',                                                {123}
+ 'Prea mult ")"',                                               {124}
+ 'Insuficient ")"',                                             {125}
+ 'Regiune gresitÜ',                                             {126}
+ 'Absent "("');                                                 {127}
+
+    {$IFDEF PVOP}
+                       { 8*17+19 }
+       Kivevo2 : Array[1..4,1..4] Of Byte =
+       (($30 XOR $CB,234,52,20),
+        (19,$30 XOR $ED,34,8),
+        (150,55,$30 XOR $13,98),
+        (68,51,227,$34 XOR $25));
+    {$ELSE}
+
+      {$IFDEF VER4}
+                       { 8*17+19 }
+       Kivevo2 : Array[1..4,1..4] Of Byte =  { 4.9 verzi¢ }
+       (($31 XOR $CB,234,52,20),
+        (19,$34 XOR $ED,34,8),
+        (150,55,$38 XOR $13,98),
+        (68,51,227,$33 XOR $25));
+      {$ELSE}
+                       { 8*17+19 }
+       Kivevo2 : Array[1..4,1..4] Of Byte =
+       (($32 XOR $CB,234,52,20),
+        (19,$33 XOR $ED,34,8),
+        (150,55,$36 XOR $13,98),
+        (68,51,227,$33 XOR $25));
+      {$ENDIF}
+    {$ENDIF}
+
+{$IFDEF HALO}
+Jogosultak_szama: byte		=       35;   { <= 100 }
+{$ELSE}
+Jogosultak_szama: byte		=	50;  { <= 100 }
+{$ENDIF}
+
+PressMacKey = 'TastÜ : ';
+ReDefine    = ' A';
+Betut       = ' suprascris';
+{ ReservedKey = 'Rezervat '; }
+
+MMSG1   =  ' Proba de luare legaturÜ ';
+MMSG2   =  '. Trimitere de record ';
+MMSG3   =  '. Receptionare de record ';
+MMSG4   =  ' Sånteti sigur cÜ vreti sÜ iesiti ? (D/N) ';      {128}
+MMSG5   =  ' Legatura cu modem s-a intrerupt ';
+MMSG6   =  ' åntreruperea legÜturii : <ESC> ';                {129}
+MMSG7   =  '. experientÜ';
+MMSG8   = ' Cod eroare: ';
+
+CimFileStr = 'Lista de adr.: ';
+Keszult    = 'Realizat : ';
+Modositva  = 'Modificat: ';
+Rekord     = ' record';
+
+Condi_Ok = ' in ordine';
+
+ FejCim    = ' Nume capitol : ';
+ Felulir_e = ' capitol existent.'+#13+#10+'Se poate suprascrie ? (D/N)';
+
+ Kiadv_kerd = ' Doriti sÜ tipariti åntreaga publicatie ? (D/N) ';
+ Kiadv_fej  = ' TipÜrire de publicatie ';
+ Lapsz_kerd = ' Doriti numerotare de pag. continuÜ ? (D/N) ';
+
+ KvtFaSt1   = 'Citire bibliotecÜ ...';
+ KvtHelpSor = ' F3 - Schimbare de unitate ';
+ Lemlabel   = ' Nume de disc : ';
+
+KivetelSt = 'CUVåNT EXCEPTIE';
+UjSzoSt   = 'CUVåNT NOU: ';
+UjSzoBeSt = 'INSERAREA CUVåNTULUI NOU';
+SzoIndexSt= 'INDEXAREA FISIERULUI DICTIONAR';
+
+MarLetezik  = 'existÜ, se poate suprascrie ';                   {130}
+
+drv3 : String[31] = 'ånc. tablii de conv. a tastaturii';
+drv1 : String[31] = 'ånc. tablii de intrare ASCII';
+drv2 : String[31] = 'ånc. tablii de iesire ASCII';
+
+drv4 : String[34] = 'ånc. fis. de converzie Chiwriter';
+
+Var KonvertText : Array[1..3] Of String[31] Absolute Drv3;
+
+Const
+
+SzovegMentes   = 'Inreg. text';
+Billentyumakro = 'Macro de tastÜ';
+
+NotAllowed = ' interzis!';
+
+LineSt = ' rånd';
+
+ExtFontNotLoaded = 'Fontul extended nu este ånc. !';            {131}
+
+IsmeretlenFile = ' Struct. de fis. necunoscut !';               {132}
+Betoltsem      = '   SÜ-l åncarc ? (';                          {132}
+
+ASCII_Vagy_Ekszer = ' Formatiune ASCII sau EdRom ';            {133}
+OlvassamBe        = '     sÜ-l  citesc ? (';                    {133}
+
+LoadError    = 'Eroare de ånc.';                                {134}
+FileFormat   = 'Formatiune de fis.';
+
+Find_Replace_Options: String[40] = 'u: l. micÜ=l. mare, g: text total, ';
+FindOptions: String[20] =          'f1..f@: cÜutare font';
+ReplaceOptions: String[38] =       'a: tot, n:automatic, numÜr: buc.';
+
+FranciaFormat = 'Form. francezÜ';
+
+PrevSt1 = 'Generare de fonturi:';
+
+Type  Rec = Record
+              Poz : Byte;
+              Txt : String[9];
+            End;
+
+Const
+      PrTomb : Array[1..9] Of Rec =
+      (
+      (Poz: 00; Txt:'Pag'),            {2}
+      (Poz: 08; Txt:'Nr. pag'),        {3}
+      (Poz: 20; Txt:'Lung. pag'),      {4}
+
+      (Poz: 34; Txt:'Printer'),        {6}
+      (Poz: 51; Txt:'Scop'),           {7}
+      (Poz: 61; Txt:'Nr. exemp.'),     {8}
+
+      (Poz: 70; Txt:'Margine'),        {9}
+
+      (Poz:01; Txt:'Antet'),           {011}
+      (Poz:12; Txt:'Subsol')           {012}
+      );
+
+GoPageSt = 'SÜrire la marg';
+
+FormatumSt  : Array[False..True] Of String[5] = ('Oriz.',' Vert.');
+CondensedSt : Array[False..True] Of String[8] = ('Standard','    Des');
+KellSt      : Array[False..True] Of String[7] = ('  OdatÜ','åncont');
+
+PrevStSt = 'Mod,descomp.X,descomp.Y,Culori';
+
+Tip    : Array[0..1] Of String[5] = ('VECHI','NOU');
+
+{
+CPIST    = 'CaraCter/inch in mod RAPID';
+EnterCPI = 'CPI = ';
+}
+
+ResSt = 'Rezultat calculator ';
+SzammalSt = 'cu num.';
+BetuvelSt = 'cu lit.';
+
+SzovegSt = 'Text : ';
+
+  MemSt1 = 'toate råndurile: ';
+  MemSt6 = 'ån memorie DOS : ';
+  MemSt4 = 'pe EMS         : ';
+  MemSt5 = 'pe XMS         : ';
+  MemSt7 = 'ån memorie disc: ';
+
+  MemSt2 = 'Rånduri libere : ';
+  MemSt3 = 'Rånduri ocupate: ';
+
+SortStr : Array[False..True] Of String[5] = (' Nume','DatÜ');
+
+  ExitStr = 'Cu "EXIT" se intoarce la EdRom ...';     {135}
+
+  CharOver   = 'GIB-ul a ocupat';
+  Billentyut = ' tasta !';
+
+  OsszegSt = 'sumÜ ';
+
+  CalcOperators : Array[1..5] Of String[9] =
+               ('AdÜugare',
+                'ScÜdere',
+                'ånmultire',
+                'åmpÜrtire',
+                'Egal');
+
+  NemVegreHajthato = 'Operatiune neexecutabilÜ - ';       {136}
+  NincsS = 'NU ESTE';
+
+{$IFDEF HALO}
+  UzenetJott : String[30] = 'A sosit mesaj de la terminal  ';      {137}
+  Kuldte     : String[09] = 'A trimis:';
+{$ENDIF}

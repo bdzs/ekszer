@@ -1,0 +1,18 @@
+
+Procedure RomCheck;
+
+Var Cikl : Integer;
+    cs   : word; {Byte;}
+    cs1  : word;
+    xx   : word;
+
+    szar : Boolean;
+
+Begin
+  cs := 0;
+  For Cikl := 0 To $1FFF Do
+    Inc(Cs,Mem[$FE00:Cikl]);
+  val(csekszam,cs1,xx);
+  If Cs <> cs1 Then
+    Inline($EA/$F0/$FF/$00/$f0)                  { JMP F000:FF00  Elszall ! }
+end;

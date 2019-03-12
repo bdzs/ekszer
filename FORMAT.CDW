@@ -1,0 +1,508 @@
+Procedure Format;
+Var MainP,MainI,Fmp,LMp,
+    OPoz,
+    Bc,
+    Cikl,Cikl2 : Integer;
+    UtolsoHard,
+    Csinalta,
+    Torolte,
+    BreakVolt,
+    NemSpaceVegu,
+    Marad      : Boolean;
+    Tomb       : Array[1..2,0..MaxMaxChars] Of Byte;
+    Sz         : Array[1..2] Of Byte;
+    Hossz      : Byte;
+    XX,YY,Nagy,
+    NextLine,
+    Vegig,
+    Beszurt,
+    Dummy,
+    Kezd,
+    FMar1,                  {  Tomorites x pozicioja }
+    FMar2      : Integer;   {  Igazitas x pozicioja  }
+    TrueHossz,
+    Hely,
+    Menny,
+    Mennyit    : Byte;
+
+    TTT        : Array[0..10000] Of Byte;
+    Justpoint  : Array[1..2] Of JustArray;
+
+    Eleje,Vege : Array[1..2] Of Integer;
+    NextE,CiklE : Integer;
+    Ws         : Str160;
+    ElegLeszE  : Boolean;
+    CCC        : Integer;
+    Oszto      : Integer;
+    OutMe      : Boolean;
+    Kbflag     : Byte Absolute $0040:$0017;
+    CurFormat  : Boolean;
+    OldLeftmar : Byte;
+
+
+Procedure SzavakraSzed(Mt : Byte; Var Vegig : Integer);
+
+Var Cik,Cik2       : Integer;
+    SpaceVolt : Byte;
+    ffmar1    : Byte;
+
+Begin
+  If Mt = 1 Then
+    FFmar1 := Fmar1
+  Else
+    FFmar1 := 0;
+
+  Tomorit2(JustPoint[Mt],Eleje[Mt],Vege[Mt],FFmar1);
+
+  Sz[Mt] := 0;
+  SpaceVolt := 2;
+
+  Vegig := JsorH(JustPoint[Mt],Eleje[Mt],Vege[Mt])-1;
+
+  For Cik := FFmar1 To Vegig Do
+  Begin
+
+    If (SpaceVolt > 1) And (Cik > 0) Then
+    Begin
+
+      Inc(Sz[Mt]);                  { Uj szo   }
+      Tomb[Mt,Sz[Mt]] := Cik-1;     { Szo vege }
+
+    End;
+
+    If Cik = Vegig Then
+    Begin
+      Inc(Sz[Mt]);                { Uj szo   }
+      Tomb[Mt,Sz[Mt]] := Vegig;
+    End
+  Else  { If Cik < Vegig }
+    If Luk(Cik,$DF,JustPoint[Mt],Eleje[Mt],Vege[Mt]) Then
+    Begin { If Luk }
+      Inc(SpaceVolt);
+      (*
+      If Cik = 0 Then
+      Begin
+        Inc(Sz[Mt]);                  { Uj szo   }
+        Tomb[Mt,Sz[Mt]] := 0;   { Legelso szo = Space }
+      End;
+      *)
+    End
+    Else  { If Not Luk }
+      Begin
+        If SpaceVolt = 1 Then
+          Begin
+            Inc(Sz[Mt]);                { Uj szo   }
+            Tomb[Mt,Sz[Mt]] := Cik - 1;
+          End;
+        SpaceVolt := 0;
+      End
+  End;
+{
+  Writeln(lst,' 012345678901234567890123456789012345678901');
+  Writeln(lst,'___________________________________________');
+  For Cik2 := Eleje[Mt] To Vege[Mt] Do
+    Begin
+      write(lst,'>');
+      For Cik := 0 To Vegig Do
+        If JustPoint[Mt][Cik2].X^.Chars[C80+cik] = #0 Then
+          Write(lst,'.')
+        Else
+          Write(lst,Justpoint[Mt][Cik2].X^.Chars[C80+cik]);
+      writeln(lst,'<');
+    End;
+  Writeln(lst,'___________________________________________');
+
+  Writeln(lst,'Vegig  :',vegig);
+  writeln(lst,'Szavak :',Sz[Mt]);
+  For Cik := 1 To Sz[Mt] Do
+    Writeln(lst,tomb[mt,cik])
+}
+End;
+
+Procedure Deletec(Mt :Integer);
+Var Cikl : Integer;
+Begin
+  If (Mt = 2) Then
+    JustPoint[1][0].X^.Attribs[0] :=
+      (JustPoint[1][0].X^.Attribs[0] And ($FF-KemenySor)) Or
+        (JustPoint[2][0].X^.Attribs[0] And (KemenySor+LapVege));
+  XX := Vege[Mt]-Eleje[Mt]+1;
+  If NextLine = Lmp Then
+    Lmp := PrevMain(Lmp)
+  Else
+    Dec(Lmp,XX);
+  For Cikl := 1 To XX Do
+    DelHeapLine(NextLine+Eleje[Mt]);
+  If Mt = 1 Then
+    Dec(Fmp,XX)
+End;  { Ha torolni kell }
+
+Function CsSt:String;
+Var W:String;
+Begin
+  FillChar(W[1],16,' ');
+  w[1+((CCC Div Oszto) Mod 16)] := '*';
+  w[0] := #16;
+  CsSt := w;
+End;
+
+
+Begin  { Format }
+  CurFormat := Kbf And 3 <> 0;
+  If CurFormat Then
+    Begin
+      If Xpos > RightMar[EditNum]-1 Then
+        Xpos := RightMar[EditNum]-1;
+      OldLeftMar := Leftmar[EditNum];
+      LeftMar[EditNum] := Xpos;
+      Fmar1 := Xpos;
+      Fmar2 := Xpos;
+    End
+  Else
+    Begin
+      Fmar1 := 0;
+      Fmar2 := LeftMar[EditNum]
+    End;
+
+
+  Nagy  := 2000;
+  Marad := False;
+  MainP := MainOfIndex[Ypos];
+  Fmp   := MainP;
+  Lmp   := MainP;
+  MainI := CompMainI(Ypos);
+
+        {  A bekezdes elso es utolso soranak megallapitasa  }
+
+  UtolsoHard := False;
+
+  While (Not HardCr(Lmp)) And (Not LastMain(Lmp)) Do
+    Lmp := NextMain(Lmp);        { Amig nem erkezek kemeny sorhoz }
+
+  If HardCr(Lmp) Then
+      UtolsoHard := True;
+
+(*
+
+  While (Not HardCr(Fmp)) And (Not FirstMain(Fmp)) Do
+    Fmp := PrevMain(Fmp);        { Amig nem erkezek kemeny sorhoz }
+
+  If (Fmp <> Lmp) And HardCr(Fmp) Then
+    Fmp := NextMain(Fmp);    { Ha kemeny sor miatt lepett ki a ciklus, }
+                             { es nem egysoros a bekezdes              }
+*)
+
+
+
+  Hossz := RightMar[EditNum] - LeftMar[EditNum]+1;
+
+  Cikl := Fmp;
+  NextLine := Fmp;
+
+  GrWindow(31,20,49,23,' FORMAT ');
+
+  Inline($FB); { Grwindow utan kell egy STI ! }
+
+  CCC  := 0;
+  If Elvalaszt Then
+    Oszto := 1
+  Else
+    Oszto := 3;
+
+  OutMe := False;
+
+  BreakVolt := False;
+
+  While (Cikl <= Lmp) And (Not OutMe) And (Not BreakVolt) Do
+  Begin { fociklus a bekezdes sorain }
+    CompoundLines(Cikl,JustPoint[1],Eleje[1],Vege[1]);
+
+    If (CCC Mod Oszto) = 0 Then
+    Begin
+      Gotox(32,21);
+      Writ(CsSt);
+    End;
+    Inc(CCC);
+
+    ElegLeszE := ElegLesz(Dummy,Vege[1]-Eleje[1]+1,'');
+    {$IFDEF PROTECT} If ProtectedLine(Cikl) Then Sz[1] := 1 Else {$ENDIF}
+    SzavakraSzed(1,Vegig);
+    Torolte := False;
+    If Sz[1] = 0 Then
+      Begin
+        If Fmp <> Lmp Then
+          Begin
+            Fmp := NextMain(Fmp);
+            Deletec(1);
+            Marad := True;
+            Torolte := True;
+          End
+      End
+    Else
+      If (Tomb[1,Sz[1]]+1-Fmar1 > Hossz) AND
+         NOT ( (Tomb[1,Sz[1]]+1-Fmar1 = Hossz+1) AND
+          (JustPoint[1][0].X^.Chars[C80+Tomb[1,Sz[1]]] = ' ') )
+      Then { Letores }
+        If ElegLeszE Then
+          Begin
+            Cikl2 :=  1;
+            Kezd  := -1;
+
+            {$IFDEF PROTECT} If NOT ProtectedLine(Cikl) Then {$ENDIF}
+            Begin
+              NemSpaceVegu:= NOT(Luk(Tomb[1,1],$DF,
+                                         JustPoint[1],Eleje[1],Vege[1]));
+
+              While (Cikl2 <= Sz[1]) AND
+                    (Tomb[1,Cikl2]+Byte(NemSpaceVegu)-Fmar1 <= Hossz) Do
+              Begin
+                Kezd := Tomb[1,Cikl2]+1;
+                Inc(Cikl2);
+                NemSpaceVegu := NOT(Luk(Tomb[1,Cikl2],$DF,
+                                       JustPoint[1],Eleje[1],Vege[1]));
+              End;
+
+              ElvVolt := False;
+
+              If Elvalaszt AND (Cikl2 <= Sz[1]) Then
+              Begin
+                If Cikl2 > 1 Then OPoz := Tomb[1,Cikl2-1]+1
+                             Else OPoz := 0;
+
+                Ws := EgySzo(Cikl,OPoz,Tomb[1,Cikl2]-OPoz+1);
+
+                Szotagok := Szotagol(Ws);
+                Menny := C80;
+                While (Szotagok > 0) AND (Kezd+Menny >= Hossz) Do
+                Begin
+                  Menny := KotoJel[Szotagok];
+                  If Kezd < 0 Then Inc(Menny);
+                  Dec(Szotagok);
+                End;
+
+                {If Kezd >= 0 Then Dec(Menny);}
+
+                {           ]
+                Writeln(LST,'Kezd  = ',Kezd);
+                Writeln(LST,'Menny = ',Menny);
+                Writeln(LST,'Hossz = ',Hossz);
+                }
+
+                If (Kezd+Menny < Hossz) Then
+                Begin
+                  If Menny > 1 Then
+                  Begin
+                    Inc(Kezd,Menny);
+                    ElvVolt  := True;
+                  End;
+                End;
+              End;
+
+              If ElvVolt Then
+              Begin
+                {Writeln(lst,Eleje[1],' - ',Vege[1]);}
+                For Bc := Eleje[1] To Vege[1] Do
+                Begin
+                  Move(JustPoint[1][Bc].X^.Attribs[Kezd],
+                       JustPoint[1][Bc].X^.Attribs[Kezd+1],Tomb[1,Sz[1]]-Kezd+1);
+                  Move(JustPoint[1][Bc].X^.Chars[C80+Kezd],
+                       JustPoint[1][Bc].X^.Chars[C80+Kezd+1],Tomb[1,Sz[1]]-Kezd+1);
+                End;
+                JustPoint[1][0].X^.Attribs[Kezd] := 00;
+                JustPoint[1][0].X^.Chars[C80+Kezd] := '-';
+
+                {
+                Heap_Pos(Hline,PointerTomb^[Cikl]);
+                Move(Hline^.Attribs[Kezd],Hline^.Attribs[Kezd+1],Tomb[1,Sz[1]]-Kezd+1);
+                Move(Hline^.Chars[C80+Kezd],Hline^.Chars[C80+Kezd+1],Tomb[1,Sz[1]]-Kezd+1);
+                Hline^.Attribs[Kezd] := 00;
+                Hline^.Chars[C80+Kezd] := '-';
+                }
+
+                Inc(Kezd);
+                ElvVolt := False;
+              End;
+
+              If Kezd = -1 Then
+                Kezd := Hossz;
+
+              InsertLines(Cikl,Kezd,0,Dummy,Dummy,Beszurt,0);
+              If Cikl = Lmp Then
+                Lmp := NextMain(Cikl)
+              Else
+                Inc(Lmp,Beszurt);
+
+            End { If NOT ProtectedLine(Cikl) }
+
+          End
+        Else
+          Begin { Nem lesz eleg hely }
+            OutMe := True;
+          End
+      Else  { Felrantas }
+       If Tomb[1,Sz[1]]-Fmar1 < Hossz Then
+        Begin
+
+          If Cikl <> Lmp Then
+          Begin
+            TrueHossz := TrueL(Fmar1,Csak_nulla,JustPoint[1],Eleje[1],Vege[1]);
+            Hely := Hossz - TrueHossz;
+
+            {
+            Writeln(lst,'Hely     :',Hely);
+            Writeln(lst,'Hossz    :',Hossz);
+            Writeln(lst,'TrueHossz:',TrueHossz);
+            }
+
+            If (JustPoint[1][0].X^.Chars[C80+TrueHossz-1] = '-') AND
+               (JustPoint[1][0].X^.Attribs[TrueHossz-1] = 0) Then Inc(Hely);
+
+            NextLine := NextMain(Cikl);
+
+            {$IFDEF PROTECT}
+            If (NOT ProtectedLine(NextLine)) AND (NOT ProtectedLine(Cikl))
+            Then
+            {$ENDIF}
+            Begin
+              CompoundLines(NextLine,JustPoint[2],Eleje[2],Vege[2]);
+              If ElegLesz(Dummy,Vege[2]-Eleje[2]+1,'') Then
+                Begin
+                  SzavakraSzed(2,Dummy);
+                  If Sz[2] > 0 Then
+                    Begin  { Ha vannak szavai a kovetkezo sornak }
+
+                      Mennyit := 0;
+
+                      Cikl2 := 1;
+
+                      NemSpaceVegu:= NOT(Luk(Tomb[2,1],$DF,
+                                         JustPoint[2],Eleje[2],Vege[2]));
+
+                      While (Tomb[2,Cikl2]+Byte(NemSpaceVegu) <= Hely) And
+                            (Cikl2 <= Sz[2]) Do
+                      Begin
+                        Mennyit := Tomb[2,Cikl2]+1;
+                        Inc(Cikl2);
+                        NemSpaceVegu := NOT(Luk(Tomb[2,Cikl2],$DF,
+                                         JustPoint[2],Eleje[2],Vege[2]));
+                      End;
+                      ElvVolt := False;
+
+                      If Elvalaszt AND (Cikl2 <= Sz[2]) Then
+                      Begin
+                        If Cikl2 > 1 Then OPoz := Tomb[2,Cikl2-1]+1
+                                     Else OPoz := 0;
+                        Ws := EgySzo(NextLine,OPoz,Tomb[2,Cikl2]-OPoz+1);
+                        {
+                        Writeln(LST,'Opoz = ',Opoz,' --- ',Tomb[2,Cikl2]-OPoz+1);
+                        Writeln(LST,'Ws = (',Ws,')');
+                        }
+                        Szotagok := Szotagol(Ws);
+                        Menny := C80;
+
+                        While (Szotagok > 0) AND (Mennyit+Menny >= Hely) Do
+                        Begin
+                          Menny := KotoJel[Szotagok];
+                          Dec(Szotagok);
+                        End;
+
+                        If (Mennyit+Menny < Hely) Then
+                        Begin
+                          { If Mennyit > 0 Then Dec(Menny); }
+                          If Menny > 1 Then
+                          Begin
+                            Inc(Mennyit,Menny);
+                            ElvVolt  := True;
+                          End;
+                        End;
+                      End;
+
+                      If Mennyit > 0 Then
+                      Begin
+                        Inc(Vegig);
+                        NextE := NextLine;
+                        CiklE := Cikl;
+                        Felrant(Cikl,NextLine,Nagy,Vegig,Csinalta,Mennyit,0);
+
+                        CompoundFree(CiklE,JustPoint[1],Eleje[1],Vege[1]);
+                        CompoundLines(Cikl,JustPoint[1],Eleje[1],Vege[1]);
+                        Inc(Lmp,NextLine-NextE);
+
+                        If (JsorH(JustPoint[2],Eleje[2],Vege[2]) = 0) Then
+                        Begin
+                          Deletec(2);
+                          Marad := True;
+                          Torolte := True;
+                        End
+                      End;   { Ha tobbet kell atvinnunk mint nulla }
+
+                    End   { Ha a kovetkezo sorban van szo }
+                  Else
+                    Begin { Ha ures a kovetkezo sor }
+                      Deletec(2);
+                      marad   := True;
+                      Torolte := True;
+                    End
+                End { Ha eleg lesz }
+              Else
+                Begin
+                  OutMe := True;
+                End;
+              CompoundFree(NextLine,JustPoint[2],Eleje[2],Vege[2]);
+
+            End   { If NOT ProtectedLine }
+
+          End;   { Ha nem az utolso sorban vagyunk }
+        End;   { Felrantas }
+    If Not Torolte Then
+      Begin
+        {$IFDEF PROTECT}
+        If (NOT ProtectedLine(Cikl)) Then
+        {$ENDIF}
+        If (Leftmar[EditNum] <> 0) And (Fmar1 = 0) Then
+          CompBe(0,LeftMar[EditNum],JustPoint[1],Eleje[1],Vege[1]);
+        If Not((Cikl = Lmp) And UtolsoHard) And
+           (Not Jegyben(LeftMar[EditNum],JSorH(JustPoint[1],Eleje[1],Vege[1])-1,
+                    JustPoint[1],Eleje[1],Vege[1])) And Just Then
+           Igazit2(JustPoint[1],Eleje[1],Vege[1],FMar2);  { felso sor just }
+
+        Fmar1 := 0;                  { Tomorites X pozicioja }
+        Fmar2 := LeftMar[EditNum];   { Igazitas X Pozicioja  }
+      End;
+    If Cikl <= Lmp Then
+      If Not Marad Then
+        If Cikl = Lmp Then
+          Inc(Cikl)
+        Else
+          Cikl := NextMain(Cikl)
+      Else
+        Marad := False;
+
+    BreakVolt := Break;
+    CompoundFree(Cikl,JustPoint[1],Eleje[1],Vege[1]);
+  End;  {  While bekezdes   }
+
+  If OutMe OR BreakVolt Then
+    Begin
+      If OutMe Then Error(4,FORMst1);
+      If Cikl < Lmp Then
+        PosToPos(Cikl,LeftMar[EditNum],True)
+      Else
+        PosToPos(Lmp,LeftMar[EditNum],True);
+    End
+  Else
+    Begin
+      CompoundLines(Lmp,JustPoint[1],Eleje[1],Vege[1]);
+      Tomorit2(JustPoint[1],Eleje[1],Vege[1],LeftMar[EditNum]);
+      CompoundFree(Lmp,JustPoint[1],Eleje[1],Vege[1]);
+      Set_bits(Lmp,$FF,KemenySor);
+
+      If Not LastMain(LMP) Then
+        LMP := NextMain(LMP);
+
+      PosToPos(Lmp,LeftMar[EditNum],True);
+    End;
+  If CurFormat Then
+    LeftMar[EditNum] := OldLeftMar;
+
+End; { Format } 

@@ -1,0 +1,1607 @@
+{$S-,I+,F-,V-,B-,N-}
+
+{$I MEMORY.CDW}
+Unit InputCdw;
+
+Interface
+
+Uses Crt,
+     Dos,
+{$IFDEF PROBA}
+     Printer,
+{$ENDIF}
+     Video,
+     WindowM,
+     MenuErr,
+{$IFDEF HALO}
+     Halozat,
+{$ENDIF}
+{$IFDEF EKNET}
+     EKnet,
+{$ENDIF}
+     HeapCdw,
+
+{$IFDEF HELYESKE}
+     PlusMem,
+{$ENDIF}
+
+{$IFNDEF CDVIEW}
+     ModemCDW,
+     Mod_save,
+{$ENDIF}
+{$IFDEF BEMUTAT}
+     Bemutat,
+{$ENDIF}
+
+     SpeakCdw,
+
+     EmsCDW,
+     XmsCDW;
+
+Const
+
+CYZ        : Boolean = False;
+
+{$IFDEF PACKARD}
+LastCMOSIdo : Word    = 0;
+{$ENDIF}
+
+Var
+
+Graphic : Boolean;
+Van_Bill: Boolean;
+
+HX,HY    : Byte;
+
+Kbfh,Kbfb: Byte;
+Kbflag   : Byte Absolute $0040:$0017;
+
+SzotarJelzes : Boolean;
+HelpJelzes: Boolean;
+
+Ora,Perc,Mp,Szdmp,Ido,Lastido : Word;
+Inverz            : Boolean;
+
+Const KulsoHelpJelzes : Boolean = False;
+
+Font_name : St40 = '';
+
+Procedure FejTab(N:Word);
+
+Function  Csak12(X:String):String;
+Procedure ChangeToNoname(Edit:Integer);
+Procedure Set_Choose(x1,y1,x2,y2,h,e:integer);
+Procedure CheckFileName(Fn:FnTyp);
+
+Procedure Fresh_One(BB : Boolean; Item : Integer);
+Procedure Fresh_Header;
+
+{$IFNDEF CDVIEW}
+Procedure Fresh_Strings;
+{$ENDIF}
+
+Procedure Set_Lines(Lp : Integer);
+
+Function  Fmem:Integer;
+Procedure New_Header;
+Procedure Help_Header;
+
+Procedure InvertFileName;
+
+Procedure Fill_Line(Num,Font : INTEGER);
+Procedure SetC8;
+
+Function  Break:Boolean;
+
+Procedure Writ(ST : String);
+
+Function  WherX:Integer;
+Function  WherY:Integer;
+Procedure GotoX(X,Y:Integer);
+
+Procedure UpKey(Var Scan,Asc:Byte);
+
+{$IFNDEF CDVIEW}
+
+{$IFNDEF OROSZ}
+{$IFNDEF NORVEG}
+{$IFNDEF ANGOL}
+Procedure New_Password;
+{$ENDIF}
+{$ENDIF}
+{$ENDIF}
+
+{$ENDIF}
+
+{$IFDEF PACKARD}
+Type S40 = String[40];
+
+Function CreatePassword(St:s40;melyik:Byte):S40;
+{$ENDIF}
+
+
+Procedure Fresh_Def;
+Procedure Replay_KeyMacro(ParamNum: Byte);
+
+{$IFNDEF CDVIEW}
+Procedure Replay_Macro;
+Procedure Record_Macro(KeyMode: Boolean);
+{$ENDIF CDVIEW}
+
+Function Are_You_Sure(Edit : byte; Tip : SureTip) : boolean;
+
+{$IFNDEF CDVIEW}
+Procedure Fresh_Info;
+Procedure Fresh_KeyMode;
+{$ENDIF}
+
+
+PROCEDURE PUFFi(VAR X,Y : BYTE);
+
+procedure input_string(kiirando:string; var inps; hossz:integer);
+procedure input_integer(vv:st80;var ii:integer;hossz:integer);
+{$IFNDEF CDVIEW}
+procedure input_Real(vv:st80;var ii:Real; hossz:integer);
+procedure input_Word(vv:st80; var ii:Word; hossz:integer);
+
+Procedure NyelveszFree;
+{$ENDIF CDVIEW}
+Procedure SajatFree;
+
+
+Procedure Terminate;
+
+Procedure Set_Lehet;  { Kapcsolat a Megertes szotarral }
+Procedure Set_Nem_lehet;
+{ Function  VoltJel:Boolean; }
+Procedure Wait(Var C:Char);
+
+Function  EofM(Var FF : Text):Boolean;
+Procedure ReadLnM(Var FF : Text;Var Sor : String);
+Procedure WriteLnM(Var FF : Text;Sor : String);
+Procedure WriteM(Var FF : Text;Sor : Char);
+Procedure CloseM(Var FF : Text);
+Procedure ResetM(Var FF : Text);
+Procedure RewriteM(Var FF : Text);
+Procedure AssignM(Var FF : Text; ez: string);
+Function  IoResultM : Integer;
+
+Function  Path_Check(utvonal : string) : boolean;
+FUNCTION  BackFind(szoveg : string; minta : char) : byte;
+FUNCTION  DelSpace(szoveg : string) : string;
+
+FUNCTION  Menu_Duma(MenuSzam,Sorszam : byte) : string;
+
+Procedure Make_Tabulators;
+Procedure RestoreCur(Cur : Byte);
+
+{$IFNDEF NEMFIGYEL}
+{$IFDEF HALO}
+Procedure WriteMessage;
+{$ENDIF}
+{$ENDIF}
+
+Function KeyName(Sc,Ch,Flag : Byte):String;
+
+Var MaxStringLen : Integer;
+
+Procedure NyelvReturn(Flags,CS,IP,AX,BX,CX,DX,SI,DI,DS,ES,BP: Word); Interrupt;
+
+Const AltKey = 08; CtrlKey = 04;
+Var   KBF,Iz : Byte;
+
+
+  {***********}             Implementation              {************}
+
+Uses
+     {$IFNDEF CDVIEW}
+     CalcCdw,
+     {$ENDIF}
+     InputOvr,
+     InitCdw;
+
+Function Csak12;
+BEGIN
+  While Pos(':',X) + Pos('\',X) <> 0 Do
+    Delete(X,1,1);
+  If X[0] > #12 Then
+    x[0] := #12;
+  Csak12 := X
+End;
+
+Procedure Set_Lehet;
+BEGIN
+  OutJel := $FFFF;
+End;
+
+Procedure Set_Nem_lehet;
+BEGIN
+  OutJel := $8080
+End;
+
+(*
+
+Function VoltJel;
+Var WoltJel : Boolean;
+BEGIN
+  WoltJel := InpJel = $FFFF;
+  If WoltJel Then
+    BEGIN
+      InpJel  := $0000;
+      Beepel(300)
+    End;
+  VoltJel := WoltJel
+End;
+
+*)
+
+Function EofM(Var FF : Text):Boolean;
+BEGIN
+  {$IFNDEF CDVIEW}
+  If ModemMode Then
+    EofM := Eof_Modem
+  Else
+  {$ENDIF}
+    EofM := EOF(FF)
+End;
+
+Procedure ReadLnM(Var FF : Text;Var Sor : String);
+BEGIN
+  {$I-}
+  {$IFNDEF CDVIEW}
+  If ModemMode Then
+    ReadLn_Modem(Sor)
+  Else
+  {$ENDIF}
+    ReadLn(FF,Sor);
+  {$I+}
+End;
+
+
+Procedure WriteLnM(Var FF : Text;Sor : String);
+BEGIN
+  {$I-}
+  {$IFNDEF CDVIEW}
+  If ModemMode Then
+    WriteLn_Modem(Sor,True)
+  Else
+  {$ENDIF}
+    WriteLn(FF,Sor)
+  {$I+}
+End;
+
+Procedure WriteM(Var FF : Text;Sor : Char);
+Var z : String[1];
+BEGIN
+  {$I-}
+  Z := Sor+'';
+  {$IFNDEF CDVIEW}
+  If ModemMode Then
+    WriteLn_Modem(Z,False)
+  Else
+  {$ENDIF}
+    Write(FF,Sor)
+  {$I+}
+End;
+
+
+Procedure CloseM(Var FF : Text);
+BEGIN
+  {$I-}
+  {$IFNDEF CDVIEW}
+  If ModemMode Then
+    If ModemIras then
+      Close_Modem_Out
+    Else
+      Close_Modem_Inp
+  Else
+  {$ENDIF}
+    Close(FF);
+  {$I+}
+End;
+
+Procedure ResetM(Var FF : Text);
+BEGIN
+  {$I-}
+  ModemIras := False;
+  {$IFNDEF CDVIEW}
+  If ModemMode Then
+    Open_Modem_Inp
+  Else
+  {$ENDIF}
+    Reset(FF);
+  {$I+}
+End;
+
+
+Procedure RewriteM(Var FF : Text);
+BEGIN
+  {$I-}
+  ModemIras := TRUE;
+  {$IFNDEF CDVIEW}
+  If ModemMode Then
+    Open_Modem_Out
+  Else
+  {$ENDIF}
+    Rewrite(FF);
+  {$I+}
+End;
+
+
+Procedure AssignM(Var FF : Text; ez: string);
+BEGIN
+  {$I-}
+  {$IFDEF CDVIEW}
+  ModemMode := False;
+  Assign(FF,Ez)
+  {$ELSE}
+  ModemMode := Ez = 'XMODEM';
+  If Not ModemMode Then
+    Assign(FF, ez)
+  {$ENDIF}
+  {$I+}
+End;
+
+
+Function IoResultM : Integer;
+BEGIN
+  If Not ModemMode Then
+    IoresultM := IoResult
+  {$IFNDEF CDVIEW}
+  Else IoResultM := ModemError
+  {$ENDIF}
+End;
+
+
+Procedure ChangeToNoname;
+Var Fn : String;
+BEGIN
+  If Edit = 28 Then Edit := 4;
+  If (Edit <= 4) Then
+  Begin
+    Fn := Csak12(FileName[Edit]);
+    If Fn = '' Then
+      FileName[Edit] := UresName;
+  End;
+End;
+
+
+Procedure Wait(Var C:Char);
+BEGIN
+  Repeat
+    Puffi(Ch,Sc);
+    C := Upcase(Char(Ch));
+  Until C In [YesChar,NoChar,Char(Escape)];
+End;
+
+{$I Inputels.CDW}
+{$I Inputele.CDW}
+
+Procedure SetC8;
+Var X : DispType;
+BEGIN
+  For X := Colour To BW Do
+  BEGIN
+    Attr_1[X]  := CA[X,13];
+    Attr_2[X]  := CA[X,14];
+    Attr_3[X]  := CA[X,15];
+
+    Attr_4[X]  := CA[X,26];
+    Attr_5[X]  := CA[X,27];
+
+    CAttr_1[X] := CA[X,16];
+    CAttr_2[X] := CA[X,17];
+    CAttr_3[X] := CA[X,18];
+    CAttr_4[X] := CA[X,19];
+    CAttr_5[X] := CA[X,20];
+
+    CAttr_6[X] := CA[X,23];
+    CAttr_7[X] := CA[X,24];
+    CAttr_8[X] := CA[X,25];
+  End;
+End;
+
+procedure input_string;
+
+var
+
+Graphic : Boolean;
+insmode,a,b  : byte;
+volt_jav : array[1..23] of boolean;
+LegFirst : Boolean;
+InputSt : String;
+MSL     : Integer;
+SpChar  : Char;
+Ofm     : Word;
+PP      : Byte;
+
+procedure ti;
+begin
+  GlobalFont := MezoFont;
+  If LegFirst Then TextAttr:= Attr_4[DispMode] Else TextAttr:= Attr_3[DispMode];
+  Inverz := False;
+end;
+
+procedure tsi;
+begin
+  GlobalFont := 0;
+  TextAttr := Attr_2[DispMode];
+  Inverz := True;
+end;
+
+procedure tn;
+begin
+  GlobalFont := 0;
+  TextAttr := Attr_1[DispMode];
+  Inverz := False;
+end;
+
+function linser:boolean;
+var kbflag : byte absolute $0040:$0017;
+begin
+  linser := (kbflag and 128) = insmode
+end;
+
+procedure ins_inst;
+var kbflag : byte absolute $0040:$0017;
+begin
+  insmode := (kbflag and 128);
+  tn
+end;
+
+var
+
+szohossz,  {szopoz,}
+CIKL,xp,yp        : integer;
+ch                : char;
+volt_valt,DELm,IM : BOOLEAN;
+StartPos          : Integer;
+spaces            : st80;
+LocalKeyMode      : GlobalKeyModeType;
+
+procedure string_frissites;
+Const Elso : Array[False..True] Of Char = ('Æ','<' );
+      Hatso: Array[False..True] Of Char = ('Ø','>');
+begin
+  ti;
+  GoToX(xp+INTEGER(kiirando[0]),yp);
+
+  Tsi;
+
+  If SzoHossz > Hossz Then
+  Begin
+    If StartPos > 0 Then
+    Begin
+      TextAttr := Attr_5[DispMode];
+      Writ(Elso[Graphic]);
+    End
+    Else writ('>');
+
+    Ti;
+    Writ(Copy(InputSt,StartPos+1,Hossz));
+
+    tsi;
+    If SzoHossz-StartPos > Hossz Then
+    Begin
+      TextAttr := Attr_5[DispMode];
+      writ(Hatso[Graphic]);
+    End
+    Else writ('<');
+  End
+  Else
+  Begin
+    writ('>');
+    Ti;
+    Writ(InputSt);
+    tsi;
+    writ('<');
+  End;
+
+  Tsi;
+  Writ(' ');
+
+  GoToX(xp+INTEGER(kiirando[0])+szopoz-StartPos,yp);
+  tn
+end;
+
+procedure poz_frissites;
+begin
+  GoToX(xp+INTEGER(kiirando[0])+szopoz-StartPos,yp)
+end;
+
+procedure string_torles;
+begin
+  tsi;
+  GoToX(xp+INTEGER(kiirando[0]),yp);
+  writ(spaces);
+  string_frissites
+end;
+
+PROCEDURE INS_CUR;
+var cikl,X,Y:integer;
+BEGIN
+  BigCur;
+  x := WherX;
+  Y := WherY;
+  tn;
+  GoToX(X,Y);
+  Sync := False;
+END;
+
+PROCEDURE OVER_CUR;
+var cikl,X,Y:integer;
+BEGIN
+  CurOn;
+  x := WherX;
+  Y := WherY;
+  tn;
+  GoToX(X,Y);
+  Sync := True;
+END;
+
+procedure szopoz_nov;
+begin
+  If SzoPoz-StartPos = Hossz Then  { a latszo sor utolso karakteren allunk }
+    If Szopoz = Szohossz then      { a tenyleges sor utolso karakteren     }
+      BEGIN
+        Inc(szopoz);
+        Poz_Frissites { string_frissites }
+      end
+    Else
+      BEGIN               { scroll }
+        Inc(SzoPoz);
+        Inc(StartPos);
+        String_Frissites
+      End
+  Else
+    If SzoPoz <= SzoHossz Then
+      BEGIN
+        Inc(szopoz);
+        Poz_Frissites {string_frissites}
+      end
+end;
+
+procedure szopoz_csokk;
+begin
+  If (SzoPoz-StartPos) > 1 then
+  begin
+    Dec(SzoPoz);
+    Poz_Frissites
+  end
+  Else
+  If StartPos > 0 Then
+  BEGIN
+    Dec(SzoPoz);
+    Dec(StartPos);
+    String_Frissites
+  End
+end;
+
+Procedure Kitorles;
+BEGIN
+  inputst := '';
+  szohossz := 0;
+  szopoz := 1;
+  StartPos := 0;
+  inputst[0] := #0;
+  string_torles;
+End;
+
+Procedure LegElsoE;
+Begin
+  LegFirst := False;
+  String_Frissites;
+End;
+
+Const
+
+MagyarJelekASC  : String[10] = '"+!/=();:-';
+MagyarJelekSCAN    : String[10] = #$03#$04#$05#$07#$08#$09#$0A#$33#$34#$35; {VT}
+MagyarJelekSCAN_VT : String[10] = #$03#$02#$06#$07#$08#$29#$35#$34#$0A#$09; {VT}
+StandardJelek   : String[10] = '@#$^&*(<>/';
+
+TilosJelek : String[38] = '$&*#<>_@~^\|[]{}''`Ä·àù–—ˆûÛ^Ù¯Ú`˙ÔÒ˘˜œ';
+TilosJelek_Standard : String[20] = 'Ä·àù–—ˆûÛ^Ù¯Ú`˙ÔÒ˘˜œ';
+{ Csak MAGYAR Çs VIDEOTON keyboardon }
+
+Var  Pozz : Byte;
+
+Begin { INPUT_STRING }
+
+  Ofm := Xoffset;
+  SetXoffset(0);
+
+
+  NemInputString := False;
+
+  Graphic := (CRTMode = 6);
+
+  Spaces[0] := #80;
+  FillChar(Spaces[1],80,' ');
+  MSL    := MaxStringLen;  { Elmentes egy nem globalis valtozoba }
+  SpChar := Spaces[0];     { Space-k szama tipusos konstans, el kell menteni }
+
+  Move(Inps,InputSt,MSL+1);
+
+  With CLV^ Do
+    Case GlobalStringMode Of
+      SzamMode : If GSzammal <> '' Then InputSt := GSzammal;
+      BetuMode : If GBetuvel <> '' Then InputSt := GBetuvel;
+      CondiMode: If GCondi   <> '' Then InputSt := GCondi;
+      Else       Begin
+                   LocalKeyMode  := GlobalKeyMode;
+                   GlobalKeyMode := StandardMode;
+                   {$IFNDEF CDVIEW}
+                   Fresh_KeyMode;
+                   {$ENDIF CDVIEW}
+                 End;
+    End;
+
+  IM  := Sync;
+  ESC := FALSE;
+  LegFirst := True;
+  StartPos := 0;
+  fillchar(spaces,80,' ');
+  spaces[0]:=char(hossz+3);
+  xp:=WherX;
+  yp:=WherY;
+  tn;
+  writ(kiirando);
+  ch  := #0;
+  a   := 0;
+  b   := 0;
+  SZOHOSSZ := LENGTH(INPUTST);
+  If SzoPoz > Hossz Then StartPos := SzoHossz-Hossz;
+  {SZOPOZ := 0;}
+  string_torles;
+  ins_inst;
+  szopoz_nov;
+  Ins_cur;
+  DELm := FALSE;
+  while (a <> 13) AND (NOT ESC) do
+  begin
+    a := 0; b := 0;
+    while (a=0) AND (NOT ESC) do
+    begin
+      a := 0; b := 0;
+
+    Repeat PUFFi(A,B); Until A In InputChars;
+
+    If LegFirst AND (A In NormalChars+[127..253]) Then Kitorles;
+
+    If MAGYARKEY Then
+    Begin
+      If Graphic Then
+      Begin
+        If Pos(Char(A),TilosJelek_Standard) > 0 Then A := 0
+        Else
+        If (MagyarE(FontNum[EditNum])) Then
+        Begin
+          Pozz := Pos(Char(A),MagyarJelekASC);
+          If (Pozz > 0) AND (Pos(Char(B),MagyarJelekSCAN) = Pozz) Then
+            A := Byte(StandardJelek[Pozz]) { Ez csak Videoton keyboard-on lehet }
+          Else
+            If Pos(Char(A),TilosJelek) > 0 Then A := 0;
+          If Char(A) = '0' Then A := Byte('!');
+        End;
+      End;
+    End;
+
+    If VIDEOTONKEY Then
+    Begin
+      If Graphic AND (MagyarE(FontNum[EditNum])) Then
+      Begin
+        Pozz := Pos(Char(A),MagyarJelekASC);
+        If (Pozz > 0) AND (Pos(Char(B),MagyarJelekSCAN_VT) = Pozz) Then
+          A := Byte(StandardJelek[Pozz]) { Ez csak Videoton keyboard-on lehet }
+        Else
+          If Pos(Char(A),TilosJelek) > 0 Then A := 0;
+        If Char(A) = '0' Then A := Byte('!');
+      End;
+    End;
+
+    If (GlobalKeyMode = MagyarMode) Then EkSz_ASC(Char(A));
+
+    If Graphic AND (A > 127) Then ASC_EkSz(Char(A));
+
+     if a = 10 then a := 32;
+     volt_valt := (a<>0) or (b=83);
+     if a=0
+     then
+     begin
+     case b of
+      JobbraNyil : Begin
+                     szopoz_nov;
+                     If LegFirst Then LegElsoE;
+                   End;
+       BalraNyil : Begin
+                     szopoz_csokk;
+                     If LegFirst Then LegElsoE;
+                   End;
+          EndKey : BEGIN { END billentyu }
+                     If LegFirst Then LegElsoE;
+                     SZOPOZ := szohossz+1;
+                     If Szohossz > Hossz Then
+                       StartPos := SzoHossz - Hossz
+                     Else
+                       StartPos := 0;
+                     String_Frissites;
+                   END;
+            Home : BEGIN
+                     If LegFirst Then LegElsoE;
+                     StartPos := 0;
+                     SzoPoz := 1;
+                     String_Frissites
+                   End;
+       Ins : IF LINSER THEN INS_CUR ELSE OVER_CUR;
+
+       Del : BEGIN
+              DELm := TRUE; A := 8;
+            END
+     end;
+     b:=0
+     end; {IF A=0}
+
+    end;
+
+    LegFirst := False;
+
+    IF NOT ESC THEN
+    BEGIN
+    if a=8 then
+    IF (NOT DELm)  AND (szopoz>1)
+    THEN
+    begin
+      Dec(szohossz);
+      delete(inputst,szopoz-1,1);
+      Dec(szopoz);
+      If StartPos <> 0 Then
+        Dec(StartPos)
+    end
+    ELSE
+    IF DELm
+    THEN
+    BEGIN
+      DELm := FALSE;
+      IF SZOPOZ <= SZOHOSSZ
+      THEN
+      BEGIN
+        Dec(SZOHOSSZ);
+        DELETE(INPUTST,SZOPOZ,1);
+      END;
+      If (SzoHossz-StartPos  < Hossz) And
+         (StartPos <> 0) Then
+        Dec(StartPos)
+
+    END;
+
+    if a In [127,Ctrl_Y] then Kitorles;
+    if not (a in[27,8,13,127,Ctrl_Y])
+      then  { Ha valamilyen betu  }
+    if (linser) and (szohossz<MSL)
+      then  { Ha inzertben vagyunk, es a szo hossza meg nem max }
+    if szopoz = szohossz+1
+      then  { Ha a legvegen vagyunk a sornak }
+      begin
+        inputst  := inputst+char(a);
+        Inc(szohossz);
+        Inc(szopoz);
+        If (SzoPoz - StartPos) > Hossz +1 Then
+          Inc(StartPos);
+      end
+      else  { Ha nem a legvegen vagyunk a sornak }
+      begin
+        insert(char(a),inputst,szopoz);
+        Inc(szopoz);
+        Inc(szohossz);
+        If (SzoPoz - StartPos) >= Hossz +1 Then
+          Inc(StartPos);  {  > helyett >=   1990.01.09 L.A.}
+      end
+      else  { Ha nem vagyunk inzertben, vagy a szo hossza mar max }
+      if szopoz = szohossz+1
+      then  { Ha a legvegen vagyunk a sornak }
+        if szohossz < MSL
+          then  { Ha a sor hossza meg nem max }
+          begin
+            inputst  := inputst+char(a);
+            Dec(szohossz);
+            Inc(szopoz);
+            If (SzoPoz - StartPos) > Hossz +1 Then
+              Inc(StartPos);
+          end
+          else { Ha a sor hossza mar max }
+          BEGIN END
+          else  { Ha nem a legvegen vagyunk a sornak }
+          if not linser
+            then  { Ha nem vagyunk inzertben }
+            begin
+              inputst[szopoz] := char(a);
+              Inc(szopoz);
+              If (SzoPoz - StartPos) > Hossz Then
+                Inc(StartPos);
+            end
+            else
+            if inputst[szohossz] = ' '
+            then
+            begin
+              insert(char(a),inputst,szopoz);
+              Inc(szopoz);
+              If (SzoPoz - StartPos) > Hossz +1 Then
+                Inc(StartPos);
+              inputst[0] := char(hossz)
+            end;
+        END; {IF NOT ESC}
+
+      if volt_valt then string_frissites;
+
+  end;  {WHILE (a <> 13) AND (NOT ESC)}
+  tn;
+  Sync := IM;
+
+  With CLV^ Do
+    If NOT ESC Then
+      Case GlobalStringMode Of
+        SzamMode : GSzammal := InputSt;
+        BetuMode : GBetuvel := InputSt;
+        CondiMode: GCondi   := InputSt;
+        Else       Begin
+                     GlobalKeyMode := LocalKeyMode;
+                     {$IFNDEF CDVIEW}
+                     Fresh_KeyMode;
+                     {$ENDIF CDVIEW}
+                   End;
+      End;
+
+  GlobalStringMode := SemmiSem;
+
+  For Cik := 1 To Length(InputSt) Do
+  Begin
+    If Byte(InputSt[Cik]) >= 128 Then ASC_EkSz(InputSt[Cik]);
+  End;
+
+  Move(InputSt,Inps,MSL+1);
+  MAxStringLen := MSL;  { Visszatoltes a globalis valtozoba }
+  Spaces[0] := SpChar;  { Space-ek szamat visszamentjuk   Turbo 5.0 !}
+  SzoPoz := 0;
+
+  NemInputString := True;
+  SetXoffset(ofm)
+
+end; { INPUT_STRING }
+
+procedure input_integer;
+
+var
+  cc,xt,yt : integer;
+  strin    : st80;
+begin
+  xt := WherX;
+  yt := WherY;
+  repeat
+    If ii = 0 Then strin := ''
+              Else Str(ii,strin);
+    GoToX(xt,yt);
+    MaxStringLen := 6;
+    input_string(vv,strin,hossz);
+    val(strin,ii,cc)
+  until ESC Or (cc = 0);
+end;
+
+{$IFNDEF CDVIEW}
+
+procedure Input_Real;
+
+var cc,xt,yt : integer; strin    : st80;
+begin
+  xt := WherX;
+  yt := WherY;
+  repeat
+    If ii = 0 Then strin := ''
+              Else Str(ii:2:2,strin);
+    GoToX(xt,yt);
+    MaxStringLen := 6;
+    input_string(vv,strin,hossz);
+    val(strin,ii,cc)
+  until ESC Or (cc = 0);
+end;
+
+procedure Input_Word;
+
+var cc : Word; xt,yt : integer; strin : st80;
+begin
+  xt := WherX;
+  yt := WherY;
+  repeat
+    If ii = 0 Then strin := ''
+              Else Str(ii,strin);
+    GoToX(xt,yt);
+    MaxStringLen := 6;
+    input_string(vv,strin,hossz);
+    val(strin,ii,cc)
+  until ESC Or (cc = 0);
+end;
+
+{$ENDIF CDVIEW}
+
+{$IFDEF PACKARD}
+
+Function CreatePassword(St:s40;melyik:Byte):S40;
+VAR PW : S40;
+    S1,S2 : String[20];
+    N1    : Word;
+    N2    : Longint;
+    Cikl  : Integer;
+    PWR   : Real;
+    CODE,
+    P     : Integer;
+    Ver   : String[4];
+
+
+Begin
+  P := Pos('-',St);
+
+  S1 := Copy(St,  1,P-1);
+  S2 := Copy(St,P+1,Length(St)-P);
+
+  Val(S1,N1,CODE);
+  Val(S2,N2,CODE);
+
+  Ver := GetVersion;
+  Val(Ver,Pwr,Code);
+
+  Pwr:=Frac(Frac(Sqrt(N1))+Frac(Sqrt(1.11111*melyik*N2/(Pwr*N1*4))));
+
+  Str(Pwr:1:11,Pw);
+  Delete(Pw,1,3);
+
+  For Cikl := 1 To 10 Do
+    Pw[Cikl] :=
+      Char( ( 25*Cikl*(Byte(Pw[Cikl])+13) MOD 26 )+65 );
+
+  CreatePassword := PW;
+End;
+{$ENDIF}
+
+{$IFNDEF CDVIEW}
+
+{$IFNDEF OROSZ}
+{$IFNDEF NORVEG}
+{$IFNDEF ANGOL}
+
+Procedure New_Password;
+Const  X1 : Integer = 20;  Y1 : Integer = 08;
+       X2 : Integer = 50;  Y2 : Integer = 14;
+
+       Numbers : Set Of Byte = [48..57];
+
+Var C              : BYTE;
+    Kilepett,Kesz  : Boolean;
+    OK             : Boolean;
+    Temp           : Integer;
+    Drive          : String[1];
+
+Const
+{$IFNDEF ANGOL}
+    Szov : Array[1..6] Of String[12] =
+           ('LQ nyomtat†s',
+            'Grafikus kÇp',
+            'Ir¢gÇpek',
+            'KîrlevelezÇs',
+            'LÇzerprinter',
+            'Helyes°r†s-e');
+
+   Llenorzo : Array [1..8] Of Char = 'llenìrzì';
+
+   MiaJelszo     : String[9] = 'Jelsz¢ : ';
+   InsertKeyDisk : String[76] =
+ 'Helyezze a KULCSlemezt az "A" meghajt¢ba, Çs t†vol°tsa el az °r†svÇdì cimkÇt';
+{$IFDEF PACKARD}
+   NonKeyDisk    : String[34] = 'Az êkSzer nem tal†lhat¢';
+{$ELSE}
+   NonKeyDisk    : String[14] = 'Nem KULCSlemez';
+{$ENDIF}
+
+   DisEna : Array[False..True] Of String[7] = ('Tiltott','MÅkîdik');
+{$ELSE}
+    Szov : Array[1..6] Of String[12] =
+           ('LQ printing',
+            'Graphics',
+            'Typewriters',
+            'Mail merge',
+            'Laserprinter',
+            'Spell check');
+
+   MiaJelszo     : String[11] = 'Password : ';
+   InsertKeyDisk : String[64] =
+ 'Insert KEYdisk into drive "A" and remove the write protect tab';
+   NonKeyDisk    : String[12] = 'Non KEY disk';
+
+   DisEna : Array[False..True] Of String[8] = ('Disabled',' Enabled');
+{$ENDIF}
+
+Var Ch,Sc,Cur,Cik,Max : Byte;
+    Yp,OYp            : Byte;
+    PassWord          : String[10];
+    F,Fo              : File;
+    KPath,
+    Ofn               : String[80];
+    CopyBuf           : Array[1..32768] Of Byte;
+    Result            : Word;
+    Buf               : String[12];
+    Bc                : Byte;
+    Ver               : String[4];
+    Sorsz             : Word;
+    IORes,
+    Code              : Integer;
+    Fs,Ft             : LongInt;
+    Pwr               : Real;
+    Pw                : String[14];
+
+Begin
+
+  InPass := True;
+
+  CurOff;
+
+  BOOL := CREATE_WINDOW(X1-1,Y1,X2+11,Y2+3,'',CA[DispMode,1],CA[DispMode,16]);
+
+  Szov[6][0] := #20;
+
+  For Cik := 1 To 6 Do
+  Begin
+    TextAttr := CA[DispMode,16];
+    GotoXY(3,Cik+1);
+    Write(Cik,'. ',Szov[Cik]);
+    GotoXY((X2-13)-Length(DisEna[True]),Cik+1);
+    TextAttr := CA[DispMode,5+Byte(Enabled[Cik])];
+    Write(DisEna[Enabled[Cik]]);
+  End;
+
+  Yp  := 1;
+  Oyp := 1;
+  Attribute(Yp+Y1+1,X1+2,Yp+Y1+1,X2-2,CA[DispMode,18]);
+
+  Repeat
+    Puffi(Ch,Sc);
+    Oyp := Yp;
+
+    Case Sc Of
+
+      Felnyil        : Dec(Yp);
+      Lenyil         : Inc(Yp);
+
+    End;
+
+    OK := False;
+
+    If (Ch In Numbers) Then
+      Begin
+        Temp := Byte(Ch)-Byte('0');
+        If Temp = 0  Then Temp := 6;
+        If Temp In [1..6] Then
+          Begin
+            Yp := Temp;
+            OK := True;
+          End;
+      End;
+
+    If Yp > 6 Then Yp := 1;
+    If Yp < 1 Then Yp := 6;
+
+    If Yp <> Oyp Then
+    Begin
+      Attribute(Oyp+Y1+1,X1+2,Oyp+Y1+1,X2-2,CA[DispMode,16]);
+      Attribute(Yp+Y1+1,X1+2,Yp+Y1+1,X2-2,CA[DispMode,18]);
+    End;
+
+    Kilepett := ESC;
+    Kesz     := False;
+
+    If NOT(Enabled[Yp]) AND ((Ch = Cr) Or OK) Then
+    Begin
+      BOOL := CREATE_WINDOW(2,17,79,21,'',CA[DispMode,1],CA[DispMode,16]);
+
+      TextAttr := CA[DispMode,5];
+
+      Repeat
+        Drive := GetEnv(GuardDsk);
+        Insert('I',GuardDsk,7);
+      Until (Drive <> '') OR (Length(GuardDsk) > 9);
+
+      If Drive <> '' Then Inc(Byte(Drive[1]),17) { '0' -> 'A' }
+                     Else Drive := 'A';
+
+      InsertKeyDisk[28] := Drive[1];
+
+      Repeat
+
+        {$IFNDEF PACKARD}
+        Repeat
+          TextAttr := CA[DispMode,16];
+          ClrScr;
+          Beepel(660);
+          GotoXY(39-(Length(InsertKeyDisk) DIV 2),1);
+          Write(InsertKeyDisk);
+          GotoXY(39-(Length(Pr_Mess2) DIV 2),2);
+          Write(Pr_Mess2);
+          Puffi(Ch,Sc);
+          If NOT(Esc) AND Not(Ready2(Drive[1])) Then Error(15,Drive[1]);
+        Until ESC Or Ready2(Drive[1]);
+
+        Kpath := Drive[1] + ':\';
+
+        {$ELSE}
+        ESC := False;
+        Kpath := OvrPath;
+        If Kpath[Length(Kpath)] <> '\' Then Kpath := Kpath + '\';
+        {$ENDIF}
+
+        Kilepett := ESC;
+
+        If NOT Esc Then
+        Begin
+          {WriteLn(Kpath+Copy(OvrName,1,Length(OvrName)-3)+'EXE');}
+          {Assign(F,Kpath+Copy(OvrName,1,Length(OvrName)-3)+'EXE');}
+
+          Assign(F,Kpath+OvrName);
+          SetFattr(F,Archive);
+          {$I-}
+          Reset(F);
+          {$I+}
+          Kilepett:= (IOResult <> 0);
+
+          If NOT Kilepett Then
+          Begin
+            Close(F);
+            SetFattr(F,ReadOnly+Archive);
+            Assign(F,Kpath+OvrName);
+            {Writeln(Kpath+OvrName);}
+            SetFattr(F,Archive);
+            {$I-}
+            Reset(F,1);
+            {$I+}
+            Kilepett:= (IOResult <> 0);
+            If NOT Kilepett Then
+            Begin
+              Sorsz := GetSorszam;
+              Ver   := GetVersion;
+
+              GetFtime(F,Ft);
+
+              Fs := Filesize(F);
+
+              {$IFDEF PACKARD}
+              PW := CreatePassword(SerSt,Yp);
+              {$ELSE}
+
+              Val(Ver,Pwr,Code);
+
+              Pwr:=Frac(Frac(Sqrt(Sorsz))+Frac(Sqrt(1.11111*Yp*Ft/(Pwr*Fs))));
+
+              Str(Pwr:1:11,Pw);
+              Delete(Pw,1,3);
+
+              For Bc := 1 To 10 Do
+                Pw[Bc] :=
+                  Char( ( 25*Bc*(Byte(Pw[Bc])+13) MOD 26 )+65 );
+
+              {$ENDIF}
+
+              Seek(F,10*(Yp-1)+9+4);
+
+            End
+            Else Error(20,NonKeyDisk);
+          End
+          Else Error(20,NonKeyDisk);
+        End;
+
+      Until (NOT Kilepett) OR (Kilepett AND ESC);
+
+      If NOT Esc Then
+      Begin
+        ClrScr;
+        PassWord := '';
+
+        { Write('Pw = ',Pw); }
+
+        Repeat
+          GotoXY(26,2);
+          MaxStringLen := 10;
+          PassWord := '';
+          Input_String(Szov[Yp]+' '+MiaJelszo,Password,10);
+          UpperCase(Password);
+          CurOff;
+        Until ESC Or (Length(Password) = 10);
+
+        If NOT ESC Then
+        Begin
+          If Pw <> Password Then
+          Begin
+            ESC := True;
+            FillChar(Pw[1],10,0);
+          End;
+
+          Kilepett := NOT Esc;
+          Esc      := False;
+          Kesz     := True;
+
+          If Kilepett Then
+          Begin
+            {$I-} BlockWrite(F,Pw[1],10); {$I+}
+            Enabled[Yp] := (IOResult = 0);
+            {$I-} Seek(F,Fs); {$I+}
+            Enabled[Yp] := (IOResult = 0);
+            {$I-} SetFtime(F,Ft); {$I+}
+            Enabled[Yp] := (IOResult = 0);
+            {$I-} Close(F); {$I+}
+            Enabled[Yp] := (IOResult = 0);
+
+            
+            FillChar(Pw[1],10,0);
+
+
+            {$IFNDEF PACKARD}
+
+            Reset(F,1);
+            Fs := FileSize(F);
+
+            Ofn := OvrPath;
+            If Ofn[Length(Ofn)] <> '\' Then Ofn := Ofn + '\';
+            Ofn := Ofn + OvrName;
+
+            IORes := 0;
+
+            Assign(Fo,Ofn);
+
+            SetFattr(Fo,Archive);
+
+            {$I-} Rewrite(Fo,1); {$I+}
+            Inc(IORes,IoResult);
+
+            While Fs > 0 Do
+            Begin
+              {$I-} BlockRead(F,CopyBuf,32768,Result); {$I+}
+              Inc(IORes,IoResult);
+              {$I-} BlockWrite(Fo,CopyBuf,Result); {$I+}
+              Inc(IORes,IoResult);
+              Dec(Fs,Result);
+            End;
+
+            {$I-} SetFtime(Fo,Ft); {$I+}
+            {$I-} Close(Fo); {$I+}
+            Inc(IORes,IoResult);
+            {$I-} Close(F); {$I+}
+            Inc(IORes,IoResult);
+
+            If IORes <> 0 Then Error(26,''); {File mÅveleti hiba}
+
+            {$ENDIF PACKARD}
+
+            SetFattr(F,Archive+ReadOnly);
+
+            If Enabled[Yp] Then
+            Begin
+              FillChar(Pw[1],10,0);
+              ClrScr;
+              GotoXY(40-(Length(Szov[Yp])+Length(DisEna[True])+1) DIV 2,2);
+              Write(Szov[Yp],' ',DisEna[True]);
+              Inline($FA);
+              For Sorsz := 1 To 2500 Do
+                Attribute(19,25,19,55,16*(Sorsz MOD 15)+15);
+              Inline($FB);
+            End;
+          End
+          Else { Nem jo a jelszo }
+          Begin
+            Kilepett := True;
+            ErrorDelay := ErrorDelayCount;
+            Error(50,Password);
+            ErrorDelayCount := 3 * ErrorDelayCount;
+            ErrorDelay := 100;
+            {$I-} Close(F); {$I+}
+            SetFAttr(F,Archive+ReadOnly);
+            If IOResult <> 0 Then Error(6,'');
+          End;
+        End  { ESC-el kilepett a jelszo inputbol }
+        Else Kilepett := True; { Kilepett AND Esc -> Esc := False }
+
+      End;
+
+      If Kilepett AND Esc Then Esc := False;
+
+      Bool := Remove_Window;
+    End;
+
+  Until Esc OR Kesz;
+
+  Bool := Remove_Window;
+  InPass := False;
+  Esc := False;
+
+End;
+
+{$ENDIF ANGOL}
+{$ENDIF NORVEG}
+{$ENDIF OROSZ}
+
+{$ENDIF}
+
+
+CONST SystemWriting : boolean = False;
+
+
+FUNCTION BackFind(szoveg : string; minta : char) : byte;
+
+VAR cikl  : byte;
+
+BEGIN
+  cikl:=Length(szoveg);
+  While (szoveg[cikl]<>minta) and (cikl>0) do
+    BEGIN
+      Dec(cikl);
+    End;
+  If Pos(minta,szoveg)=0 then cikl:=0;
+  BackFind:=cikl;
+End;
+
+FUNCTION DelSpace(szoveg : string) : string;
+
+BEGIN
+  While szoveg[Byte(szoveg[0])]=' ' do Delete(szoveg,Byte(szoveg[0]),1);
+  DelSpace:=szoveg;
+End;
+
+
+
+FUNCTION Path_Check(utvonal : string) : boolean;
+
+VAR Old_Ut : string;
+
+BEGIN
+  If utvonal='' then
+    BEGIN
+      Path_Check:=True;
+      Exit;
+    End;
+  {$I-}
+  GetDir(0,Old_ut);
+  {$I+}
+  If IOResult<>0 then
+    BEGIN
+      CurOff;
+      Error(26,utvonal);
+      Path_Check:=False;
+      CurOn;
+      Exit;
+    End;
+  {$I-}
+  ChDir(utvonal);
+  {$I+}
+  If IOResult<>0 then
+    BEGIN
+      CurOff;
+      Error(2,utvonal);
+      Path_Check:=False;
+      CurOn;
+      {$I-}
+      ChDir(Old_ut);
+      {$I+}
+      If IOResult<>0 then Begin End;
+      Exit;
+    End;
+  {$I-}
+  ChDir(Old_ut);
+  {$I+}
+  If IOResult<>0 then
+    BEGIN
+      CurOff;
+      Error(26,utvonal);
+      Path_Check:=False;
+      CurOn;
+      Exit;
+    End;
+  Path_Check:=True;
+End;
+
+
+Function Are_You_Sure(Edit : byte; Tip : SureTip) : boolean;
+
+VAR Spoz  : Integer;
+    C     : Char;
+    x,I   : Byte;
+    Ws    : String[12];
+    BBBB  : Byte;
+
+Function Valtoztatva : Boolean;
+
+BEGIN
+  Bool := False;
+  If Edit<4 then X:=1
+  else X:=4;
+  While (X<=MaxEditor-2) and (not Valtozas[X]) Do Inc(X);
+  If X > MaxEditor-2 then Valtoztatva:=False
+  else Valtoztatva := True;
+End;
+
+BEGIN
+  Ws := '';
+  If Valtoztatva Then
+    BEGIN
+      Beepel(600);
+      BOOL := CREATE_WINDOW(3,19,78,21,InpSt8,CA[DispMode,1],CA[DispMode,5]);
+
+      If X<4 then
+        BEGIN
+          If Tip = Each Then
+          Begin
+            For I := 1 To 3 Do
+              If Valtozas[I] Then Ws := Ws + Char(I+48) + ',';
+            Dec(Byte(Ws[0]));
+            Ws := ' ('+Ws+')';
+          End;
+          Spoz := 40-(Length(Wsstr+WssSz+Ws+IgNe)) DIV 2;
+          Display(Wsstr+WssSz+Ws+IgNe,20,Spoz);
+          If Tip = Each Then Attribute(20,Spoz+Length(Wsstr+WssSz)+1,
+                                       20,Spoz+Length(Wsstr+WssSz+Ws)-1,
+                                       CA[DispMode,9]);
+          Gotoxy(Spoz+Length(Wsstr+WssSz+Ws+IgNe)-3,1);
+        End
+      else
+        BEGIN
+          Spoz := 40-(Length(Wsstr+WssFj+IgNe)) DIV 2;
+          Display(Wsstr+WssFj+IgNe,20,Spoz);
+          Gotoxy(Spoz+Length(Wsstr+WssFj+IgNe)-3,1);
+        End;
+      CurOn;
+
+      {$IFDEF SZAMVEVO}
+      BBBB:= 116;      {Ki akarja menteni a}
+      {$ELSE}
+        {$IFDEF NAGYSOLYMOSI}
+        BBBB := 116;      {Ki akarja menteni a}
+        {$ELSE}
+        BBBB := 117;      {Biztos hogy nem akarja kimenteni a }
+        {$ENDIF}
+      {$ENDIF}
+
+      If X < 4 Then Speak2(BBBB,118)  {Szîveget ?}
+               Else Speak2(BBBB,119); {FejlÇcet ?}
+
+      Wait(C);
+
+      {$IFDEF SZAMVEVO}
+      Are_You_Sure :=  (C = NoChar);
+      Esc          :=  (C In [YesChar,Char(Escape)]);
+      {$ELSE}
+        {$IFDEF NAGYSOLYMOSI}
+        Are_You_Sure :=  (C = NoChar);
+        Esc          :=  (C In [YesChar,Char(Escape)]);
+        {$ELSE}
+        Are_You_Sure :=  (C = YesChar);
+        Esc          :=  (C In [NoChar,Char(Escape)]);
+        {$ENDIF}
+      {$ENDIF}
+
+      CurOff;
+      Bool := Remove_Window;
+    End
+  Else Are_You_Sure := True;
+End;
+
+
+{$IFNDEF CDVIEW}
+Procedure Fresh_Info;
+Var Min, Max : Word;
+    P        : Byte;
+    Att      : Byte;
+    Fn       : FnTyp;
+    WorkS    : String[24];
+
+Const Spaces : String[19] = '                   ';
+
+BEGIN
+
+  MouseCursor(False);
+
+  Display(' F1 : HELP ',22,35);
+
+  Attribute(23,11,23,68,CA[DispMode,6]);  { 3, 10 volt}
+  Attribute(24,45,24,49,CA[DispMode,9]);
+
+  For Cik := 0 To 2 Do
+  Begin
+    Fn := Filename[Cik+1];
+    While Pos('\',Fn) <> 0 Do
+      Delete(Fn,1,1);
+    While Pos(':',Fn) <> 0 Do
+      Delete(Fn,1,1);
+    If Fn[0] > #12 Then
+      Fn[0] := #12;
+    Display(Fn+Copy(Spaces,1,21-Length(Fn)),23,11+(21*Cik+2));
+  End;
+
+  P := 40-(Length(Path) DIV 2);
+  Attribute(22,3,22,78,CA[DispMode,3]);
+  Display(Spaces+Spaces+Spaces+Spaces,22,3);
+  { Display(MenuStr[30]+':',22,3); }
+  Display(Path,22,P);
+  { Attribute(22,P-1,22,P+Length(Path),CA[DispMode,22]); }
+
+  Attribute(23,21*(GeditNum-1)+12,23,21*(GeditNum-1)+25,CA[DispMode,5]); {3}
+
+  {$IFDEF VER3}
+  WorkS := Menu_Duma(09,7);
+  While Pos('^',WorkS) > 0 Do Delete(WorkS,Pos('^',WorkS),1);
+  Display(WorkS,24,3);
+  {$ELSE}
+  Display(Menu_Duma(10,7),24,3);
+  {$ENDIF}
+
+  Display(': '+PsFile[True]+'     ',24,12);
+  { Attribute(24,13,24,13+Length(PsFile[True])+1,CA[DispMode,22]); }
+
+  {$IFDEF ROMAN}
+    {$IFDEF VER3}
+    Display(Menu_duma(09,6),24,53);
+    {$ELSE}
+    Display(Menu_duma(10,6),24,49);
+    {$ENDIF}
+  {$ELSE}
+    {$IFDEF VER3}
+    WorkS := Menu_Duma(09,6);
+    While Pos('^',WorkS) > 0 Do Delete(WorkS,Pos('^',WorkS),1);
+    Display(WorkS,24,54);
+    {$ELSE}
+    Display(Menu_duma(10,6),24,54);
+    {$ENDIF}
+  {$ENDIF}
+
+  Display(': '+PsFile[False]+'  ',24,64);
+
+  {$IFDEF SECRET}
+  Attribute(25,33,25,33+13,CA[DispMode,5]);
+  If VanJelszo Then
+    Display('  Van jelsz¢  ',25,33)
+  Else
+    Display(' Nincs jelsz¢ ',25,33);
+  {$ENDIF}
+
+  { Attribute(24,65,24,65+Length(PsFile[False])+1,CA[DispMode,22]); }
+
+  MouseCursor(True);
+
+End;
+{$ENDIF}
+
+Procedure Fresh_KeyMode;
+Begin
+  Display(GlobalKeyModeStr[GlobalKeyMode],24,35);
+End;
+
+FUNCTION  Menu_Duma(MenuSzam,Sorszam : byte) : string;
+
+VAR cikl : byte;
+    poz  : byte;
+    vissz: string[40];
+
+BEGIN
+  poz:=Sorszam;
+  If MenuSzam>1 then
+    For cikl:=1 to Menuszam-1 do Inc(Poz,MenuRec[cikl].MemNum);
+  MenuStr(Poz,vissz,False);
+  Menu_duma:=vissz;
+End;
+
+Procedure Make_Tabulators;
+Var Cikl : Integer;
+Begin
+  FillChar(Image[-1]^.Chars[C80],C80,' ');
+  For Cikl := LeftMar[EditNum] To RightMar[EditNum] do
+    If Tabs[Cikl] Then
+      Image[-1]^.Chars[C80+Cikl] := #116 { "¬" alaku }
+    Else
+      Image[-1]^.Chars[C80+Cikl] := #114;{ "ƒ" alaku }
+  Image[-1]^.Chars[C80+LeftMar[EditNum]] := #113;  { "©" alaku }
+  Image[-1]^.Chars[C80+RightMar[EditNum]] := #115; { "™" alaku }
+End;
+End. { InputCdw }

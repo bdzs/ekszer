@@ -1,0 +1,107 @@
+Procedure Input_Conditions; {Check : Boolean}
+
+Var  X : Byte;
+     Ch : Char;
+     bo : boolean;
+
+Procedure Input_Window;
+Begin
+  BOOL := CREATE_WINDOW(10,5,70,9,IneSt26,CA[DispMode,1],CA[DispMode,3])
+End;
+
+Begin
+
+  With CLV^ Do
+    Begin
+      InCond := True;
+
+      If Check Then Input_Window
+               Else ESC := False;
+      Repeat
+
+        If Check Then
+        Begin
+          GotoXY(2,2);
+          CurOn;
+
+          MaxStringLen := 255;
+
+          GlobalStringMode := CondiMode;
+
+          Input_String(Feltetel+' : ',Condi,42);
+          If Condi = '' Then ESC := True
+                        Else UpperCase(Condi);
+
+          CurOff;
+
+        End;
+
+        If Not ESC Then
+        Begin
+
+          Kiertekel(VarNum,Condi,VarSt,Variables,CondiResult,Hibakod,HibaPoz);
+
+          If HibaKod = 0 Then
+          Begin
+            (* BOOL := CREATE_WINDOW(28,7,52,11,'',CA[DispMode,1],CA[DispMode,6]);
+            GotoXY(2,2);
+            Write(Feltetel,' ',Condi_Ok);
+            Delay(1000);
+            { Writeln(Lst); Writeln(Lst,Condi); Writeln(Lst); }
+            Bool := Remove_Window; *)
+          End
+          Else
+          Begin
+            Error(29,ErrX[HibaKod]);
+            If HibaPoz > 0 Then SzoPoz := HibaPoz-1;
+            If Not Check Then Input_Window;
+            Check := True;
+          End;
+
+        End;
+
+      Until { (Not Check) Or} (ESC Or (HibaKod = 0));
+
+      {$IFDEF DEBUG}
+      If Not ESC Then
+      Begin
+        BOOL := CREATE_WINDOW(15,3,69,21,'',CA[DispMode,3],CA[DispMode,1]);
+        X := 0;
+
+        Repeat
+
+          Inc(X);
+          Write('    VarSt[',CondiResult[X],'] = ',VarSt[CondiResult[X]]);
+          Inc(X);
+          Writeln(' Variables[',CondiResult[X],'] = "',Variables[CondiResult[x]],'"');
+          Inc(X);
+          Writeln(' OLevel = ',CondiResult[X] SHR 5,
+                  '  Rel ci¢: ',(CondiResult[X] SHR 2) AND 7,
+                  '  Oper.: ',CondiResult[X] AND 3);
+         If (CondiResult[X] AND 3) = 0  Then
+          Begin
+            Bo := true;
+            Inc(X);
+            Writeln('¯¯¯ Level = ',CondiResult[X] SHR 4,'  Op.: ',CondiResult[X] AND 3,'  ®®®');
+          End
+          Else Bo := False;
+          Writeln;
+
+        Until (Bo) AND (CondiResult[x] = 00);
+
+        Ch := Readkey;
+        Bool := Remove_Window;
+      End;
+      {$ENDIF}
+
+      If Check Then
+      Begin
+        CurOff;
+        Bool := Remove_Window;
+      End;
+
+      ESC := (HibaKod = 0);
+
+      InCond := False;
+    End;
+End;
